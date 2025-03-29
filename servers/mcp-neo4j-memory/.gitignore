@@ -1,0 +1,9 @@
+.venv/
+.venv/*
+.llm-context/
+.llm-context/*
+.coverage
+src/mcp_neo4j_memory/__pycache__/
+src/mcp_neo4j_memory/__pycache__/*
+tests/mcp_neo4j_memory/__pycache__/
+tests/mcp_neo4j_memory/__pycache__/*

@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "servers/mcp-neo4j-memory"
+		}
+	],
+	"settings": {}
+}
