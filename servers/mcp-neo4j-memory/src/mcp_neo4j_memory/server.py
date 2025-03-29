@@ -52,18 +52,125 @@ class Neo4jMemory:
     self.create_fulltext_index()
 
   def create_fulltext_index(self):
+    """Create fulltext indexes for nodes and relationships in the Neo4j graph."""
+    index_config = {
+      "indexConfig": {
+        "fulltext.analyzer": "cjk",
+        "fulltext.eventually_consistent": True,  # Use async indexing
+      }
+    }
+
+    # Node index: name, type, and observations
+    node_query = """
+      CREATE FULLTEXT INDEX node_search IF NOT EXISTS
+      FOR (n:Memory)
+      ON EACH [n.name, n.type, n.observations]
+      OPTIONS $config
+      """
+
     try:
-      # TODO ,
-      query = """
-            CREATE FULLTEXT INDEX search IF NOT EXISTS FOR (m:Memory) ON EACH [m.name, m.type, m.observations];
-            """
-      self.neo4j_driver.execute_query(query)
-      logger.info("Created fulltext search index")
+      self.neo4j_driver.execute_query(node_query, {"config": index_config})
+      logger.info("Full text indexes created successfully.")
     except neo4j.exceptions.ClientError as e:
-      if "An index with this name already exists" in str(e):
-        logger.info("Fulltext search index already exists")
-      else:
-        raise e
+      logger.error(f"Indexing failed with: {str(e)}")
+      raise
+
+  async def check_index_status(self):
+      query = """
+      CALL db.index.fulltext.list()
+      YIELD name, state, populationPercent, type
+      WHERE name IN ['node_search', 'rel_search']
+      RETURN name, state, populationPercent, type
+      ORDER BY name
+      """
+
+      result = self.neo4j_driver.execute_query(query)
+      status = {}
+
+      for record in result.records:
+          status[record["name"]] = {
+              "state": record["state"],
+              "progress": f"{record['populationPercent']}%",
+              "type": record["type"]
+          }
+
+      return {
+          "node_index": status.get("node_search", "not found"),
+      }
+
+  async def fuzzy_search(
+      self,
+      search_term: str,
+      target_type: Optional[str] = None,  # 'node'/'relationship'/None
+      limit: int = 50
+  ) -> Dict[str, List]:
+      """
+      Fuzzy search for nodes and relationships in the knowledge graph using fulltext indexing.
+      :param search_term: keyword or phrase to search for in the knowledge graph (with Lucene query syntax support)
+      :param target_type: type to search: node/relationship
+      :param limit: maximum number of results to return for each type
+      """
+      queries = []
+
+      # Dynamically build queries based on target_type
+      if not target_type or target_type == "node":
+          queries.append({
+              "type": "node",
+              "query": """
+              CALL db.index.fulltext.queryNodes('node_search', $term)
+              YIELD node, score
+              RETURN 'node' AS type,
+                     node.name AS name,
+                     node.type AS entityType,
+                     node.observations AS observations,
+                     score
+              ORDER BY score DESC
+              LIMIT $limit
+              """
+          })
+
+      if not target_type or target_type == "relationship":
+          queries.append({
+              "type": "relationship",
+              "query": """
+              CALL db.index.fulltext.queryRelationships('node_search', $term)
+              YIELD relationship, score
+              RETURN 'relationship' AS type,
+                     type(relationship) AS relationType,
+                     startNode(relationship).name AS source,
+                     endNode(relationship).name AS target,
+                     score
+              ORDER BY score DESC
+              LIMIT $limit
+              """
+          })
+
+      # Parallelized execution of queries
+      results = {"nodes": [], "relationships": []}
+      params = {"term": search_term, "limit": limit}
+
+      for q in queries:
+          result = self.neo4j_driver.execute_query(q["query"], params)
+
+          for record in result.records:
+              item = {key: record[key] for key in record.keys()}
+              if q["type"] == "node":
+                  results["nodes"].append({
+                      "name": item["name"],
+                      "type": item["entityType"],
+                      "observations": item.get("observations", []),
+                      "score": item["score"]
+                  })
+              else:
+                  results["relationships"].append({
+                      "type": item["relationType"],
+                      "source": item["source"],
+                      "target": item["target"],
+                      "score": item["score"]
+                  })
+
+      return results
+
 
   async def load_graph(self, filter_query="*"):
     query = """
@@ -416,28 +523,25 @@ async def main(neo4j_uri: str, neo4j_user: str, neo4j_password: str):
   @server.call_tool()
   async def handle_call_tool(name: str, arguments: Dict[str, Any] | None) -> List[types.TextContent | types.ImageContent]:
     try:
-      # 检查工具是否存在
       if name not in tool_handlers:
         raise ValueError(f"Unknown tool: {name}")
       handler_config = tool_handlers[name]
       param_key = handler_config["param_key"]
       model_cls = handler_config["model"]
       handler = handler_config["handler"]
-      # 处理无需参数的工具（如 read_graph）
+
       if param_key is None:
         result = await handler(memory, None)
         return [types.TextContent(type="text", text=json.dumps(result.model_dump(), indent=2))]
-      # 验证参数是否存在
       if not arguments or param_key not in arguments:
         raise ValueError(f"Missing required parameter: {param_key}")
-      # 动态构建参数对象
+
       raw_params = arguments.get(param_key, [])
-      # 对需要模型化的参数进行类型转换（如 List[Entity]）
-      # 直接传递原始参数（如删除操作中的 entityNames）
+
       params = [model_cls(**item) for item in raw_params] if model_cls else raw_params
-      # 执行工具处理
+
       result = await handler(memory, params)
-      # 统一返回格式
+
       if isinstance(result, BaseModel):
         return [types.TextContent(type="text", text=json.dumps(result.model_dump(), indent=2))]
       elif isinstance(result, list):
