@@ -68,7 +68,7 @@ class Neo4jMemory:
                 type: entity.type, 
                 observations: entity.observations
             }) as nodes,
-            collect({
+            collect(distinct {
                 source: startNode(r).name, 
                 target: endNode(r).name, 
                 relationType: type(r)
