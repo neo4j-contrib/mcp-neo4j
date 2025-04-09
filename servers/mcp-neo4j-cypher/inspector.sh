@@ -1,0 +1,1 @@
+npx @modelcontextprotocol/inspector uv run mcp dev src/mcp_neo4j_cypher/server.py --log-level debug
