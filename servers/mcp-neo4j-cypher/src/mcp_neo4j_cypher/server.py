@@ -16,7 +16,7 @@ logger = logging.getLogger('mcp_neo4j_cypher')
 logger.info("Starting MCP neo4j Server")
 
 def is_write_query(query: str) -> bool:
-    return re.search(r"\b(MERGE|CREATE|SET|DELETE|REMOVE|ADD)\b", query, re.IGNORECASE) is not None
+    return re.search(r"\b(MERGE|CREATE|SET|DELETE|REMOVE|ADD|DETACH\s+DELETE)\b", query, re.IGNORECASE) is not None
 
 class neo4jDatabase:
     def __init__(self,  neo4j_uri: str, neo4j_username: str, neo4j_password: str):
@@ -122,7 +122,7 @@ async def main(neo4j_url: str, neo4j_username: str, neo4j_password: str):
                     """
 call apoc.meta.data() yield label, property, type, other, unique, index, elementType
 where elementType = 'node' and not label starts with '_'
-with label, 
+with label,
     collect(case when type <> 'RELATIONSHIP' then [property, type + case when unique then " unique" else "" end + case when index then " indexed" else "" end] end) as attributes,
     collect(case when type = 'RELATIONSHIP' then [property, head(other)] end) as relationships
 RETURN label, apoc.map.fromPairs(attributes) as attributes, apoc.map.fromPairs(relationships) as relationships
@@ -141,7 +141,7 @@ RETURN label, apoc.map.fromPairs(attributes) as attributes, apoc.map.fromPairs(r
                     raise ValueError("Only write queries are allowed for write-query")
                 results = db._execute_query(arguments["query"])
                 return [types.TextContent(type="text", text=str(results))]
-            
+
             else:
                 raise ValueError(f"Unknown tool: {name}")
 
