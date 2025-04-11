@@ -1,6 +1,5 @@
 import os
 import pytest
-import asyncio
 from mcp_neo4j_cypher.server import neo4jDatabase
 
 
