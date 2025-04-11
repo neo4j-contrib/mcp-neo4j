@@ -131,7 +131,7 @@ def healthcheck(neo4j_driver: AsyncDriver) -> None:
     while not success or attempts <= 3:
         try:
             with neo4j_driver.session() as session:
-                session.run("show databases")
+                session.run("RETURN 1")
             success = True
         except Exception:
             attempts += 1
@@ -144,7 +144,6 @@ def healthcheck(neo4j_driver: AsyncDriver) -> None:
 
 
 def main() -> None:
-
     # Test the connection
     healthcheck(neo4j_driver)
 
