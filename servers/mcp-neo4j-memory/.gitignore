@@ -2,7 +2,9 @@
 .venv/*
 .llm-context/
 .llm-context/*
+.vscode/
 .coverage
+ruff.toml
 src/mcp_neo4j_memory/__pycache__/
 src/mcp_neo4j_memory/__pycache__/*
 tests/mcp_neo4j_memory/__pycache__/
