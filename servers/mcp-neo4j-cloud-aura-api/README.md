@@ -1,12 +1,12 @@
-# Neo4j Aura Database Manager MCP Server
+# 🚀💖☁️ Neo4j Aura Database Manager MCP Server
 
-## Overview
+## 🌟 Overview
 
 A Model Context Protocol (MCP) server implementation that provides tools for managing Neo4j Aura database instances through the Neo4j Aura API.
 
 This server allows you to create, monitor, and manage Neo4j Aura instances directly through Claude, making it easy to provision and maintain your graph database infrastructure.
 
-## Authentication
+## 🔑 Authentication
 
 Authentication with the Neo4j Aura API requires:
 - Client ID
@@ -16,13 +16,13 @@ You can obtain these credentials from the Neo4j Aura console, see the [documenta
 
 Here is the [API Specification](https://neo4j.com/docs/aura/platform/api/specification/)
 
-## Components
+## 📦 Components
 
-### Tools
+### 🔧 Tools
 
 The server offers these core tools:
 
-#### Instance Management
+#### 🛠️ Instance Management
 - `list_instances`
   - List all Neo4j Aura database instances
   - No input required
@@ -92,7 +92,7 @@ The server offers these core tools:
     - `instance_id` (string): ID of the instance to delete
   - Returns: Deletion status information
 
-#### Tenant/Project Management
+#### 🏢 Tenant/Project Management
 - `list_tenants`
   - List all Neo4j Aura tenants/projects
   - No input required
@@ -104,15 +104,16 @@ The server offers these core tools:
     - `tenant_id` (string): ID of the tenant/project to retrieve
   - Returns: Detailed information about the tenant/project
 
-## Usage with Claude Desktop
 
-### Installation
+## 🔧 Usage with Claude Desktop
+
+### 💾 Installation
 
 ```bash
 pip install mcp-neo4j-aura-manager
 ```
 
-### Configuration
+### ⚙️ Configuration
 
 Add the server to your `claude_desktop_config.json`:
 
@@ -121,7 +122,7 @@ Add the server to your `claude_desktop_config.json`:
   "neo4j-aura": {
     "command": "uvx",
     "args": [
-      "mcp-neo4j-aura-manager",
+      "mcp-neo4j-aura-manager==0.2.0",
       "--client-id",
       "<your-client-id>",
       "--client-secret",
@@ -137,7 +138,7 @@ Alternatively, you can set environment variables:
 "mcpServers": {
   "neo4j-aura": {
     "command": "uvx",
-    "args": [ "mcp-neo4j-aura-manager" ],
+    "args": [ "mcp-neo4j-aura-manager==0.2.0" ],
     "env": {
       "NEO4J_AURA_CLIENT_ID": "<your-client-id>",
       "NEO4J_AURA_CLIENT_SECRET": "<your-client-secret>"
@@ -145,47 +146,91 @@ Alternatively, you can set environment variables:
   }
 }
 ```
-### Development
 
-For development, you can run the server directly:
+### 🐳 Using with Docker
 
 ```json
 "mcpServers": {
   "neo4j-aura": {
-    "command": "uv",
-      "args": [
-        "--directory",
-        "path/to/repo/src/mcp_neo4j_aura_manager",
-        "run",
-        "mcp-neo4j-aura-manager",
-        "--client-id",
-        "<your-client-id>",
-        "--client-secret",
-        "<your-client-secret>"
-      ]
-    }
+    "command": "docker",
+    "args": [
+      "run",
+      "--rm",
+      "-e", "NEO4J_AURA_CLIENT_ID=${NEO4J_AURA_CLIENT_ID}",
+      "-e", "NEO4J_AURA_CLIENT_SECRET=${NEO4J_AURA_CLIENT_SECRET}",
+      "mcp-neo4j-aura-manager:0.2.0"
+    ]
+  }
 }
 ```
-## Usage Examples
 
-### Give overview over my tenants
+## 📝 Usage Examples
+
+### 🔍 Give overview over my tenants
 
 ![](docs/images/mcp-aura-tenant-overview.png)
 
-### Find an instance by name
+### 🔎 Find an instance by name
 
 ![](docs/images/mcp-aura-find-by-name.png)
 
-### List instances and find paused instance
+### 📋 List instances and find paused instance
 ![](docs/images/mcp-aura-find-paused.png)
 
-### Resume paused instances
+### ▶️ Resume paused instances
 ![](docs/images/mcp-aura-list-resume.png)
 
-### Create a new instance
+### ➕ Create a new instance
 
 ![](docs/images/mcp-aura-create-instance.png)
 
-## License
+## 🚀 Development
+
+### 📦 Prerequisites
+
+1. Install `uv` (Universal Virtualenv):
+```bash
+# Using pip
+pip install uv
+
+# Using Homebrew on macOS
+brew install uv
+
+# Using cargo (Rust package manager)
+cargo install uv
+```
+
+2. Clone the repository and set up development environment:
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/mcp-neo4j-aura-manager.git
+cd mcp-neo4j-aura-manager
+
+# Create and activate virtual environment using uv
+uv venv
+source .venv/bin/activate  # On Unix/macOS
+.venv\Scripts\activate     # On Windows
+
+# Install dependencies including dev dependencies
+uv pip install -e ".[dev]"
+```
+
+### 🐳 Docker
+
+Build and run the Docker container:
+
+```bash
+# Build the image
+docker build -t mcp-neo4j-aura-manager:<version> .
+
+# Run the container
+docker run -e NEO4J_AURA_CLIENT_ID="your-client-id" \
+          -e NEO4J_AURA_CLIENT_SECRET="your-client-secret" \
+          mcp-neo4j-aura-manager:<version>
+```
+
+## 📄 License
 
 This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
+
+

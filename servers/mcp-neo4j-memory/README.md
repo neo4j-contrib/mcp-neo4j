@@ -1,8 +1,8 @@
-# Neo4j Knowledge Graph Memory MCP Server
+# 🧠🕸️ Neo4j Knowledge Graph Memory MCP Server
 
-## Overview
+## 🌟 Overview
 
-A Model Context Protocol (MCP) server implementation that provides persistent memory capabilities through Neo4j graph database integration. 
+A Model Context Protocol (MCP) server implementation that provides persistent memory capabilities through Neo4j graph database integration.
 
 By storing information in a graph structure, this server maintains complex relationships between entities as memory nodes and enables long-term retention of knowledge that can be queried and analyzed across multiple conversations or sessions.
 
@@ -10,12 +10,12 @@ With [Neo4j Aura](https://console.neo4j.io) you can host your own database serve
 
 The MCP server leverages Neo4j's graph database capabilities to create an interconnected knowledge base that serves as an external memory system. Through Cypher queries, it allows exploration and retrieval of stored information, relationship analysis between different data points, and generation of insights from the accumulated knowledge. This memory can be further enhanced with Claude's capabilities.
 
-### Graph Schema
+### 🕸️ Graph Schema
 
 * `Memory` - A node representing an entity with a name, type, and observations.
 * `Relationship` - A relationship between two entities with a type.
 
-### Usage Example
+### 🔍 Usage Example
 
 ```
 Let's add some memories 
@@ -29,17 +29,13 @@ Results in Claude calling the create_entities and create_relations tools.
 
 ![](./docs/images/employee_graph.png)
 
-## Components
+## 📦 Components
 
-<!--
-### Resources
-### Prompts
--->
-### Tools
+### 🔧 Tools
 
 The server offers these core tools:
 
-#### Query Tools
+#### 🔎 Query Tools
 - `read_graph`
    - Read the entire knowledge graph
    - No input required
@@ -57,7 +53,7 @@ The server offers these core tools:
      - `names` (array of strings): Entity names to retrieve
    - Returns: Subgraph with specified nodes
 
-#### Entity Management Tools
+#### ♟️ Entity Management Tools
 - `create_entities`
    - Create multiple new entities in the knowledge graph
    - Input:
@@ -73,7 +69,7 @@ The server offers these core tools:
      - `entityNames` (array of strings): Names of entities to delete
    - Returns: Success confirmation
 
-#### Relation Management Tools
+#### 🔗 Relation Management Tools
 - `create_relations`
    - Create multiple new relations between entities
    - Input:
@@ -89,7 +85,7 @@ The server offers these core tools:
      - `relations`: Array of objects with same schema as create_relations
    - Returns: Success confirmation
 
-#### Observation Management Tools
+#### 📝 Observation Management Tools
 - `add_observations`
    - Add new observations to existing entities
    - Input:
@@ -106,24 +102,24 @@ The server offers these core tools:
        - `observations` (array of strings): Observations to remove
    - Returns: Success confirmation
 
-## Usage with Claude Desktop
+## 🔧 Usage with Claude Desktop
 
-### Released Package
+### 💾 Installation
 
-Can be found on PyPi https://pypi.org/project/mcp-neo4j-memory/
+```bash
+pip install mcp-neo4j-memory
+```
 
-Add the server to your `claude_desktop_config.json` with configuration of 
+### ⚙️ Configuration
 
-* db-url (for [Neo4j Aura](https://console.neo4j.io) `neo4j+s://xxxx.databases.neo4j.io` for local `bolt://localhost`)
-* username
-* password
+Add the server to your `claude_desktop_config.json` with configuration of:
 
 ```json
 "mcpServers": {
   "neo4j": {
     "command": "uvx",
     "args": [
-      "mcp-neo4j-memory",
+      "mcp-neo4j-memory==0.1.1",
       "--db-url",
       "neo4j+s://xxxx.databases.neo4j.io",
       "--username",
@@ -135,29 +131,86 @@ Add the server to your `claude_desktop_config.json` with configuration of
 }
 ```
 
-### Development
+Alternatively, you can set environment variables:
 
 ```json
-# Add the server to your claude_desktop_config.json
 "mcpServers": {
   "neo4j": {
-    "command": "uv",
+    "command": "uvx",
+    "args": [ "mcp-neo4j-memory==0.1.1" ],
+    "env": {
+      "NEO4J_URL": "neo4j+s://xxxx.databases.neo4j.io",
+      "NEO4J_USERNAME": "<your-username>",
+      "NEO4J_PASSWORD": "<your-password>"
+    }
+  }
+}
+```
+
+### 🐳 Using with Docker
+
+```json
+"mcpServers": {
+  "neo4j": {
+    "command": "docker",
     "args": [
-      "--directory",
-      "parent_of_servers_repo/mcp-neo4j/servers/mcp-neo4j-memory/src/mcp_neo4j_memory",
       "run",
-      "mcp-neo4j-memory",
-      "--db-url",
-      "bolt://localhost",
-      "--username",
-      "neo4j",
-      "--password",
-      "<your-password>"
+      "--rm",
+      "-e", "NEO4J_URL=neo4j+s://xxxx.databases.neo4j.io",
+      "-e", "NEO4J_USERNAME=<your-username>",
+      "-e", "NEO4J_PASSWORD=<your-password>",
+      "mcp/neo4j-memory:0.1.1"
     ]
   }
 }
 ```
 
-## License
+## 🚀 Development
+
+### 📦 Prerequisites
+
+1. Install `uv` (Universal Virtualenv):
+```bash
+# Using pip
+pip install uv
+
+# Using Homebrew on macOS
+brew install uv
+
+# Using cargo (Rust package manager)
+cargo install uv
+```
+
+2. Clone the repository and set up development environment:
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/mcp-neo4j-memory.git
+cd mcp-neo4j-memory
+
+# Create and activate virtual environment using uv
+uv venv
+source .venv/bin/activate  # On Unix/macOS
+.venv\Scripts\activate     # On Windows
+
+# Install dependencies including dev dependencies
+uv pip install -e ".[dev]"
+```
+
+### 🐳 Docker
+
+Build and run the Docker container:
+
+```bash
+# Build the image
+docker build -t mcp/neo4j-memory:latest .
+
+# Run the container
+docker run -e NEO4J_URL="neo4j+s://xxxx.databases.neo4j.io" \
+          -e NEO4J_USERNAME="your-username" \
+          -e NEO4J_PASSWORD="your-password" \
+          mcp/neo4j-memory:latest
+```
+
+## 📄 License
 
 This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.

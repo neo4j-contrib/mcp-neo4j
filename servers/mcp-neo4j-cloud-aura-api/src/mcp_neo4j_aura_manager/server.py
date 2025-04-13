@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+import time
 from typing import Any, Dict, List, Optional, Union
 
 import mcp
@@ -65,7 +66,8 @@ class AuraAPIClient:
     
     def _get_headers(self) -> Dict[str, str]:
         """Get headers for API requests including authentication."""
-        if not self.token:
+        current_time = time.time()
+        if not self.token or current_time >= self.token_expiry:
             self.token = self._get_auth_token()
             
         return {
