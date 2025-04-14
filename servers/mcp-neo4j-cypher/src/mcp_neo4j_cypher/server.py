@@ -5,6 +5,7 @@ from pydantic import Field
 from typing import Any
 from neo4j import (
     AsyncGraphDatabase,
+    AsyncResult,
     AsyncTransaction,
     GraphDatabase,
 )
@@ -14,6 +15,7 @@ import re
 import os
 from typing import Optional
 import sys
+import json
 
 
 def healthcheck(db_url: str, username: str, password: str, database: str) -> None:
@@ -55,6 +57,27 @@ def healthcheck(db_url: str, username: str, password: str, database: str) -> Non
         raise ex
 
 
+async def _read(tx: AsyncTransaction, query: str, params: dict[str, Any]) -> str:
+    raw_results = await tx.run(query, params)
+    eager_results = await raw_results.to_eager_result()
+
+    return json.dumps([r.data() for r in eager_results.records], default=str)
+
+
+async def _write(
+    tx: AsyncTransaction, query: str, params: dict[str, Any]
+) -> AsyncResult:
+    return await tx.run(query, params)
+
+
+def _is_write_query(query: str) -> bool:
+    """Check if the query is a write query."""
+    return (
+        re.search(r"\b(MERGE|CREATE|SET|DELETE|REMOVE|ADD)\b", query, re.IGNORECASE)
+        is not None
+    )
+
+
 def main(
     db_url: str,
     username: str,
@@ -74,20 +97,11 @@ def main(
 
     mcp: FastMCP = FastMCP("mcp-neo4j-cypher", dependencies=["neo4j", "pydantic"])
 
-    def _is_write_query(query: str) -> bool:
-        """Check if the query is a write query."""
-        return (
-            re.search(r"\b(MERGE|CREATE|SET|DELETE|REMOVE|ADD)\b", query, re.IGNORECASE)
-            is not None
-        )
-
     @mcp.tool()
     async def get_neo4j_schema() -> list[types.TextContent]:
         """List all node, their attributes and their relationships to other nodes in the neo4j database"""
 
-        try:
-            results = await neo4j_driver.execute_query(
-                """
+        get_schema_query = """
 call apoc.meta.data() yield label, property, type, other, unique, index, elementType
 where elementType = 'node' and not label starts with '_'
 with label, 
@@ -95,9 +109,18 @@ with label,
     collect(case when type = 'RELATIONSHIP' then [property, head(other)] end) as relationships
 RETURN label, apoc.map.fromPairs(attributes) as attributes, apoc.map.fromPairs(relationships) as relationships
 """
-            )
 
-            return [types.TextContent(type="text", text=str(results))]
+        try:
+            async with neo4j_driver.session(
+                database=os.getenv("NEO4J_DATABASE", "neo4j")
+            ) as session:
+                results_json_str = await session.execute_read(
+                    _read, get_schema_query, dict()
+                )
+
+                logger.debug(f"Read query returned {len(results_json_str)} rows")
+
+                return [types.TextContent(type="text", text=results_json_str)]
 
         except Exception as e:
             logger.error(f"Database error retrieving schema: {e}")
@@ -116,20 +139,14 @@ RETURN label, apoc.map.fromPairs(attributes) as attributes, apoc.map.fromPairs(r
             raise ValueError("Only MATCH queries are allowed for read-query")
 
         try:
-
-            async def read(tx: AsyncTransaction, query: str, params: dict[str, Any]):
-                raw_results = await tx.run(query, params)
-                results = [r.data() async for r in raw_results]
-                return results
-
             async with neo4j_driver.session(
                 database=os.getenv("NEO4J_DATABASE", "neo4j")
             ) as session:
-                results = await session.execute_read(read, query, params)
+                results_json_str = await session.execute_read(_read, query, params)
 
-                logger.debug(f"Read query returned {len(results)} rows")
+                logger.debug(f"Read query returned {len(results_json_str)} rows")
 
-                return [types.TextContent(type="text", text=str(results))]
+                return [types.TextContent(type="text", text=results_json_str)]
 
         except Exception as e:
             logger.error(f"Database error executing query: {e}\n{query}\n{params}")
@@ -150,19 +167,15 @@ RETURN label, apoc.map.fromPairs(attributes) as attributes, apoc.map.fromPairs(r
             raise ValueError("Only write queries are allowed for write-query")
 
         try:
-
-            async def write(tx: AsyncTransaction, query: str, params: dict[str, Any]):
-                return await tx.run(query, params)
-
             async with neo4j_driver.session(
                 database=os.getenv("NEO4J_DATABASE", "neo4j")
             ) as session:
-                raw_results = await session.execute_write(write, query, params)
-                counters = raw_results._summary.counters
+                raw_results = await session.execute_write(_write, query, params)
+                counters_json_str = json.dumps(raw_results._summary.counters.__dict__)
 
-            logger.debug(f"Write query affected {counters}")
+            logger.debug(f"Write query affected {counters_json_str}")
 
-            return [types.TextContent(type="text", text=str([counters]))]
+            return [types.TextContent(type="text", text=counters_json_str)]
 
         except Exception as e:
             logger.error(f"Database error executing query: {e}\n{query}\n{params}")
