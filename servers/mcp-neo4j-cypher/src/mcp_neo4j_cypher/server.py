@@ -171,7 +171,7 @@ RETURN label, apoc.map.fromPairs(attributes) as attributes, apoc.map.fromPairs(r
                 database=os.getenv("NEO4J_DATABASE", "neo4j")
             ) as session:
                 raw_results = await session.execute_write(_write, query, params)
-                counters_json_str = json.dumps(raw_results._summary.counters.__dict__)
+                counters_json_str = json.dumps(raw_results._summary.counters.__dict__, default=str)
 
             logger.debug(f"Write query affected {counters_json_str}")
 
