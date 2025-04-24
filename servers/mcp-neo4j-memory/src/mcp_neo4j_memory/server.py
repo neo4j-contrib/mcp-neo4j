@@ -401,59 +401,60 @@ async def main(neo4j_uri: str, neo4j_user: str, neo4j_password: str):
         name: str, arguments: Dict[str, Any] | None
     ) -> List[types.TextContent]:
         try:
-            # Use empty dict for handlers; no-arg methods will ignore args
             # Prepare args for handler
             args = arguments or {}
 
-            # Table-driven dispatch for tool handling
-            async def _create_entities(args):
-                entities = [Entity(**entity) for entity in args.get("entities", [])]
-                result = await memory.create_entities(entities)
-                return [types.TextContent(type="text", text=json.dumps([e.model_dump() for e in result], indent=2))]
-            async def _create_relations(args):
-                relations = [Relation(**relation) for relation in args.get("relations", [])]
-                result = await memory.create_relations(relations)
-                return [types.TextContent(type="text", text=json.dumps([r.model_dump() for r in result], indent=2))]
-            async def _add_observations(args):
-                obs_list = [ObservationAddition(**obs) for obs in args.get("observations", [])]
-                result = await memory.add_observations(obs_list)
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-            async def _delete_entities(args):
-                await memory.delete_entities(args.get("entityNames", []))
-                return [types.TextContent(type="text", text="Entities deleted successfully")]
-            async def _delete_observations(args):
-                del_list = [ObservationDeletion(**d) for d in args.get("deletions", [])]
-                await memory.delete_observations(del_list)
-                return [types.TextContent(type="text", text="Observations deleted successfully")]
-            async def _delete_relations(args):
-                rel_list = [Relation(**relation) for relation in args.get("relations", [])]
-                await memory.delete_relations(rel_list)
-                return [types.TextContent(type="text", text="Relations deleted successfully")]
-            async def _read_graph(args):
-                result = await memory.read_graph()
-                return [types.TextContent(type="text", text=json.dumps(result.model_dump(), indent=2))]
-            async def _search_nodes(args):
-                result = await memory.search_nodes(args.get("query", ""))
-                return [types.TextContent(type="text", text=json.dumps(result.model_dump(), indent=2))]
-            async def _find_nodes(args):
-                result = await memory.find_nodes(args.get("names", []))
-                return [types.TextContent(type="text", text=json.dumps(result.model_dump(), indent=2))]
-
-            handlers = {
-                "create_entities": _create_entities,
-                "create_relations": _create_relations,
-                "add_observations": _add_observations,
-                "delete_entities": _delete_entities,
-                "delete_observations": _delete_observations,
-                "delete_relations": _delete_relations,
-                "read_graph": _read_graph,
-                "search_nodes": _search_nodes,
-                "find_nodes": _find_nodes,
+            # Dispatch table: tool name -> (method, arg_key, model_cls, formatter)
+            dispatch = {
+                "create_entities": (
+                    memory.create_entities, "entities", Entity,
+                    lambda res: [types.TextContent(type="text", text=json.dumps([e.model_dump() for e in res], indent=2))]
+                ),
+                "create_relations": (
+                    memory.create_relations, "relations", Relation,
+                    lambda res: [types.TextContent(type="text", text=json.dumps([r.model_dump() for r in res], indent=2))]
+                ),
+                "add_observations": (
+                    memory.add_observations, "observations", ObservationAddition,
+                    lambda res: [types.TextContent(type="text", text=json.dumps(res, indent=2))]
+                ),
+                "delete_entities": (
+                    memory.delete_entities, "entityNames", None,
+                    lambda _: [types.TextContent(type="text", text="Entities deleted successfully")]
+                ),
+                "delete_observations": (
+                    memory.delete_observations, "deletions", ObservationDeletion,
+                    lambda _: [types.TextContent(type="text", text="Observations deleted successfully")]
+                ),
+                "delete_relations": (
+                    memory.delete_relations, "relations", Relation,
+                    lambda _: [types.TextContent(type="text", text="Relations deleted successfully")]
+                ),
+                "read_graph": (
+                    memory.read_graph, None, None,
+                    lambda res: [types.TextContent(type="text", text=json.dumps(res.model_dump(), indent=2))]
+                ),
+                "search_nodes": (
+                    memory.search_nodes, "query", None,
+                    lambda res: [types.TextContent(type="text", text=json.dumps(res.model_dump(), indent=2))]
+                ),
+                "find_nodes": (
+                    memory.find_nodes, "names", None,
+                    lambda res: [types.TextContent(type="text", text=json.dumps(res.model_dump(), indent=2))]
+                ),
             }
-            handler = handlers.get(name)
-            if not handler:
+            if name not in dispatch:
                 raise ValueError(f"Unknown tool: {name}")
-            return await handler(args)
+            method, arg_key, model_cls, formatter = dispatch[name]
+            # Prepare parameters for memory method
+            if arg_key:
+                raw = args.get(arg_key, [])
+                param = [model_cls(**item) for item in raw] if model_cls else raw
+                result = await method(param)
+            else:
+                result = await method()
+            # Format and return
+            return formatter(result)
 
         except Exception as e:
             logger.error(f"Error handling tool call: {e}")
