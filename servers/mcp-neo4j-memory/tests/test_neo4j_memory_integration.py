@@ -9,7 +9,7 @@ def neo4j_driver():
     """Create a Neo4j driver using environment variables for connection details."""
     uri = os.environ.get("NEO4J_URI", "neo4j://localhost:7687")
     user = os.environ.get("NEO4J_USERNAME", "neo4j")
-    password = os.environ.get("NEO4J_PASSWORD", "_Ve5F.7Mrt222HZ")
+    password = os.environ.get("NEO4J_PASSWORD", "password")
 
     driver = GraphDatabase.driver(uri, auth=(user, password))
 
