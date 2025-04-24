@@ -47,7 +47,7 @@ class Neo4jMemory:
 
     def create_fulltext_index(self):
         try:
-            # TODO , 
+            # TODO ,
             query = """
             CREATE FULLTEXT INDEX search IF NOT EXISTS FOR (m:Memory) ON EACH [m.name, m.type, m.observations];
             """
@@ -64,26 +64,26 @@ class Neo4jMemory:
             CALL db.index.fulltext.queryNodes('search', $filter) yield node as entity, score
             OPTIONAL MATCH (entity)-[r]-(other)
             RETURN collect(distinct {
-                name: entity.name, 
-                type: entity.type, 
+                name: entity.name,
+                type: entity.type,
                 observations: entity.observations
             }) as nodes,
             collect(distinct {
-                source: startNode(r).name, 
-                target: endNode(r).name, 
+                source: startNode(r).name,
+                target: endNode(r).name,
                 relationType: type(r)
             }) as relations
         """
-        
+
         result = self.neo4j_driver.execute_query(query, {"filter": filter_query})
-        
+
         if not result.records:
             return KnowledgeGraph(entities=[], relations=[])
-        
+
         record = result.records[0]
         nodes = record.get('nodes')
         rels = record.get('relations')
-        
+
         entities = [
             Entity(
                 name=node.get('name'),
@@ -92,7 +92,7 @@ class Neo4jMemory:
             )
             for node in nodes if node.get('name')
         ]
-        
+
         relations = [
             Relation(
                 source=rel.get('source'),
@@ -101,10 +101,10 @@ class Neo4jMemory:
             )
             for rel in rels if rel.get('source') and rel.get('target') and rel.get('relationType')
         ]
-        
+
         logger.debug(f"Loaded entities: {entities}")
         logger.debug(f"Loaded relations: {relations}")
-        
+
         return KnowledgeGraph(entities=entities, relations=relations)
 
     async def create_entities(self, entities: List[Entity]) -> List[Entity]:
@@ -114,39 +114,39 @@ class Neo4jMemory:
         SET e += entity {.type, .observations}
         SET e:$(entity.type)
         """
-        
+
         entities_data = [entity.model_dump() for entity in entities]
         self.neo4j_driver.execute_query(query, {"entities": entities_data})
         return entities
 
     async def create_relations(self, relations: List[Relation]) -> List[Relation]:
         for relation in relations:
-            query = """
+            query = f"""
             UNWIND $relations as relation
             MATCH (from:Memory),(to:Memory)
             WHERE from.name = relation.source
             AND  to.name = relation.target
-            MERGE (from)-[r:$(relation.relationType)]->(to)
+            MERGE (from)-[r:{relation.relationType}]->(to)
             """
-            
+
             self.neo4j_driver.execute_query(
-                query, 
-                {"relations": [relation.model_dump() for relation in relations]}
+                query,
+                {"relations": [relation.model_dump()]}
             )
-        
+
         return relations
 
     async def add_observations(self, observations: List[ObservationAddition]) -> List[Dict[str, Any]]:
         query = """
-        UNWIND $observations as obs  
+        UNWIND $observations as obs
         MATCH (e:Memory { name: obs.entityName })
         WITH e, [o in obs.contents WHERE NOT o IN e.observations] as new
         SET e.observations = coalesce(e.observations,[]) + new
         RETURN e.name as name, new
         """
-            
+
         result = self.neo4j_driver.execute_query(
-            query, 
+            query,
             {"observations": [obs.model_dump() for obs in observations]}
         )
 
@@ -159,17 +159,17 @@ class Neo4jMemory:
         MATCH (e:Memory { name: name })
         DETACH DELETE e
         """
-        
+
         self.neo4j_driver.execute_query(query, {"entities": entity_names})
 
     async def delete_observations(self, deletions: List[ObservationDeletion]) -> None:
         query = """
-        UNWIND $deletions as d  
+        UNWIND $deletions as d
         MATCH (e:Memory { name: d.entityName })
         SET e.observations = [o in coalesce(e.observations,[]) WHERE NOT o IN d.observations]
         """
         self.neo4j_driver.execute_query(
-            query, 
+            query,
             {
                 "deletions": [deletion.model_dump() for deletion in deletions]
             }
@@ -184,7 +184,7 @@ class Neo4jMemory:
         DELETE r
         """
         self.neo4j_driver.execute_query(
-            query, 
+            query,
             {"relations": [relation.model_dump() for relation in relations]}
         )
 
@@ -205,7 +205,7 @@ async def main(neo4j_uri: str, neo4j_user: str, neo4j_password: str):
         neo4j_uri,
         auth=(neo4j_user, neo4j_password)
     )
-    
+
     # Verify connection
     try:
         neo4j_driver.verify_connectivity()
@@ -216,7 +216,7 @@ async def main(neo4j_uri: str, neo4j_user: str, neo4j_password: str):
 
     # Initialize memory
     memory = Neo4jMemory(neo4j_driver)
-    
+
     # Create MCP server
     server = Server("mcp-neo4j-memory")
 
@@ -408,46 +408,46 @@ async def main(neo4j_uri: str, neo4j_user: str, neo4j_password: str):
                 entities = [Entity(**entity) for entity in arguments.get("entities", [])]
                 result = await memory.create_entities(entities)
                 return [types.TextContent(type="text", text=json.dumps([e.model_dump() for e in result], indent=2))]
-                
+
             elif name == "create_relations":
                 relations = [Relation(**relation) for relation in arguments.get("relations", [])]
                 result = await memory.create_relations(relations)
                 return [types.TextContent(type="text", text=json.dumps([r.model_dump() for r in result], indent=2))]
-                
+
             elif name == "add_observations":
                 observations = [ObservationAddition(**obs) for obs in arguments.get("observations", [])]
                 result = await memory.add_observations(observations)
                 return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
+
             elif name == "delete_entities":
                 await memory.delete_entities(arguments.get("entityNames", []))
                 return [types.TextContent(type="text", text="Entities deleted successfully")]
-                
+
             elif name == "delete_observations":
                 deletions = [ObservationDeletion(**deletion) for deletion in arguments.get("deletions", [])]
                 await memory.delete_observations(deletions)
                 return [types.TextContent(type="text", text="Observations deleted successfully")]
-                
+
             elif name == "delete_relations":
                 relations = [Relation(**relation) for relation in arguments.get("relations", [])]
                 await memory.delete_relations(relations)
                 return [types.TextContent(type="text", text="Relations deleted successfully")]
-                
+
             elif name == "read_graph":
                 result = await memory.read_graph()
                 return [types.TextContent(type="text", text=json.dumps(result.model_dump(), indent=2))]
-                
+
             elif name == "search_nodes":
                 result = await memory.search_nodes(arguments.get("query", ""))
                 return [types.TextContent(type="text", text=json.dumps(result.model_dump(), indent=2))]
-                
+
             elif name == "find_nodes":
                 result = await memory.find_nodes(arguments.get("names", []))
                 return [types.TextContent(type="text", text=json.dumps(result.model_dump(), indent=2))]
-                
+
             else:
                 raise ValueError(f"Unknown tool: {name}")
-                
+
         except Exception as e:
             logger.error(f"Error handling tool call: {e}")
             return [types.TextContent(type="text", text=f"Error: {str(e)}")]
