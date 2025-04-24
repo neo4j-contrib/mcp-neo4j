@@ -399,54 +399,61 @@ async def main(neo4j_uri: str, neo4j_user: str, neo4j_password: str):
     @server.call_tool()
     async def handle_call_tool(
         name: str, arguments: Dict[str, Any] | None
-    ) -> List[types.TextContent | types.ImageContent]:
+    ) -> List[types.TextContent]:
         try:
-            if not arguments:
-                raise ValueError(f"No arguments provided for tool: {name}")
+            # Use empty dict for handlers; no-arg methods will ignore args
+            # Prepare args for handler
+            args = arguments or {}
 
-            if name == "create_entities":
-                entities = [Entity(**entity) for entity in arguments.get("entities", [])]
+            # Table-driven dispatch for tool handling
+            async def _create_entities(args):
+                entities = [Entity(**entity) for entity in args.get("entities", [])]
                 result = await memory.create_entities(entities)
                 return [types.TextContent(type="text", text=json.dumps([e.model_dump() for e in result], indent=2))]
-
-            elif name == "create_relations":
-                relations = [Relation(**relation) for relation in arguments.get("relations", [])]
+            async def _create_relations(args):
+                relations = [Relation(**relation) for relation in args.get("relations", [])]
                 result = await memory.create_relations(relations)
                 return [types.TextContent(type="text", text=json.dumps([r.model_dump() for r in result], indent=2))]
-
-            elif name == "add_observations":
-                observations = [ObservationAddition(**obs) for obs in arguments.get("observations", [])]
-                result = await memory.add_observations(observations)
+            async def _add_observations(args):
+                obs_list = [ObservationAddition(**obs) for obs in args.get("observations", [])]
+                result = await memory.add_observations(obs_list)
                 return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-
-            elif name == "delete_entities":
-                await memory.delete_entities(arguments.get("entityNames", []))
+            async def _delete_entities(args):
+                await memory.delete_entities(args.get("entityNames", []))
                 return [types.TextContent(type="text", text="Entities deleted successfully")]
-
-            elif name == "delete_observations":
-                deletions = [ObservationDeletion(**deletion) for deletion in arguments.get("deletions", [])]
-                await memory.delete_observations(deletions)
+            async def _delete_observations(args):
+                del_list = [ObservationDeletion(**d) for d in args.get("deletions", [])]
+                await memory.delete_observations(del_list)
                 return [types.TextContent(type="text", text="Observations deleted successfully")]
-
-            elif name == "delete_relations":
-                relations = [Relation(**relation) for relation in arguments.get("relations", [])]
-                await memory.delete_relations(relations)
+            async def _delete_relations(args):
+                rel_list = [Relation(**relation) for relation in args.get("relations", [])]
+                await memory.delete_relations(rel_list)
                 return [types.TextContent(type="text", text="Relations deleted successfully")]
-
-            elif name == "read_graph":
+            async def _read_graph(args):
                 result = await memory.read_graph()
                 return [types.TextContent(type="text", text=json.dumps(result.model_dump(), indent=2))]
-
-            elif name == "search_nodes":
-                result = await memory.search_nodes(arguments.get("query", ""))
+            async def _search_nodes(args):
+                result = await memory.search_nodes(args.get("query", ""))
+                return [types.TextContent(type="text", text=json.dumps(result.model_dump(), indent=2))]
+            async def _find_nodes(args):
+                result = await memory.find_nodes(args.get("names", []))
                 return [types.TextContent(type="text", text=json.dumps(result.model_dump(), indent=2))]
 
-            elif name == "find_nodes":
-                result = await memory.find_nodes(arguments.get("names", []))
-                return [types.TextContent(type="text", text=json.dumps(result.model_dump(), indent=2))]
-
-            else:
+            handlers = {
+                "create_entities": _create_entities,
+                "create_relations": _create_relations,
+                "add_observations": _add_observations,
+                "delete_entities": _delete_entities,
+                "delete_observations": _delete_observations,
+                "delete_relations": _delete_relations,
+                "read_graph": _read_graph,
+                "search_nodes": _search_nodes,
+                "find_nodes": _find_nodes,
+            }
+            handler = handlers.get(name)
+            if not handler:
                 raise ValueError(f"Unknown tool: {name}")
+            return await handler(args)
 
         except Exception as e:
             logger.error(f"Error handling tool call: {e}")
