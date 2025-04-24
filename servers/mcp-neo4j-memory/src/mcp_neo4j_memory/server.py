@@ -120,19 +120,17 @@ class Neo4jMemory:
         return entities
 
     async def create_relations(self, relations: List[Relation]) -> List[Relation]:
-        for relation in relations:
-            query = f"""
-            UNWIND $relations as relation
-            MATCH (from:Memory),(to:Memory)
-            WHERE from.name = relation.source
-            AND  to.name = relation.target
-            MERGE (from)-[r:{relation.relationType}]->(to)
-            """
-
-            self.neo4j_driver.execute_query(
-                query,
-                {"relations": [relation.model_dump()]}
-            )
+        query = """
+        UNWIND $relations AS relation
+        MATCH (from:Memory { name: relation.source })
+        MATCH (to:Memory { name: relation.target })
+        CALL apoc.merge.relationship(from, relation.relationType, {}, {}, to) YIELD rel
+        RETURN rel
+        """
+        self.neo4j_driver.execute_query(
+            query,
+            {"relations": [rel.model_dump() for rel in relations]}
+        )
 
         return relations
 
