@@ -11,7 +11,11 @@ name: Publish Neo4j MCP Aura Manager Package
 on:
   push:
     tags:
-      - mcp-neo4j-aura-manager-v.*
+      - mcp-neo4j-aura-manager-v*
+  release:
+    types: [published]
+    tags:
+      - mcp-neo4j-aura-manager-v*
 
 permissions:
   contents: read

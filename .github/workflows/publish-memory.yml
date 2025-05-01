@@ -11,7 +11,11 @@ name: Publish Neo4j MCP Memory Python Package
 on:
   push:
     tags:
-      - mcp-neo4j-memory-v.*
+      - mcp-neo4j-memory-v*
+  release:
+    types: [published]
+    tags:
+      - mcp-neo4j-memory-v*
 
 permissions:
   contents: read

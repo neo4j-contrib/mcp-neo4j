@@ -6,11 +6,13 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Publish Python Package
+name: Publish Neo4j MCP Cypher Package
 
 on:
   release:
     types: [published]
+    tags:
+      - mcp-neo4j-cypher-v*
 
 permissions:
   contents: read
