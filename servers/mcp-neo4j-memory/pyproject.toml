@@ -1,12 +1,13 @@
 [project]
 name = "mcp-neo4j-memory"
-version = "0.1.3"
+version = "0.1.1"
 description = "MCP Neo4j Knowledge Graph Memory Server"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "mcp>=0.10.0",
     "neo4j>=5.26.0",
+    "fastapi"
 ]
 
 [build-system]
@@ -21,7 +22,7 @@ dev-dependencies = [
 ]
 
 [project.scripts]
-mcp-neo4j-memory = "mcp_neo4j_memory:main"
+mcp-neo4j-memory = "mcp_neo4j_memory.main:main"
 
 [tool.pytest.ini_options]
 pythonpath = [
