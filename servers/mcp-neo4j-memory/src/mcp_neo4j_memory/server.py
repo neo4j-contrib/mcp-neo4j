@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+import re
 from typing import Any, Dict, List, Optional
 from contextlib import asynccontextmanager
 
@@ -120,20 +121,38 @@ class Neo4jMemory:
         return entities
 
     async def create_relations(self, relations: List[Relation]) -> List[Relation]:
+        # Group relations by type for batch processing
+        relations_by_type = {}
+
         for relation in relations:
-            query = """
-            UNWIND $relations as relation
-            MATCH (from:Memory),(to:Memory)
-            WHERE from.name = relation.source
-            AND  to.name = relation.target
-            MERGE (from)-[r:$(relation.relationType)]->(to)
-            """
-            
+            relation_type = relation.relationType
+
+            # Validate relation type to prevent Cypher injection
+            if not re.match(r"^[A-Z_][A-Z0-9_]*$", relation_type, re.IGNORECASE):
+                raise ValueError(f"Invalid relation type: {relation_type}")
+
+            if relation_type not in relations_by_type:
+                relations_by_type[relation_type] = []
+
+            relations_by_type[relation_type].append({
+                'from_name': relation.source,
+                'to_name': relation.target
+            })
+
+        # Process each relationship type in batch
+        for relation_type, relations_batch in relations_by_type.items():
+            query = f"""
+                    UNWIND $relations_batch AS rel
+                    MATCH (from:Memory), (to:Memory)
+                    WHERE from.name = rel.from_name AND to.name = rel.to_name
+                    MERGE (from)-[r:{relation_type}]->(to)
+                """
+
             self.neo4j_driver.execute_query(
-                query, 
-                {"relations": [relation.model_dump() for relation in relations]}
+                query,
+                {"relations_batch": relations_batch}
             )
-        
+
         return relations
 
     async def add_observations(self, observations: List[ObservationAddition]) -> List[Dict[str, Any]]:
@@ -176,16 +195,37 @@ class Neo4jMemory:
         )
 
     async def delete_relations(self, relations: List[Relation]) -> None:
-        query = """
-        UNWIND $relations as relation
-        MATCH (source:Memory)-[r:$(relation.relationType)]->(target:Memory)
-        WHERE source.name = relation.source
-        AND target.name = relation.target
-        DELETE r
-        """
+      # Group relations by type for batch processing
+      relations_by_type = {}
+
+      for relation in relations:
+        relation_type = relation.relationType
+
+        # Validate relation type to prevent Cypher injection
+        if not re.match(r"^[A-Z_][A-Z0-9_]*$", relation_type, re.IGNORECASE):
+          raise ValueError(f"Invalid relation type: {relation_type}")
+
+        if relation_type not in relations_by_type:
+          relations_by_type[relation_type] = []
+
+        relations_by_type[relation_type].append({
+          'source_name': relation.source,
+          'target_name': relation.target
+        })
+
+      # Delete each relationship type in batch
+      for relation_type, relations_batch in relations_by_type.items():
+        query = f"""
+              UNWIND $relations_batch AS rel
+              MATCH (source_node:Memory)-[r:{relation_type}]->(target_node:Memory)
+              WHERE source_node.name = rel.source_name
+                AND target_node.name = rel.target_name
+              DELETE r
+          """
+
         self.neo4j_driver.execute_query(
-            query, 
-            {"relations": [relation.model_dump() for relation in relations]}
+          query,
+          {"relations_batch": relations_batch}
         )
 
     async def read_graph(self) -> KnowledgeGraph:
