@@ -1,0 +1,272 @@
+# Docker Compose for MCP Neo4j Memory Testing
+# Removed version as it's obsolete in modern Docker Compose
+
+services:
+  # Neo4j database for testing (simplified - no APOC for now)
+  neo4j-test:
+    image: neo4j:latest
+    container_name: mcp-neo4j-test-db
+    environment:
+      - NEO4J_AUTH=neo4j/testpassword
+      # Uncomment if you need APOC plugin:
+      # - NEO4J_PLUGINS=["apoc"]
+      # - NEO4J_apoc_export_file_enabled=true
+      # - NEO4J_apoc_import_file_enabled=true
+      # - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    volumes:
+      - neo4j_test_data:/data
+      - neo4j_test_logs:/logs
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "testpassword", "RETURN 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # SSE Server for live integration testing
+  mcp-sse-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: sse
+    container_name: mcp-neo4j-sse-server
+    environment:
+      - NEO4J_URL=bolt://neo4j-test:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=testpassword
+      - NEO4J_DATABASE=neo4j
+      - MCP_MODE=sse
+      - MCP_SERVER_PORT=3001
+      - MCP_SERVER_HOST=0.0.0.0
+    ports:
+      - "3001:3001"
+    depends_on:
+      neo4j-test:
+        condition: service_healthy
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Test runner (comprehensive)
+  test-runner:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile_test
+    container_name: mcp-neo4j-test-runner
+    environment:
+      - NEO4J_URI=neo4j://neo4j-test:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=testpassword
+      - NEO4J_DATABASE=neo4j
+    depends_on:
+      neo4j-test:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      # Mount source and tests for development
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      # Mount coverage reports output
+      - ../test-results:/app/test-results
+    command: ["/wait-for-neo4j.sh", "python", "tests/run_all_tests.py"]
+
+  # Unit tests only (no Neo4j required)
+  unit-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile_test
+    container_name: mcp-neo4j-unit-tests
+    networks:
+      - test-network
+    volumes:
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      - ../test-results:/app/test-results
+    command: ["python", "-m", "pytest", "tests/test_unit.py", "tests/test_core_models.py", "-v", "--tb=short"]
+
+  # Integration tests only (requires Neo4j)
+  integration-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile_test
+    container_name: mcp-neo4j-integration-tests
+    environment:
+      - NEO4J_URI=neo4j://neo4j-test:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=testpassword
+      - NEO4J_DATABASE=neo4j
+    depends_on:
+      neo4j-test:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      - ../test-results:/app/test-results
+    command: ["/wait-for-neo4j.sh", "python", "-m", "pytest", "tests/test_neo4j_memory_integration.py", "tests/test_transport_integration.py", "-v", "--tb=short"]
+
+  # MCP Compliance tests (NEW)
+  mcp-compliance-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile_test
+    container_name: mcp-neo4j-mcp-compliance
+    environment:
+      - NEO4J_URI=neo4j://neo4j-test:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=testpassword
+      - NEO4J_DATABASE=neo4j
+      - MCP_SSE_SERVER_URL=http://mcp-sse-server:3001
+    depends_on:
+      neo4j-test:
+        condition: service_healthy
+      mcp-sse-server:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      - ../test-results:/app/test-results
+    command: ["/wait-for-neo4j.sh", "python", "tests/test_mcp_compliance.py"]
+
+  # SSE MCP Compliance tests (NEW)
+  sse-compliance-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile_test
+    container_name: mcp-neo4j-sse-compliance
+    environment:
+      - NEO4J_URI=neo4j://neo4j-test:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=testpassword
+      - NEO4J_DATABASE=neo4j
+      - MCP_SSE_SERVER_URL=http://mcp-sse-server:3001
+    depends_on:
+      neo4j-test:
+        condition: service_healthy
+      mcp-sse-server:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      - ../test-results:/app/test-results
+    command: ["/wait-for-neo4j.sh", "python", "-m", "pytest", "tests/test_sse_mcp_compliance.py", "-v", "--tb=short"]
+
+  # Live SSE Server Integration tests (NEW)
+  live-sse-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile_test
+    container_name: mcp-neo4j-live-sse-tests
+    environment:
+      - NEO4J_URI=neo4j://neo4j-test:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=testpassword
+      - NEO4J_DATABASE=neo4j
+      - MCP_SSE_SERVER_URL=http://mcp-sse-server:3001
+    depends_on:
+      neo4j-test:
+        condition: service_healthy
+      mcp-sse-server:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      - ../test-results:/app/test-results
+    command: [
+      "/wait-for-neo4j.sh",
+      "python", "-m", "pytest",
+      "tests/test_sse_mcp_compliance.py",
+      "-v", "-m", "integration",
+      "--tb=short"
+    ]
+
+  # Coverage tests with detailed reporting
+  coverage-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile_test
+    container_name: mcp-neo4j-coverage-tests
+    environment:
+      - NEO4J_URI=neo4j://neo4j-test:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=testpassword
+      - NEO4J_DATABASE=neo4j
+      - MCP_SSE_SERVER_URL=http://mcp-sse-server:3001
+    depends_on:
+      neo4j-test:
+        condition: service_healthy
+      mcp-sse-server:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      - ../test-results:/app/test-results
+    command: [
+      "/wait-for-neo4j.sh",
+      "python", "-m", "pytest",
+      "tests/",
+      "--cov=mcp_neo4j_memory",
+      "--cov-report=html:/app/test-results/htmlcov",
+      "--cov-report=term-missing",
+      "--cov-report=xml:/app/test-results/coverage.xml",
+      "-v"
+    ]
+
+  # Performance and load testing (NEW)
+  performance-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile_test
+    container_name: mcp-neo4j-performance-tests
+    environment:
+      - NEO4J_URI=neo4j://neo4j-test:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=testpassword
+      - NEO4J_DATABASE=neo4j
+      - MCP_SSE_SERVER_URL=http://mcp-sse-server:3001
+    depends_on:
+      neo4j-test:
+        condition: service_healthy
+      mcp-sse-server:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      - ../test-results:/app/test-results
+    command: [
+      "/wait-for-neo4j.sh",
+      "python", "-m", "pytest",
+      "tests/",
+      "-v", "-m", "slow",
+      "--tb=short"
+    ]
+
+volumes:
+  neo4j_test_data:
+  neo4j_test_logs:
+
+networks:
+  test-network:
+    driver: bridge

@@ -1,0 +1,16 @@
+version: 1.0.8
+cache: true
+
+mcpServers:
+  neo4j-memory:
+    type: stdio
+    command: mcp-neo4j-memory
+    env:
+      NEO4J_URL: "neo4j://neo4j:7687"
+      NEO4J_USERNAME: "neo4j" 
+      NEO4J_PASSWORD: "your_password_here"
+      NEO4J_DATABASE: "neo4j"
+      MCP_MODE: "stdio"
+    timeout: 30000
+    initTimeout: 10000
+    iconPath: /app/client/public/assets/neo4j-icon.svg

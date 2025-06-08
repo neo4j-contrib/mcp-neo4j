@@ -1,0 +1,13 @@
+version: 1.0.8
+cache: true
+
+mcpServers:
+  neo4j-memory:
+    type: sse
+    url: http://mcp-neo4j-memory:3001/sse
+    headers:
+      X-User-ID: "{{USER_ID}}"
+      Content-Type: "application/json"
+    timeout: 30000
+    initTimeout: 10000
+    iconPath: /app/client/public/assets/neo4j-icon.svg
