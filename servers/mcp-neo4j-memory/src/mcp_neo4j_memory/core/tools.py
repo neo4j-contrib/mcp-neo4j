@@ -207,18 +207,18 @@ def get_mcp_tools() -> List[types.Tool]:
 
 
 async def execute_tool(
-    memory: Neo4jMemory, 
-    name: str, 
+    memory: Neo4jMemory,
+    name: str,
     arguments: Dict[str, Any] | None
 ) -> List[types.TextContent | types.ImageContent]:
     """
     Execute a tool and return MCP-formatted response.
-    
+
     Args:
         memory: Neo4jMemory instance
         name: Tool name
         arguments: Tool arguments
-        
+
     Returns:
         List of MCP content objects
     """
@@ -231,12 +231,32 @@ async def execute_tool(
             raise ValueError(f"No arguments provided for tool: {name}")
 
         if name == "create_entities":
-            entities = [Entity(**entity) for entity in arguments.get("entities", [])]
+            entities_data = arguments.get("entities", [])
+
+            # Handle case where entities is sent as JSON string
+            if isinstance(entities_data, str):
+                try:
+                    entities_data = json.loads(entities_data)
+                    logger.warning(f"Parsed entities from JSON string: {entities_data}")
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Invalid JSON string for entities: {e}")
+
+            entities = [Entity(**entity) for entity in entities_data]
             result = await memory.create_entities(entities)
             return [types.TextContent(type="text", text=json.dumps([e.model_dump() for e in result], indent=2))]
 
         elif name == "create_relations":
-            relations = [Relation(**relation) for relation in arguments.get("relations", [])]
+            relations_data = arguments.get("relations", [])
+
+            # Handle case where relations is sent as JSON string
+            if isinstance(relations_data, str):
+                try:
+                    relations_data = json.loads(relations_data)
+                    logger.warning(f"Parsed relations from JSON string: {relations_data}")
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Invalid JSON string for relations: {e}")
+
+            relations = [Relation(**relation) for relation in relations_data]
             result = await memory.create_relations(relations)
             return [types.TextContent(type="text", text=json.dumps([r.model_dump() for r in result], indent=2))]
 

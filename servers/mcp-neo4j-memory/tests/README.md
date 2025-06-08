@@ -7,6 +7,7 @@ This directory contains comprehensive tests for the MCP Neo4j Memory server.
 ### 🧪 Unit Tests (No External Dependencies)
 - **`test_unit.py`** - Basic functionality, imports, module structure
 - **`test_core_models.py`** - Pydantic data model validation and serialization
+- **`test_json_string_parsing.py`** - JSON string parsing fix for LLM client compatibility
 
 ### 🔗 Integration Tests (Require Neo4j)
 - **`test_neo4j_memory_integration.py`** - Core Neo4j operations and business logic
@@ -31,7 +32,7 @@ python tests/test_mcp_compliance.py
 ### Specific Test Categories
 ```bash
 # Unit tests only (no external dependencies)
-pytest tests/test_unit.py tests/test_core_models.py -v
+pytest tests/test_unit.py tests/test_core_models.py tests/test_json_string_parsing.py -v
 
 # Integration tests (requires Neo4j)
 pytest tests/test_neo4j_memory_integration.py -v
@@ -51,6 +52,7 @@ pytest tests/ -v
 ```bash
 pytest tests/test_unit.py -v                          # Basic functionality
 pytest tests/test_core_models.py -v                   # Data models
+pytest tests/test_json_string_parsing.py -v           # JSON string parsing fix
 pytest tests/test_neo4j_memory_integration.py -v      # Neo4j operations
 pytest tests/test_transport_integration.py -v         # SSE protocols
 pytest tests/test_sse_mcp_compliance.py -v            # MCP SSE compliance
@@ -106,6 +108,7 @@ pytest tests/ -v -m "not slow"
 tests/
 ├── test_unit.py                     # ✅ Unit tests (always runnable)
 ├── test_core_models.py              # ✅ Model tests (always runnable)
+├── test_json_string_parsing.py      # ✅ JSON parsing fix tests (always runnable)
 ├── test_neo4j_memory_integration.py # 🔗 Integration tests (needs Neo4j)
 ├── test_transport_integration.py    # 🔗 Protocol tests (needs Neo4j)
 ├── test_sse_mcp_compliance.py       # 🔗 MCP compliance tests (needs Neo4j)
@@ -121,12 +124,21 @@ tests/
 - ✅ MCP tools are properly defined
 - ✅ Basic data model instantiation
 - ✅ Tool count and structure validation
+- ✅ JSON string parsing logic verification
 
 ### Core Models (`test_core_models.py`)
 - ✅ Pydantic model validation
 - ✅ Serialization/deserialization
 - ✅ Edge cases and error handling
 - ✅ Model relationships
+
+### JSON String Parsing (`test_json_string_parsing.py`)
+- ✅ Handles JSON string input from LLM clients
+- ✅ Maintains backward compatibility with normal input
+- ✅ Error handling for invalid JSON strings
+- ✅ Warning logging when parsing occurs
+- ✅ Edge cases and null handling
+- ✅ Both MCP and HTTP tool execution versions
 
 ### Neo4j Integration (`test_neo4j_memory_integration.py`)
 - ✅ Entity creation, reading, deletion

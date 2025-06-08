@@ -114,7 +114,7 @@ def main():
     
     # Run unit tests for core models and basic functionality
     results["unit_tests"] = run_command(
-        ["python", "-m", "pytest", "tests/test_unit.py", "tests/test_core_models.py", "-v"],
+        ["python", "-m", "pytest", "tests/test_unit.py", "tests/test_core_models.py", "tests/test_json_string_parsing.py", "-v"],
         "Unit Tests (No External Dependencies)"
     )
     
@@ -148,7 +148,7 @@ def main():
         )
     else:
         results["all_tests"] = run_command(
-            ["python", "-m", "pytest", "tests/test_unit.py", "tests/test_core_models.py", "-v"],
+            ["python", "-m", "pytest", "tests/test_unit.py", "tests/test_core_models.py", "tests/test_json_string_parsing.py", "-v"],
             "Available Unit Tests Only"
         )
     
