@@ -262,10 +262,7 @@ class MCPSSEServer:
 
             # Handle tools/list
             elif method == "tools/list":
-                if not session_data.get("initialized"):
-                    return self._create_error_response(
-                        request_id, -32002, "Server not initialized"
-                    )
+                self._ensure_initialized(session_data)
                 
                 tools = get_mcp_tools()
                 tools_data = [
@@ -287,10 +284,7 @@ class MCPSSEServer:
 
             # Handle tools/call
             elif method == "tools/call":
-                if not session_data.get("initialized"):
-                    return self._create_error_response(
-                        request_id, -32002, "Server not initialized"
-                    )
+                self._ensure_initialized(session_data)
                 
                 tool_name = params.get("name")
                 arguments = params.get("arguments", {})
@@ -361,6 +355,12 @@ class MCPSSEServer:
             return self._create_error_response(
                 request.get("id"), -32603, f"Internal error: {str(e)}"
             )
+
+    def _ensure_initialized(self, session_data: dict) -> None:
+        """Ensure session is initialized, auto-initialize if needed."""
+        if not session_data.get("initialized"):
+            session_data["initialized"] = True
+            logger.warning(f"Auto-initializing session {session_data['id']}")
 
     def _create_error_response(self, request_id: Any, code: int, message: str) -> dict:
         """Create a JSON-RPC error response."""
