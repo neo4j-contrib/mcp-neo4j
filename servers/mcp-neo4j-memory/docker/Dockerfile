@@ -9,12 +9,6 @@ FROM python:3.11-alpine as builder
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies for building
-RUN apk add --no-cache build-base  # instead of build-essential
-
-# Install uv for faster dependency resolution
-RUN pip install --no-cache-dir uv
-
 # Copy dependency files first for better layer caching
 COPY pyproject.toml uv.lock* ./
 
@@ -23,15 +17,13 @@ COPY README.md ./
 
 # Copy source code
 COPY src/ ./src/
-# Install dependencies
 # Install build dependencies, build everything, then remove build deps in one layer
 RUN apk add --no-cache --virtual .build-deps build-base && \
     pip install --no-cache-dir uv && \
-    uv sync --frozen --no-dev || pip install --no-cache-dir -e . && \
+    (uv sync --frozen --no-dev || pip install --no-cache-dir -e .) && \
+    pip install --no-cache-dir -e . && \
     apk del .build-deps
 
-# Install the package
-RUN pip install --no-cache-dir -e .
 
 # ============================================================================
 # RUNTIME BASE - Shared runtime configuration
@@ -44,7 +36,7 @@ RUN addgroup -S mcp && adduser -S -G mcp mcp
 # Set working directory
 WORKDIR /app
 
-# Copy installed packages from builder
+# Copy installed packages from builder (this is the main optimization)
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin/mcp-neo4j-memory /usr/local/bin
 COPY --from=builder /app/src /app/src
@@ -53,8 +45,16 @@ COPY --from=builder /app/README.md /app/
 # Create directory for potential data persistence
 RUN mkdir -p /app/data && chown -R mcp:mcp /app
 
+# Clean up caches and build artifacts
+RUN rm -rf /root/.cache /tmp/* /var/cache/apk/* && \
+    find /usr/local -name "*.pyc" -delete && \
+    find /usr/local -name "__pycache__" -type d -exec rm -rf {} + || true
+
 # Switch to non-root user
 USER mcp
+
+# Set PYTHONPATH to ensure module imports work
+ENV PYTHONPATH=/app/src
 
 # Common environment variables
 ENV NEO4J_URL="bolt://host.docker.internal:7687"
@@ -101,7 +101,7 @@ EXPOSE 3001
 
 # Install curl for health checks
 USER root
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl && rm -rf /var/cache/apk/*
 USER mcp
 
 # Health check for SSE mode
@@ -128,13 +128,20 @@ ENV PYTHONPATH=/app/src
 
 # Install test dependencies
 USER root
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl && rm -rf /var/cache/apk/*
 
-# Install test packages
-RUN pip install pytest pytest-cov pytest-asyncio httpx aiohttp requests
-
-# Install additional test tools
-RUN pip install pytest-xdist pytest-timeout pytest-mock
+# Install test packages in one layer to minimize size impact
+RUN pip install --no-cache-dir \
+    pytest \
+    pytest-cov \
+    pytest-asyncio \
+    pytest-xdist \
+    pytest-timeout \
+    pytest-mock \
+    httpx \
+    aiohttp \
+    requests && \
+    rm -rf /root/.cache
 
 USER mcp
 
