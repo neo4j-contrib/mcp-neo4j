@@ -218,9 +218,33 @@ source .venv/bin/activate  # On Unix/macOS
 
 # Install dependencies including dev dependencies
 uv pip install -e ".[dev]"
+
+# Set environment for tests
+set NEO4J_URL=neo4j://localhost:7687
+set NEO4J_USERNAME=neo4j
+set NEO4J_PASSWORD=testpassword
+
+# Run neo4j and run tests
+docker run -d --name neo4j-test -p 7687:7687 -p 7474:7474 -e NEO4J_AUTH=neo4j/testpassword neo4j:latest
+# Run tests
+uv run pytest
 ```
 
-### 🐳 Docker
+### 🐳 Development with  Docker
+```bash
+# 1. Build and run tests, clean
+./scripts/test.sh build
+./scripts/test.sh
+./scripts/test.sh clean
+
+# 2. Build Docker images 
+./scripts/build.sh all
+
+# 3. Publish Docker images 
+./scripts/publish.sh
+```
+
+### 🐳 Docker build images
 
 Build and run different variants using the consolidated build system:
 
@@ -229,9 +253,6 @@ Build and run different variants using the consolidated build system:
 ./scripts/build.sh stdio    # stdio-only (default)
 ./scripts/build.sh sse      # SSE streaming server
 ./scripts/build.sh all      # All variants (default)
-
-# Or use the build-all script for convenience
-./scripts/build-all.sh      # Builds all variants
 
 # Run stdio container (default)
 docker run -e NEO4J_URL="neo4j+s://xxxx.databases.neo4j.io" \

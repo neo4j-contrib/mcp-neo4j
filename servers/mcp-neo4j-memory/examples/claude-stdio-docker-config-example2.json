@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "neo4j": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i", "--network", "host",
+        "-e", "NEO4J_URL=bolt://localhost:7687",
+        "-e", "NEO4J_USERNAME=neo4j",
+        "-e", "NEO4J_PASSWORD=password",
+        "lesykm/mcp-neo4j-memory:stdio"
+      ]
+    }
+  }
+}

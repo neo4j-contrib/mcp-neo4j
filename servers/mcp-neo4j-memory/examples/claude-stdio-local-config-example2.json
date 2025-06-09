@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "mcp-neo4j-memory": {
+      "command": "uvx",
+      "args": [
+        "mcp-neo4j-memory@0.1.4"
+      ],
+      "env": {
+        "NEO4J_URL": "neo4j+s://xxxx.databases.neo4j.io",
+        "NEO4J_USERNAME": "<your-username>",
+        "NEO4J_PASSWORD": "<your-password>",
+        "MCP_MODE": "stdio"
+      }
+    }
+  }
+}

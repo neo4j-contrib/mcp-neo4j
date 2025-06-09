@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "neo4j-memory": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "mcp-remote",
+          "http://localhost:3001/sse"
+        ]
+      }
+  }
+}

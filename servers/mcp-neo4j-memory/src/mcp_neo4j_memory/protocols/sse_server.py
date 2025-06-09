@@ -360,7 +360,7 @@ class MCPSSEServer:
         """Ensure session is initialized, auto-initialize if needed."""
         if not session_data.get("initialized"):
             session_data["initialized"] = True
-            logger.warning(f"Auto-initializing session {session_data['id']}")
+            logger.warning(f"Auto-initializing session {session_data.get('id', 'unknown')}")
 
     def _create_error_response(self, request_id: Any, code: int, message: str) -> dict:
         """Create a JSON-RPC error response."""

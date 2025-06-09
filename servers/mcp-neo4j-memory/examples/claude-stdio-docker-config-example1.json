@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "neo4j": {
+      "command": "docker",
+      "args": [
+        "run", "--rm",
+        "-e", "NEO4J_URL=neo4j+s://xxxx.databases.neo4j.io",
+        "-e", "NEO4J_USERNAME=<your-username>",
+        "-e", "NEO4J_PASSWORD=<your-password>",
+        "mcp/neo4j-memory:0.1.4"
+      ]
+    }
+  }
+}
+

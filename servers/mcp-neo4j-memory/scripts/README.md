@@ -26,7 +26,6 @@ The project now uses a **unified multi-stage Dockerfile** (`docker/Dockerfile`) 
 ```bash
 # Build specific variants using unified Dockerfile
 ./scripts/build.sh stdio       # Build stdio-only (default) Docker container
-./scripts/build.sh http        # Build HTTP REST API Docker container
 ./scripts/build.sh sse         # Build SSE streaming server Docker container
 ./scripts/build.sh test        # Build test environment Docker container
 ./scripts/build.sh all         # Build all Docker container variants (default) 

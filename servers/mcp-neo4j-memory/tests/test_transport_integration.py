@@ -75,9 +75,9 @@ class TestCoreTools:
         await memory.create_entities([test_entity])
 
         # Test read_graph  
-        entities = await memory.read_entities()
-        assert len(entities) == 1
-        assert entities[0].name == "TestEntity"
+        graph = await memory.read_graph()
+        assert len(graph.entities) == 1
+        assert graph.entities[0].name == "TestEntity"
 
 
 class TestSseServer:
@@ -200,10 +200,10 @@ class TestProtocolIntegration:
         await memory.create_entities([test_entity])
 
         # Verify data exists
-        entities = await memory.read_entities()
-        assert len(entities) == 1
-        assert entities[0].name == "PersistentEntity"
-        assert entities[0].observations == ["Created for persistence test"]
+        graph = await memory.read_graph()
+        assert len(graph.entities) == 1
+        assert graph.entities[0].name == "PersistentEntity"
+        assert graph.entities[0].observations == ["Created for persistence test"]
 
     @pytest.mark.asyncio
     async def test_error_handling_consistency(self, memory):

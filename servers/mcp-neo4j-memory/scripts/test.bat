@@ -4,31 +4,31 @@ setlocal EnableDelayedExpansion
 echo MCP Neo4j Memory - Docker Test Runner
 echo ======================================
 
-REM Color definitions (Windows 10+ with ANSI support)
-set "GREEN=[92m"
-set "RED=[91m"
-set "YELLOW=[93m"
-set "BLUE=[94m"
-set "NC=[0m"
+REM Jump to main execution
+goto :main
+
+REM =========================================================================
+REM FUNCTION DEFINITIONS
+REM =========================================================================
 
 REM Helper function to print colored output
 :print_success
-echo %GREEN%✅ %~1%NC%
+echo [SUCCESS] %~1
 goto :eof
 
 :print_error
-echo %RED%❌ %~1%NC%
+echo [ERROR] %~1
 goto :eof
 
 :print_warning
-echo %YELLOW%⚠️ %~1%NC%
+echo [WARNING] %~1
 goto :eof
 
 :print_header
 echo.
-echo %BLUE%================================%NC%
-echo %BLUE%%~1%NC%
-echo %BLUE%================================%NC%
+echo ================================
+echo %~1
+echo ================================
 echo.
 goto :eof
 
@@ -127,10 +127,10 @@ if %ERRORLEVEL% == 0 (
     call :print_success "Live integration tests passed!"
 
     echo.
-    echo 🌐 Test environment is running:
-    echo   📊 SSE Server:      http://localhost:3001
-    echo   📊 Neo4j Browser:   http://localhost:7474 (neo4j/testpassword)
-    echo   📊 Test Results:    http://localhost:8080
+    echo Test environment is running:
+    echo   SSE Server:      http://localhost:3001
+    echo   Neo4j Browser:   http://localhost:7474 (neo4j/testpassword)
+    echo   Test Results:    http://localhost:8080
     echo.
     echo Press Ctrl+C to stop all services...
     echo Opening test results in browser...
@@ -150,6 +150,11 @@ if %ERRORLEVEL% == 0 (
 )
 goto :eof
 
+REM =========================================================================
+REM MAIN EXECUTION
+REM =========================================================================
+
+:main
 REM Main command processing
 if "%1"=="build" goto :build
 if "%1"=="BUILD" goto :build
@@ -189,74 +194,101 @@ goto :end_with_error
 
 :build
 call :print_header "Build"
-echo Building test images
+echo Building test images...
+echo.
+echo Building docker/docker-compose.test.yml...
 docker-compose -f docker/docker-compose.test.yml build
+if %ERRORLEVEL% neq 0 (
+    call :print_error "Failed to build test images"
+    goto :end_with_error
+)
+echo.
+echo Building docker/docker-compose.mcp-compliance.yml...
 docker-compose -f docker/docker-compose.mcp-compliance.yml build
+if %ERRORLEVEL% neq 0 (
+    call :print_error "Failed to build MCP compliance images"
+    goto :end_with_error
+)
 call :print_success "Build complete"
-goto :end
+exit /b 0
 
 :unit
 call :print_header "Unit Tests"
 echo Running unit tests only (no external dependencies)
 call :run_tests "unit-tests" "Unit Tests"
-goto :end
+exit /b 0
 
 :integration
 call :print_header "Integration Tests"
 echo Running integration tests (requires Neo4j)
 call :run_tests "integration-tests" "Integration Tests"
-goto :end
+exit /b 0
 
 :mcp_compliance
 call :run_mcp_compliance
-goto :end
+exit /b 0
 
 :sse_compliance
 call :print_header "SSE MCP Compliance Tests"
 echo Running SSE MCP compliance tests
 call :run_tests "sse-compliance-tests" "SSE MCP Compliance Tests"
-goto :end
+exit /b 0
 
 :mcp_live
 call :print_header "MCP Live Server Tests"
 echo Running MCP tests against live servers
 call :run_tests "live-sse-tests" "Live SSE Integration Tests"
-goto :end
+exit /b 0
 
 :live
 call :run_live_tests
-goto :end
+exit /b 0
 
 :coverage
 call :print_header "Coverage Tests"
 echo Running all tests with coverage reporting
 call :run_tests "coverage-tests" "Coverage Tests"
-goto :end
+exit /b 0
 
 :performance
 call :print_header "Performance Tests"
 echo Running performance and load tests
 call :run_tests "performance-tests" "Performance Tests"
-goto :end
+exit /b 0
 
+REM === CLEAN COMMAND ===
 :clean
 call :print_header "Cleanup"
-echo Cleaning up test containers and volumes
+echo Cleaning up test containers and volumes...
 docker-compose -f docker/docker-compose.test.yml down -v
+if %ERRORLEVEL% neq 0 (
+    call :print_warning "Failed to stop test containers"
+)
 docker-compose -f docker/docker-compose.mcp-compliance.yml down -v
+if %ERRORLEVEL% neq 0 (
+    call :print_warning "Failed to stop MCP compliance containers"
+)
 
 REM Clean up test results
 if exist "./test-results" (
+    echo Cleaning test results directory...
     del /q /s "./test-results/*" 2>nul
-    echo Cleaned test results directory
+    if %ERRORLEVEL% == 0 (
+        echo Cleaned test results directory
+    )
 )
 
 REM Clean up Docker system
 echo Cleaning up Docker system...
 docker system prune -f
+if %ERRORLEVEL% == 0 (
+    call :print_success "Docker system cleaned"
+) else (
+    call :print_warning "Docker system cleanup had issues"
+)
 
 call :print_success "Cleanup complete"
-goto :end
+exit /b 0
 
 :logs
 echo Showing test logs
@@ -272,7 +304,7 @@ if "%choice%"=="1" (
 ) else (
     docker-compose -f docker/docker-compose.test.yml logs
 )
-goto :end
+exit /b 0
 
 :all
 call :print_header "Comprehensive Test Suite"
@@ -295,7 +327,7 @@ call :run_tests "coverage-tests" "Coverage Tests"
 if %ERRORLEVEL% neq 0 goto :end_with_error
 
 call :print_success "All test suites completed successfully!"
-goto :end
+exit /b 0
 
 :help
 echo Usage: %0 [COMMAND]
@@ -326,30 +358,30 @@ echo   %0 coverage           # Generate detailed coverage reports
 echo   %0 clean              # Clean up everything
 echo.
 echo Test Results:
-echo   📁 Test outputs:     ./test-results/
-echo   📊 Coverage reports: ./test-results/htmlcov/index.html
-echo   🌐 Live servers:     http://localhost:3001 (SSE), http://localhost:7474 (Neo4j)
+echo   Test outputs:     ./test-results/
+echo   Coverage reports: ./test-results/htmlcov/index.html
+echo   Live servers:     http://localhost:3001 (SSE), http://localhost:7474 (Neo4j)
 echo.
 echo MCP Compliance Features:
-echo   ✅ JSON-RPC 2.0 protocol validation
-echo   ✅ SSE transport compliance testing
-echo   ✅ Session management verification
-echo   ✅ Tool execution validation
-echo   ✅ Error handling compliance
-echo   ✅ Live server integration testing
-goto :end
+echo   [CHECK] JSON-RPC 2.0 protocol validation
+echo   [CHECK] SSE transport compliance testing
+echo   [CHECK] Session management verification
+echo   [CHECK] Tool execution validation
+echo   [CHECK] Error handling compliance
+echo   [CHECK] Live server integration testing
+exit /b 0
 
 :end_with_error
 echo.
 call :print_error "Test execution failed!"
 echo.
-echo 💡 Tips:
-echo   📁 Test results are saved in ./test-results/
-echo   📊 Use '%0 coverage' for detailed coverage reports
-echo   🧹 Use '%0 clean' to clean up containers and results
-echo   📋 Use '%0 logs' to view container logs
-echo   🌐 Use '%0 live' for interactive testing with running servers
-echo   ✅ Use '%0 mcp-compliance' for full MCP protocol validation
+echo Tips:
+echo   Test results are saved in ./test-results/
+echo   Use '%0 coverage' for detailed coverage reports
+echo   Use '%0 clean' to clean up containers and results
+echo   Use '%0 logs' to view container logs
+echo   Use '%0 live' for interactive testing with running servers
+echo   Use '%0 mcp-compliance' for full MCP protocol validation
 pause
 exit /b 1
 
@@ -357,11 +389,11 @@ exit /b 1
 echo.
 call :print_success "Test execution completed successfully!"
 echo.
-echo 💡 Tips:
-echo   📁 Test results are saved in ./test-results/
-echo   📊 Use '%0 coverage' for detailed coverage reports
-echo   🧹 Use '%0 clean' to clean up containers and results
-echo   📋 Use '%0 logs' to view container logs
-echo   🌐 Use '%0 live' for interactive testing with running servers
-echo   ✅ Use '%0 mcp-compliance' for full MCP protocol validation
+echo Tips:
+echo   Test results are saved in ./test-results/
+echo   Use '%0 coverage' for detailed coverage reports
+echo   Use '%0 clean' to clean up containers and results
+echo   Use '%0 logs' to view container logs
+echo   Use '%0 live' for interactive testing with running servers
+echo   Use '%0 mcp-compliance' for full MCP protocol validation
 pause

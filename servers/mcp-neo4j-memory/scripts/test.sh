@@ -63,16 +63,16 @@ run_tests() {
 # Function to run MCP compliance tests with full infrastructure
 run_mcp_compliance() {
     print_header "MCP Protocol Compliance Testing"
-    
+
     echo "Starting test infrastructure..."
-    
+
     # Start required services
     docker-compose -f docker/docker-compose.mcp-compliance.yml up -d neo4j-test mcp-sse-server
-    
+
     # Wait for services to be ready
     echo "Waiting for services to be ready..."
     sleep 15
-    
+
     # Check service health
     echo "Checking service health..."
     for service in neo4j-test mcp-sse-server; do
@@ -82,26 +82,26 @@ run_mcp_compliance() {
             print_warning "$service may not be fully ready"
         fi
     done
-    
+
     echo ""
     echo "Running comprehensive MCP compliance test suite..."
     echo "--------------------------------------"
-    
+
     # Run the comprehensive test suite
     if docker-compose -f docker/docker-compose.mcp-compliance.yml run --rm mcp-compliance-suite; then
         print_success "MCP compliance tests passed!"
-        
+
         # Also run specific SSE protocol tests
         echo ""
         echo "Running SSE protocol specific tests..."
         docker-compose -f docker/docker-compose.mcp-compliance.yml run --rm sse-protocol-tests
-        
+
         echo ""
         echo "Running live integration tests..."
         docker-compose -f docker/docker-compose.mcp-compliance.yml run --rm live-integration-tests
-        
+
         print_success "All MCP compliance tests completed successfully!"
-        
+
     else
         print_error "MCP compliance tests failed"
         echo ""
@@ -109,7 +109,7 @@ run_mcp_compliance() {
         docker-compose -f docker/docker-compose.mcp-compliance.yml logs mcp-sse-server
         return 1
     fi
-    
+
     # Cleanup
     docker-compose -f docker/docker-compose.mcp-compliance.yml down
 }
@@ -117,19 +117,19 @@ run_mcp_compliance() {
 # Function to run live tests with servers running
 run_live_tests() {
     print_header "Live Integration Testing"
-    
+
     echo "Starting live test environment..."
-    
+
     # Start infrastructure but keep it running
     docker-compose -f docker/docker-compose.mcp-compliance.yml up -d neo4j-test mcp-sse-server test-results-viewer
-    
+
     echo "Waiting for services to be ready..."
     sleep 15
-    
+
     # Run live integration tests
     if docker-compose -f docker/docker-compose.mcp-compliance.yml run --rm live-integration-tests; then
         print_success "Live integration tests passed!"
-        
+
         echo ""
         echo "🌐 Test environment is running:"
         echo "  📊 SSE Server:      http://localhost:3001"
@@ -137,13 +137,13 @@ run_live_tests() {
         echo "  📊 Test Results:    http://localhost:8080"
         echo ""
         echo "Press Ctrl+C to stop all services..."
-        
+
         # Keep services running for manual testing
         trap 'echo ""; echo "Shutting down services..."; docker-compose -f docker/docker-compose.mcp-compliance.yml down; exit 0' INT
-        
+
         # Wait for user to stop
         docker-compose -f docker/docker-compose.mcp-compliance.yml logs -f test-results-viewer
-        
+
     else
         print_error "Live integration tests failed"
         docker-compose -f docker/docker-compose.mcp-compliance.yml down
@@ -192,19 +192,19 @@ case "$1" in
     "all"|"")
         print_header "Comprehensive Test Suite"
         echo "Running comprehensive test suite"
-        
+
         echo "1. Unit Tests..."
         run_tests "unit-tests" "Unit Tests" || exit 1
-        
+
         echo "2. Integration Tests..."
         run_tests "integration-tests" "Integration Tests" || exit 1
-        
+
         echo "3. MCP Compliance Tests..."
         run_mcp_compliance || exit 1
-        
+
         echo "4. Coverage Tests..."
         run_tests "coverage-tests" "Coverage Tests" || exit 1
-        
+
         print_success "All test suites completed successfully!"
         ;;
     "clean")
@@ -212,17 +212,17 @@ case "$1" in
         echo "Cleaning up test containers and volumes"
         docker-compose -f docker/docker-compose.test.yml down -v
         docker-compose -f docker/docker-compose.mcp-compliance.yml down -v
-        
+
         # Clean up test results
         if [ -d "./test-results" ]; then
             rm -rf ./test-results/*
             echo "Cleaned test results directory"
         fi
-        
+
         # Clean up test images (optional)
         echo "Cleaning up Docker system..."
         docker system prune -f
-        
+
         print_success "Cleanup complete"
         ;;
     "build")
@@ -238,7 +238,7 @@ case "$1" in
         echo "1. Test environment logs"
         echo "2. MCP compliance logs"
         read -p "Enter choice (1 or 2): " choice
-        
+
         case $choice in
             1)
                 docker-compose -f docker/docker-compose.test.yml logs

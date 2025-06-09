@@ -248,6 +248,50 @@ class TestMCPProtocolMethods:
         finally:
             loop.close()
 
+    def test_auto_initialization_behavior(self, memory):
+        """Test that auto-initialization works correctly and is logged."""
+        from unittest.mock import patch
+        
+        server = MCPSSEServer(memory)
+        
+        # Test with session ID present
+        session_data_with_id = {
+            "id": "test-session-123", 
+            "initialized": False, 
+            "pending_responses": []
+        }
+        
+        with patch('mcp_neo4j_memory.protocols.sse_server.logger') as mock_logger:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            try:
+                request = {
+                    "jsonrpc": "2.0",
+                    "id": 6,
+                    "method": "tools/call",
+                    "params": {
+                        "name": "read_graph",
+                        "arguments": {}
+                    }
+                }
+                
+                response = loop.run_until_complete(
+                    server._handle_json_rpc(request, session_data_with_id)
+                )
+                
+                # Verify auto-initialization happened
+                assert session_data_with_id["initialized"] is True
+                assert response["result"]["isError"] is False
+                
+                # Verify warning was logged with session ID
+                mock_logger.warning.assert_called_once()
+                warning_call = mock_logger.warning.call_args[0][0]
+                assert "Auto-initializing session test-session-123" in warning_call
+                
+            finally:
+                loop.close()
+
     def test_json_rpc_tools_list_method(self, memory):
         """Test the MCP tools/list method."""
         server = MCPSSEServer(memory)
@@ -377,7 +421,7 @@ class TestMCPProtocolMethods:
 
         session_data = {"initialized": False, "pending_responses": []}
 
-        # Test uninitialized session
+        # Test that auto-initialization works for tools/list
         request = {
             "jsonrpc": "2.0",
             "id": 5,
@@ -392,16 +436,21 @@ class TestMCPProtocolMethods:
                 server._handle_json_rpc(request, session_data)
             )
 
+            # Should succeed due to auto-initialization
             assert response is not None
             assert response["jsonrpc"] == "2.0"
             assert response["id"] == 5
-            assert "error" in response
+            assert "result" in response
+            
+            # Verify session is now initialized
+            assert session_data["initialized"] is True
+            
+            # Verify tools are returned
+            result = response["result"]
+            assert "tools" in result
+            assert len(result["tools"]) == 10
 
-            error = response["error"]
-            assert error["code"] == -32002
-            assert "not initialized" in error["message"]
-
-            # Test unknown method
+            # Test unknown method (should still return error)
             request["method"] = "unknown_method"
             response = loop.run_until_complete(
                 server._handle_json_rpc(request, session_data)
