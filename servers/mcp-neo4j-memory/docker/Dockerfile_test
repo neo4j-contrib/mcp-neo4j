@@ -1,0 +1,105 @@
+# Optimized Dockerfile for Testing using Alpine Linux
+# Significantly reduced image size compared to Debian-based version
+
+# ============================================================================
+# BUILD STAGE - Shared across all protocol variants
+# ============================================================================
+FROM python:3.11-alpine as builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files first for better layer caching
+COPY pyproject.toml uv.lock* ./
+
+# Copy README.md as it's referenced in pyproject.toml
+COPY README.md ./
+
+COPY pytest.ini ./
+
+# Copy source code
+COPY src/ ./src/
+
+# Install build dependencies, build everything, then remove build deps in one layer
+RUN apk add --no-cache --virtual .build-deps build-base git && \
+    pip install --no-cache-dir uv && \
+    (uv sync --frozen --no-dev || pip install --no-cache-dir -e .) && \
+    pip install --no-cache-dir -e . && \
+    apk del .build-deps
+
+# ============================================================================
+# RUNTIME BASE - Shared runtime configuration
+# ============================================================================
+FROM python:3.11-alpine as runtime-base
+
+# Create non-root user for security (Alpine style)
+RUN addgroup -S mcp && adduser -S -G mcp mcp
+
+# Set working directory
+WORKDIR /app
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin/mcp-neo4j-memory /usr/local/bin/
+COPY --from=builder /app/src /app/src
+COPY --from=builder /app/README.md /app/
+COPY --from=builder /app/pytest.ini /app/
+
+# Create directory for potential data persistence
+RUN mkdir -p /app/data && chown -R mcp:mcp /app
+
+# Switch to non-root user
+USER mcp
+
+# Set environment variables for testing
+ENV NEO4J_URI=neo4j://neo4j-test:7687
+ENV NEO4J_USERNAME=neo4j
+ENV NEO4J_PASSWORD=testpassword
+ENV NEO4J_DATABASE=neo4j
+
+# ============================================================================
+# TEST VARIANT - Test environment with all dependencies
+# ============================================================================
+FROM runtime-base as test
+
+# Test-specific environment
+ENV MCP_MODE="stdio"
+ENV PYTHONPATH=/app/src
+
+# Install test dependencies and create wait script
+USER root
+
+# Install runtime dependencies and test packages in one layer
+RUN apk add --no-cache curl bash && \
+    pip install --no-cache-dir \
+        pytest pytest-cov pytest-asyncio \
+        httpx aiohttp requests \
+        pytest-xdist pytest-timeout pytest-mock
+
+# Create the wait script in root directory with proper permissions
+RUN echo '#!/bin/bash' > /wait-for-neo4j.sh && \
+    echo 'set -e' >> /wait-for-neo4j.sh && \
+    echo 'echo "Waiting for Neo4j to be ready..."' >> /wait-for-neo4j.sh && \
+    echo 'until python -c "from neo4j import GraphDatabase; driver = GraphDatabase.driver(\"$NEO4J_URI\", auth=(\"$NEO4J_USERNAME\", \"$NEO4J_PASSWORD\")); driver.verify_connectivity(); driver.close(); print(\"Neo4j is ready\")"; do' >> /wait-for-neo4j.sh && \
+    echo '  echo "Neo4j is unavailable - sleeping"' >> /wait-for-neo4j.sh && \
+    echo '  sleep 2' >> /wait-for-neo4j.sh && \
+    echo 'done' >> /wait-for-neo4j.sh && \
+    echo 'echo "Neo4j is up - executing tests"' >> /wait-for-neo4j.sh && \
+    echo 'cd /app' >> /wait-for-neo4j.sh && \
+    echo 'if [ "$1" = "python" ]; then shift; fi' >> /wait-for-neo4j.sh && \
+    echo 'exec /usr/local/bin/python "$@"' >> /wait-for-neo4j.sh && \
+    chmod +x /wait-for-neo4j.sh
+
+# Switch back to non-root user
+USER mcp
+
+# Note: tests/ should be mounted as volume (like in docker-compose.test.yml)
+# This allows for live testing without rebuilding the image
+# Test command (runs comprehensive test suite)
+CMD ["/wait-for-neo4j.sh", "tests/run_all_tests.py"]
+
+# Labels for test
+LABEL maintainer="MCP Neo4j Memory"
+LABEL description="Test environment for MCP Neo4j Memory with all dependencies"
+LABEL protocol="stdio"
+LABEL variant="test"

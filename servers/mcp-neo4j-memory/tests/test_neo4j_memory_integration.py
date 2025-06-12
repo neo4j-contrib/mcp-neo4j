@@ -2,7 +2,7 @@ import os
 import pytest
 import asyncio
 from neo4j import GraphDatabase
-from mcp_neo4j_memory.server import Neo4jMemory, Entity, Relation, ObservationAddition, ObservationDeletion
+from mcp_neo4j_memory.core import Neo4jMemory, Entity, Relation, ObservationAddition, ObservationDeletion
 
 @pytest.fixture(scope="function")
 def neo4j_driver():

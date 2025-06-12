@@ -22,17 +22,30 @@ wheels/
 
 # Virtual Environment
 venv/
-env/
 ENV/
+env.bak/
+venv.bak/
 
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Development tools
+.mypy_cache/
+.pyright/
 
 # Git
-.git
+.git/
 .gitignore
 
 # Docker
@@ -48,4 +61,4 @@ docs/
 # Tests
 tests/
 test/
-testing/ 
+testing/

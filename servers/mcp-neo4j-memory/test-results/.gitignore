@@ -1,0 +1,23 @@
+# Test results directory
+# This directory contains test outputs, coverage reports, and other test artifacts
+
+# Coverage reports
+htmlcov/
+coverage.xml
+.coverage
+
+# Pytest cache
+.pytest_cache/
+
+# Test outputs
+*.log
+test-output.txt
+
+# JUnit XML reports
+junit.xml
+test-results.xml
+
+# Keep this directory but ignore contents
+*
+!.gitignore
+!README.md
