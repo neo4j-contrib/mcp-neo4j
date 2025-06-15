@@ -16,7 +16,7 @@ This lets you use Claude Desktop, or any other MCP Client (VS Code, Cursor, Wind
 
 [Details in Readme](./servers/mcp-neo4j-cypher/)
 
-Get database schema for a configured database and exeucte generated read and write Cypher queries on that database.
+Get database schema for a configured database and execute generated read and write Cypher queries on that database.
 
 ### `mcp-neo4j-memory` - knowledge graph memory stored in Neo4j
 
