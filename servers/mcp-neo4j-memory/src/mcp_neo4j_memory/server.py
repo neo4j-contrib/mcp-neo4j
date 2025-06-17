@@ -108,33 +108,52 @@ class Neo4jMemory:
         return KnowledgeGraph(entities=entities, relations=relations)
 
     async def create_entities(self, entities: List[Entity]) -> List[Entity]:
-        query = """
-        UNWIND $entities as entity
-        MERGE (e:Memory { name: entity.name })
-        SET e += entity {.type, .observations}
-        SET e:$(entity.type)
-        """
-        
-        entities_data = [entity.model_dump() for entity in entities]
-        self.neo4j_driver.execute_query(query, {"entities": entities_data})
-        return entities
+        import uuid
+        results = []
+        for entity in entities:
+            query = """
+            CREATE (e:Memory {
+                id: $id,
+                name: $name,
+                type: $type,
+                observations: $observations,
+                created_at: datetime()
+            })
+            RETURN e.id as entity_id, e.name as name, e.type as type
+            """
+            params = {
+                'id': str(uuid.uuid4()),
+                'name': entity.name,
+                'type': entity.type,
+                'observations': entity.observations
+            }
+            self.neo4j_driver.execute_query(query, params)
+            results.append(entity)
+        return results
 
     async def create_relations(self, relations: List[Relation]) -> List[Relation]:
+        import uuid
+        results = []
         for relation in relations:
             query = """
-            UNWIND $relations as relation
-            MATCH (from:Memory),(to:Memory)
-            WHERE from.name = relation.source
-            AND  to.name = relation.target
-            MERGE (from)-[r:$(relation.relationType)]->(to)
+            MATCH (from:Memory {name: $source})
+            MATCH (to:Memory {name: $target})
+            CREATE (from)-[r:RELATED_TO {
+                id: $id,
+                relation_type: $relation_type,
+                created_at: datetime()
+            }]->(to)
+            RETURN r.id as relation_id, r.relation_type as type
             """
-            
-            self.neo4j_driver.execute_query(
-                query, 
-                {"relations": [relation.model_dump() for relation in relations]}
-            )
-        
-        return relations
+            params = {
+                'id': str(uuid.uuid4()),
+                'source': relation.source,
+                'target': relation.target,
+                'relation_type': relation.relationType
+            }
+            self.neo4j_driver.execute_query(query, params)
+            results.append(relation)
+        return results
 
     async def add_observations(self, observations: List[ObservationAddition]) -> List[Dict[str, Any]]:
         query = """
