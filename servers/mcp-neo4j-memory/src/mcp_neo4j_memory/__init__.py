@@ -1,28 +1,17 @@
-from . import server
-import asyncio
-import argparse
-import os
+"""
+MCP Neo4j Memory - A modular knowledge graph memory server.
 
+This package provides a clean, modular implementation of an MCP server
+that uses Neo4j for knowledge graph storage and retrieval.
 
-def main():
-    """Main entry point for the package."""
-    parser = argparse.ArgumentParser(description='Neo4j Cypher MCP Server')
-    parser.add_argument('--db-url', 
-                       default=os.getenv("NEO4J_URL", "bolt://localhost:7687"),
-                       help='Neo4j connection URL')
-    parser.add_argument('--username', 
-                       default=os.getenv("NEO4J_USERNAME", "neo4j"),
-                       help='Neo4j username')
-    parser.add_argument('--password', 
-                       default=os.getenv("NEO4J_PASSWORD", "password"),
-                       help='Neo4j password')
-    parser.add_argument("--database",
-                        default=os.getenv("NEO4J_DATABASE", "neo4j"),
-                        help="Neo4j database name")
-    
-    args = parser.parse_args()
-    asyncio.run(server.main(args.db_url, args.username, args.password, args.database))
+Modules:
+- core: Core business logic, data models, and tool definitions
+- protocols: Protocol implementations (stdio, SSE)
+- cli: Command-line interface and configuration management
+"""
 
+from .cli import main
+from . import core, protocols
 
-# Optionally expose other important items at package level
-__all__ = ["main", "server"]
+__version__ = "0.1.4"
+__all__ = ["main", "core", "protocols"]

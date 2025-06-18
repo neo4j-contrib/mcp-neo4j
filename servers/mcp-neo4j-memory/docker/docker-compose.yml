@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  mcp-neo4j-memory:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: sse
+    container_name: mcp-neo4j-memory
+    environment:
+      - NEO4J_URL=neo4j://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=your_password_here
+      - NEO4J_DATABASE=neo4j
+      - MCP_MODE=sse
+      - MCP_SERVER_PORT=3001
+      - MCP_SERVER_HOST=0.0.0.0
+    ports:
+      - "3001:3001"
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import mcp_neo4j_memory; print('OK')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  neo4j:
+    image: neo4j:latest
+    container_name: neo4j-db
+    environment:
+      - NEO4J_AUTH=neo4j/your_password_here
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_apoc_import_file_use__neo4j__config=true
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+      - neo4j_plugins:/plugins
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "your_password_here", "RETURN 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  neo4j_plugins:
+
+networks:
+  mcp-network:
+    driver: bridge

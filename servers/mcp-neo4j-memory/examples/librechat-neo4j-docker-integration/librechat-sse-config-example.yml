@@ -1,0 +1,6 @@
+mcpServers:
+  neo4j-memory:
+    type: sse
+    url: http://mcp-neo4j-memory:3001/sse
+    timeout: 30000
+    initTimeout: 10000

@@ -31,6 +31,13 @@ Results in Claude calling the create_entities and create_relations tools.
 
 ## 📦 Components
 
+### 🔌 Protocol Support
+
+This MCP server supports multiple protocols:
+
+- **stdio** - Default mode for Claude Desktop and MCP clients
+- **SSE (Server-Sent Events)** - Real-time streaming mode for streaming applications
+
 ### 🔧 Tools
 
 The server offers these core tools:
@@ -149,6 +156,7 @@ Alternatively, you can set environment variables:
 
 ### 🐳 Using with Docker
 
+**stdio mode (default):**
 ```json
 "mcpServers": {
   "neo4j": {
@@ -159,10 +167,26 @@ Alternatively, you can set environment variables:
       "-e", "NEO4J_URL=neo4j+s://xxxx.databases.neo4j.io",
       "-e", "NEO4J_USERNAME=<your-username>",
       "-e", "NEO4J_PASSWORD=<your-password>",
-      "mcp/neo4j-memory:0.1.4"
+      "mcp-neo4j-memory:latest"
     ]
   }
 }
+```
+
+**SSE mode (for streaming applications):**
+```bash
+# Build SSE image using unified Dockerfile
+./scripts/build.sh sse
+
+# Run SSE server
+docker run -p 3001:3001 \
+  -e NEO4J_URL="neo4j+s://xxxx.databases.neo4j.io" \
+  -e NEO4J_USERNAME="<your-username>" \
+  -e NEO4J_PASSWORD="<your-password>" \
+  mcp-neo4j-memory:sse
+
+# Test SSE endpoint
+curl http://localhost:3001/sse
 ```
 
 ## 🚀 Development
@@ -194,21 +218,54 @@ source .venv/bin/activate  # On Unix/macOS
 
 # Install dependencies including dev dependencies
 uv pip install -e ".[dev]"
+
+# Set environment for tests
+set NEO4J_URL=neo4j://localhost:7687
+set NEO4J_USERNAME=neo4j
+set NEO4J_PASSWORD=testpassword
+
+# Run neo4j and run tests
+docker run -d --name neo4j-test -p 7687:7687 -p 7474:7474 -e NEO4J_AUTH=neo4j/testpassword neo4j:latest
+# Run tests
+uv run pytest
 ```
 
-### 🐳 Docker
+### 🐳 Development with  Docker
+```bash
+# 1. Build and run tests, clean
+./scripts/test.sh build
+./scripts/test.sh
+./scripts/test.sh clean
 
-Build and run the Docker container:
+# 2. Build Docker images 
+./scripts/build.sh all
+
+# 3. Publish Docker images 
+./scripts/publish.sh
+```
+
+### 🐳 Docker build images
+
+Build and run different variants using the consolidated build system:
 
 ```bash
-# Build the image
-docker build -t mcp/neo4j-memory:latest .
+# Build specific variants using the unified Dockerfile
+./scripts/build.sh stdio    # stdio-only (default)
+./scripts/build.sh sse      # SSE streaming server
+./scripts/build.sh all      # All variants (default)
 
-# Run the container
+# Run stdio container (default)
 docker run -e NEO4J_URL="neo4j+s://xxxx.databases.neo4j.io" \
           -e NEO4J_USERNAME="your-username" \
           -e NEO4J_PASSWORD="your-password" \
-          mcp/neo4j-memory:latest
+          mcp-neo4j-memory:latest
+
+# Run SSE server
+docker run -p 3001:3001 \
+          -e NEO4J_URL="neo4j+s://xxxx.databases.neo4j.io" \
+          -e NEO4J_USERNAME="your-username" \
+          -e NEO4J_PASSWORD="your-password" \
+          mcp-neo4j-memory:sse
 ```
 
 ## 📄 License
