@@ -51,6 +51,6 @@ def reset_database():
 
 # %%
 count_nodes()
-reset_database()
-count_nodes()
+#reset_database()
+#count_nodes()
 # %%

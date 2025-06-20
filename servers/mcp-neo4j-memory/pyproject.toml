@@ -5,8 +5,8 @@ description = "MCP Neo4j Knowledge Graph Memory Server"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "mcp>=0.10.0",
-    "neo4j>=5.26.0",
+    "mcp>=1.9.4",
+    "neo4j>=5.28.0",
 ]
 
 [build-system]
@@ -20,6 +20,8 @@ dev-dependencies = [
     "pytest-asyncio>=0.25.3",
     "python-dotenv>=1.0.0",
     "jupyter>=1.0.0",
+    "coverage>=7.0.0",
+    "pytest-cov>=4.0.0",
 ]
 
 [project.scripts]
