@@ -204,7 +204,8 @@ class Neo4jMemory:
 
     async def search_nodes(self, query: str) -> KnowledgeGraph:
         # For simple queries, use the fulltext index
-        if not any(op in query for op in [':', '=', 'AND', 'OR', 'WHERE']):
+        query_upper = query.upper()
+        if not any(op in query_upper for op in [':', '=', 'AND', 'OR', 'WHERE']):
             return await self.load_graph(query)
         
         # For complex queries with property searches, use a custom query

@@ -258,6 +258,12 @@ async def test_search_nodes(memory):
     entity_names2 = [e.name for e in result2.entities]
     assert "Ian" in entity_names2
     assert "Jane" not in entity_names2
+    
+    # Test case-insensitive operator detection
+    result3 = await memory.search_nodes("entity.preference = 'tea' or entity.preference = 'coffee'")
+    entity_names3 = [e.name for e in result3.entities]
+    assert "Ian" in entity_names3
+    assert "Jane" in entity_names3
 
 @pytest.mark.asyncio
 async def test_find_nodes(memory):
