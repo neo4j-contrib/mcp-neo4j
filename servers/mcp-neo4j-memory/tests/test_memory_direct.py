@@ -1,8 +1,12 @@
 import os
 import pytest
 import asyncio
+from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from mcp_neo4j_memory.server import Neo4jMemory, Entity, Relation, ObservationAddition, ObservationDeletion
+
+# Load environment variables from .env file
+load_dotenv()
 
 @pytest.fixture(scope="function")
 def neo4j_driver():
