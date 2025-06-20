@@ -139,7 +139,7 @@ Alternatively, you can set environment variables:
     "command": "uvx",
     "args": [ "mcp-neo4j-memory@0.1.5" ],
     "env": {
-      "NEO4J_URL": "neo4j+s://xxxx.databases.neo4j.io",
+      "NEO4J_URI": "neo4j+s://xxxx.databases.neo4j.io",
       "NEO4J_USERNAME": "<your-username>",
       "NEO4J_PASSWORD": "<your-password>"
     }
@@ -156,7 +156,7 @@ Alternatively, you can set environment variables:
     "args": [
       "run",
       "--rm",
-      "-e", "NEO4J_URL=neo4j+s://xxxx.databases.neo4j.io",
+      "-e", "NEO4J_URI=neo4j+s://xxxx.databases.neo4j.io",
       "-e", "NEO4J_USERNAME=<your-username>",
       "-e", "NEO4J_PASSWORD=<your-password>",
       "mcp/neo4j-memory:0.1.5"
@@ -205,7 +205,7 @@ Build and run the Docker container:
 docker build -t mcp/neo4j-memory:latest .
 
 # Run the container
-docker run -e NEO4J_URL="neo4j+s://xxxx.databases.neo4j.io" \
+docker run -e NEO4J_URI="neo4j+s://xxxx.databases.neo4j.io" \
           -e NEO4J_USERNAME="your-username" \
           -e NEO4J_PASSWORD="your-password" \
           mcp/neo4j-memory:latest
