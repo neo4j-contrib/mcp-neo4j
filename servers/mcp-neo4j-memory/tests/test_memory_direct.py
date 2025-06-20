@@ -3,7 +3,7 @@ import pytest
 import asyncio
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
-from mcp_neo4j_memory.server import Neo4jMemory, Entity, Relation, ObservationAddition, ObservationDeletion
+from mcp_neo4j_memory.server import Neo4jMemory, Entity, Relation, PropertyUpdate, PropertyDeletion
 
 # Load environment variables from .env file
 load_dotenv()
@@ -39,8 +39,8 @@ def memory(neo4j_driver):
 async def test_create_and_read_entities(memory):
     # Create test entities
     test_entities = [
-        Entity(name="Alice", type="Person", observations=["Likes reading", "Works at Company X"]),
-        Entity(name="Bob", type="Person", observations=["Enjoys hiking"])
+        Entity(name="Alice", type="Person", properties={"hobby": "reading", "workplace": "Company X"}),
+        Entity(name="Bob", type="Person", properties={"hobby": "hiking"})
     ]
     # Create entities in the graph
     created_entities = await memory.create_entities(test_entities)
@@ -57,15 +57,16 @@ async def test_create_and_read_entities(memory):
     assert "Alice" in entities_by_name
     assert "Bob" in entities_by_name
     assert entities_by_name["Alice"].type == "Person"
-    assert "Likes reading" in entities_by_name["Alice"].observations
-    assert "Enjoys hiking" in entities_by_name["Bob"].observations
+    assert entities_by_name["Alice"].properties.get("hobby") == "reading"
+    assert entities_by_name["Alice"].properties.get("workplace") == "Company X"
+    assert entities_by_name["Bob"].properties.get("hobby") == "hiking"
 
 @pytest.mark.asyncio
 async def test_create_and_read_relations(memory):
     # Create test entities
     test_entities = [
-        Entity(name="Alice", type="Person", observations=[]),
-        Entity(name="Bob", type="Person", observations=[])
+        Entity(name="Alice", type="Person", properties={}),
+        Entity(name="Bob", type="Person", properties={})
     ]
     await memory.create_entities(test_entities)
     
@@ -87,19 +88,62 @@ async def test_create_and_read_relations(memory):
     assert relation.source == "Alice"
     assert relation.target == "Bob"
     assert relation.relationType == "KNOWS"
+    assert relation.properties == {}  # Default empty properties
+
 
 @pytest.mark.asyncio
-async def test_add_observations(memory):
-    # Create test entity
-    test_entity = Entity(name="Charlie", type="Person", observations=["Initial observation"])
-    await memory.create_entities([test_entity])
+async def test_create_relations_with_properties(memory):
+    # Create test entities
+    test_entities = [
+        Entity(name="Document", type="Document", properties={"version": "1.0"}),
+        Entity(name="Section", type="Section", properties={"title": "Introduction"})
+    ]
+    await memory.create_entities(test_entities)
     
-    # Add observations
-    observation_additions = [
-        ObservationAddition(entityName="Charlie", contents=["New observation 1", "New observation 2"])
+    # Create test relation with properties
+    test_relations = [
+        Relation(
+            source="Document", 
+            target="Section", 
+            relationType="hasPart",
+            properties={
+                "dateCreated": "2025-01-16T10:31:02",
+                "order": 1,
+                "required": True
+            }
+        )
     ]
     
-    result = await memory.add_observations(observation_additions)
+    # Create relation in the graph
+    created_relations = await memory.create_relations(test_relations)
+    assert len(created_relations) == 1
+    assert created_relations[0].properties["dateCreated"] == "2025-01-16T10:31:02"
+    
+    # Read the graph
+    graph = await memory.read_graph()
+    
+    # Verify relation was created with properties
+    assert len(graph.relations) == 1
+    relation = graph.relations[0]
+    assert relation.source == "Document"
+    assert relation.target == "Section"
+    assert relation.relationType == "hasPart"
+    assert relation.properties["dateCreated"] == "2025-01-16T10:31:02"
+    assert relation.properties["order"] == 1
+    assert relation.properties["required"] == True
+
+@pytest.mark.asyncio
+async def test_update_properties(memory):
+    # Create test entity
+    test_entity = Entity(name="Charlie", type="Person", properties={"status": "active"})
+    await memory.create_entities([test_entity])
+    
+    # Update properties
+    property_updates = [
+        PropertyUpdate(entityName="Charlie", properties={"age": 30, "city": "NYC"})
+    ]
+    
+    result = await memory.update_properties(property_updates)
     assert len(result) == 1
     
     # Read the graph
@@ -109,27 +153,27 @@ async def test_add_observations(memory):
     charlie = next((e for e in graph.entities if e.name == "Charlie"), None)
     assert charlie is not None
     
-    # Verify observations were added
-    assert "Initial observation" in charlie.observations
-    assert "New observation 1" in charlie.observations
-    assert "New observation 2" in charlie.observations
+    # Verify properties were added/updated
+    assert charlie.properties.get("status") == "active"
+    assert charlie.properties.get("age") == 30
+    assert charlie.properties.get("city") == "NYC"
 
 @pytest.mark.asyncio
-async def test_delete_observations(memory):
-    # Create test entity with observations
+async def test_delete_properties(memory):
+    # Create test entity with properties
     test_entity = Entity(
         name="Dave", 
         type="Person", 
-        observations=["Observation 1", "Observation 2", "Observation 3"]
+        properties={"prop1": "value1", "prop2": "value2", "prop3": "value3"}
     )
     await memory.create_entities([test_entity])
     
-    # Delete specific observations
-    observation_deletions = [
-        ObservationDeletion(entityName="Dave", observations=["Observation 2"])
+    # Delete specific properties
+    property_deletions = [
+        PropertyDeletion(entityName="Dave", propertyKeys=["prop2"])
     ]
     
-    await memory.delete_observations(observation_deletions)
+    await memory.delete_properties(property_deletions)
     
     # Read the graph
     graph = await memory.read_graph()
@@ -138,17 +182,47 @@ async def test_delete_observations(memory):
     dave = next((e for e in graph.entities if e.name == "Dave"), None)
     assert dave is not None
     
-    # Verify observation was deleted
-    assert "Observation 1" in dave.observations
-    assert "Observation 2" not in dave.observations
-    assert "Observation 3" in dave.observations
+    # Verify property was deleted
+    assert dave.properties.get("prop1") == "value1"
+    assert "prop2" not in dave.properties
+    assert dave.properties.get("prop3") == "value3"
+
+
+@pytest.mark.asyncio
+async def test_delete_properties_batch(memory):
+    # Create multiple test entities with properties
+    test_entities = [
+        Entity(name="Entity1", type="Test", properties={"a": 1, "b": 2, "c": 3}),
+        Entity(name="Entity2", type="Test", properties={"x": 10, "y": 20, "z": 30}),
+        Entity(name="Entity3", type="Test", properties={"foo": "bar", "baz": "qux"})
+    ]
+    await memory.create_entities(test_entities)
+    
+    # Delete different properties from multiple entities in one call
+    property_deletions = [
+        PropertyDeletion(entityName="Entity1", propertyKeys=["b"]),
+        PropertyDeletion(entityName="Entity2", propertyKeys=["x", "z"]),
+        PropertyDeletion(entityName="Entity3", propertyKeys=["foo"])
+    ]
+    
+    await memory.delete_properties(property_deletions)
+    
+    # Read the graph
+    graph = await memory.read_graph()
+    
+    # Verify properties were deleted correctly for each entity
+    entities = {e.name: e for e in graph.entities}
+    
+    assert entities["Entity1"].properties == {"a": 1, "c": 3}
+    assert entities["Entity2"].properties == {"y": 20}
+    assert entities["Entity3"].properties == {"baz": "qux"}
 
 @pytest.mark.asyncio
 async def test_delete_entities(memory):
     # Create test entities
     test_entities = [
-        Entity(name="Eve", type="Person", observations=[]),
-        Entity(name="Frank", type="Person", observations=[])
+        Entity(name="Eve", type="Person", properties={}),
+        Entity(name="Frank", type="Person", properties={})
     ]
     await memory.create_entities(test_entities)
     
@@ -167,8 +241,8 @@ async def test_delete_entities(memory):
 async def test_delete_relations(memory):
     # Create test entities
     test_entities = [
-        Entity(name="Grace", type="Person", observations=[]),
-        Entity(name="Hank", type="Person", observations=[])
+        Entity(name="Grace", type="Person", properties={}),
+        Entity(name="Hank", type="Person", properties={})
     ]
     await memory.create_entities(test_entities)
     
@@ -196,28 +270,38 @@ async def test_delete_relations(memory):
 async def test_search_nodes(memory):
     # Create test entities
     test_entities = [
-        Entity(name="Ian", type="Person", observations=["Likes coffee"]),
-        Entity(name="Jane", type="Person", observations=["Likes tea"]),
-        Entity(name="Coffee", type="Beverage", observations=["Hot drink"])
+        Entity(name="Ian", type="Person", properties={"preference": "coffee"}),
+        Entity(name="Jane", type="Person", properties={"preference": "tea"}),
+        Entity(name="Coffee", type="Beverage", properties={"temperature": "hot"})
     ]
     await memory.create_entities(test_entities)
     
-    # Search for coffee-related nodes
+    # Search for coffee-related nodes by name/type
     result = await memory.search_nodes("coffee")
     
     # Verify search results
     entity_names = [e.name for e in result.entities]
-    assert "Ian" in entity_names
     assert "Coffee" in entity_names
-    assert "Jane" not in entity_names
+    
+    # Search by property
+    result2 = await memory.search_nodes("entity.preference = 'coffee'")
+    entity_names2 = [e.name for e in result2.entities]
+    assert "Ian" in entity_names2
+    assert "Jane" not in entity_names2
+    
+    # Test case-insensitive operator detection
+    result3 = await memory.search_nodes("entity.preference = 'tea' or entity.preference = 'coffee'")
+    entity_names3 = [e.name for e in result3.entities]
+    assert "Ian" in entity_names3
+    assert "Jane" in entity_names3
 
 @pytest.mark.asyncio
 async def test_find_nodes(memory):
     # Create test entities
     test_entities = [
-        Entity(name="Kevin", type="Person", observations=[]),
-        Entity(name="Laura", type="Person", observations=[]),
-        Entity(name="Mike", type="Person", observations=[])
+        Entity(name="Kevin", type="Person", properties={}),
+        Entity(name="Laura", type="Person", properties={}),
+        Entity(name="Mike", type="Person", properties={})
     ]
     await memory.create_entities(test_entities)
     

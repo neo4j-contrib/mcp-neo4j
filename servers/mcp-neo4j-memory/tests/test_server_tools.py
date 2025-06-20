@@ -33,9 +33,9 @@ class TestServerTools:
         expected_tools = [
             "create_entities",
             "create_relations", 
-            "add_observations",
+            "update_properties",
             "delete_entities",
-            "delete_observations",
+            "delete_properties",
             "delete_relations",
             "read_graph",
             "search_nodes",

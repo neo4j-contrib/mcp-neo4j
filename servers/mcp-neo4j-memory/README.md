@@ -60,7 +60,7 @@ The server offers these core tools:
      - `entities`: Array of objects with:
        - `name` (string): Name of the entity
        - `type` (string): Type of the entity  
-       - `observations` (array of strings): Initial observations about the entity
+       - `properties` (object, optional): Key-value properties for the entity
    - Returns: Created entities
 
 - `delete_entities` 
@@ -77,6 +77,7 @@ The server offers these core tools:
        - `source` (string): Name of source entity
        - `target` (string): Name of target entity
        - `relationType` (string): Type of relation
+       - `properties` (object, optional): Key-value properties for the relation
    - Returns: Created relations
 
 - `delete_relations`
@@ -85,21 +86,21 @@ The server offers these core tools:
      - `relations`: Array of objects with same schema as create_relations
    - Returns: Success confirmation
 
-#### 📝 Observation Management Tools
-- `add_observations`
-   - Add new observations to existing entities
+#### 📝 Property Management Tools
+- `update_properties`
+   - Update properties on existing entities
    - Input:
-     - `observations`: Array of objects with:
-       - `entityName` (string): Entity to add to
-       - `contents` (array of strings): Observations to add
-   - Returns: Added observation details
+     - `updates`: Array of objects with:
+       - `entityName` (string): Entity to update
+       - `properties` (object): Key-value properties to add or update
+   - Returns: Updated property details
 
-- `delete_observations`
-   - Delete specific observations from entities
+- `delete_properties`
+   - Delete specific properties from entities
    - Input:
      - `deletions`: Array of objects with:
        - `entityName` (string): Entity to delete from
-       - `observations` (array of strings): Observations to remove
+       - `propertyKeys` (array of strings): Property keys to remove
    - Returns: Success confirmation
 
 ## 🔧 Usage with Claude Desktop
