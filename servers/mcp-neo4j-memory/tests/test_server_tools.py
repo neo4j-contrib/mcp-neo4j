@@ -27,7 +27,6 @@ class TestServerTools:
         server = Server("test-server")
         
         # Import the handler to get the tools list
-        from mcp_neo4j_memory.server import main
         
         # We can't easily test the actual handler without mocking more,
         # but we can verify the tool names we expect exist in the code
