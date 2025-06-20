@@ -28,6 +28,26 @@ def test_relation_model():
     assert relation.source == "Alice"
     assert relation.target == "Bob"
     assert relation.relationType == "KNOWS"
+    assert relation.properties == {}  # Default empty dict
+
+
+def test_relation_model_with_properties():
+    """Test Relation model with properties."""
+    relation = Relation(
+        source="Document",
+        target="Section",
+        relationType="hasPart",
+        properties={
+            "dateCreated": "2025-01-16T10:31:02",
+            "order": 1
+        }
+    )
+    
+    assert relation.source == "Document"
+    assert relation.target == "Section"
+    assert relation.relationType == "hasPart"
+    assert relation.properties["dateCreated"] == "2025-01-16T10:31:02"
+    assert relation.properties["order"] == 1
 
 
 def test_knowledge_graph_model():

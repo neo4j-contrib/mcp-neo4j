@@ -27,6 +27,7 @@ class Relation(BaseModel):
     source: str
     target: str
     relationType: str
+    properties: Dict[str, Any] = {}
 
 class KnowledgeGraph(BaseModel):
     entities: List[Entity]
@@ -67,7 +68,8 @@ class Neo4jMemory:
             collect(distinct {
                 source: startNode(r).name, 
                 target: endNode(r).name, 
-                relationType: type(r)
+                relationType: type(r),
+                properties: properties(r)
             }) as relations
         """
         
@@ -97,7 +99,8 @@ class Neo4jMemory:
             Relation(
                 source=rel.get('source'),
                 target=rel.get('target'),
-                relationType=rel.get('relationType')
+                relationType=rel.get('relationType'),
+                properties=rel.get('properties', {})
             )
             for rel in rels if rel.get('source') and rel.get('target') and rel.get('relationType')
         ]
@@ -128,6 +131,7 @@ class Neo4jMemory:
             WHERE from.name = relation.source
             AND  to.name = relation.target
             MERGE (from)-[r:{relation.relationType}]->(to)
+            SET r += relation.properties
             """
             
             self.neo4j_driver.execute_query(
@@ -212,7 +216,8 @@ class Neo4jMemory:
             collect(distinct {
                 source: startNode(r).name, 
                 target: endNode(r).name, 
-                relationType: type(r)
+                relationType: type(r),
+                properties: properties(r)
             }) as relations
         """
         
@@ -242,7 +247,8 @@ class Neo4jMemory:
             Relation(
                 source=rel.get('source'),
                 target=rel.get('target'),
-                relationType=rel.get('relationType')
+                relationType=rel.get('relationType'),
+                properties=rel.get('properties', {})
             )
             for rel in rels if rel.get('source') and rel.get('target') and rel.get('relationType')
         ]
@@ -320,6 +326,11 @@ async def main(neo4j_uri: str, neo4j_user: str, neo4j_password: str, neo4j_datab
                                     "source": {"type": "string", "description": "The name of the entity where the relation starts"},
                                     "target": {"type": "string", "description": "The name of the entity where the relation ends"},
                                     "relationType": {"type": "string", "description": "The type of the relation"},
+                                    "properties": {
+                                        "type": "object",
+                                        "description": "Optional properties to add to the relation",
+                                        "additionalProperties": True
+                                    },
                                 },
                                 "required": ["source", "target", "relationType"],
                             },

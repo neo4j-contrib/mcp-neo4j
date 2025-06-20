@@ -88,6 +88,49 @@ async def test_create_and_read_relations(memory):
     assert relation.source == "Alice"
     assert relation.target == "Bob"
     assert relation.relationType == "KNOWS"
+    assert relation.properties == {}  # Default empty properties
+
+
+@pytest.mark.asyncio
+async def test_create_relations_with_properties(memory):
+    # Create test entities
+    test_entities = [
+        Entity(name="Document", type="Document", properties={"version": "1.0"}),
+        Entity(name="Section", type="Section", properties={"title": "Introduction"})
+    ]
+    await memory.create_entities(test_entities)
+    
+    # Create test relation with properties
+    test_relations = [
+        Relation(
+            source="Document", 
+            target="Section", 
+            relationType="hasPart",
+            properties={
+                "dateCreated": "2025-01-16T10:31:02",
+                "order": 1,
+                "required": True
+            }
+        )
+    ]
+    
+    # Create relation in the graph
+    created_relations = await memory.create_relations(test_relations)
+    assert len(created_relations) == 1
+    assert created_relations[0].properties["dateCreated"] == "2025-01-16T10:31:02"
+    
+    # Read the graph
+    graph = await memory.read_graph()
+    
+    # Verify relation was created with properties
+    assert len(graph.relations) == 1
+    relation = graph.relations[0]
+    assert relation.source == "Document"
+    assert relation.target == "Section"
+    assert relation.relationType == "hasPart"
+    assert relation.properties["dateCreated"] == "2025-01-16T10:31:02"
+    assert relation.properties["order"] == 1
+    assert relation.properties["required"] == True
 
 @pytest.mark.asyncio
 async def test_update_properties(memory):
