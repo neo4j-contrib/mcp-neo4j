@@ -23,6 +23,9 @@ def neo4j_driver():
     except Exception as e:
         pytest.skip(f"Could not connect to Neo4j: {e}")
     
+    # Clean up test data before tests
+    driver.execute_query("MATCH (n:Memory) DETACH DELETE n")
+    
     yield driver
     
     # Clean up test data after tests
@@ -226,13 +229,13 @@ async def test_delete_entities(memory):
     ]
     await memory.create_entities(test_entities)
     
-    # Delete one entity
+    # Delete one entity (soft delete)
     await memory.delete_entities(["Eve"])
     
-    # Read the graph
+    # Read the graph (should only show current versions)
     graph = await memory.read_graph()
     
-    # Verify Eve was deleted but Frank remains
+    # Verify Eve was soft deleted (not visible) but Frank remains
     entity_names = [e.name for e in graph.entities]
     assert "Eve" not in entity_names
     assert "Frank" in entity_names

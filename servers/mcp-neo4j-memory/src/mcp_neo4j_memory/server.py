@@ -3,6 +3,7 @@ import logging
 import json
 from typing import Any, Dict, List, Optional
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 import neo4j
 from neo4j import GraphDatabase
@@ -63,7 +64,9 @@ class Neo4jMemory:
     async def load_graph(self, filter_query="*"):
         query = """
             CALL db.index.fulltext.queryNodes('search', $filter) yield node as entity, score
+            WHERE entity.endedAt IS NULL
             OPTIONAL MATCH (entity)-[r]-(other)
+            WHERE other.endedAt IS NULL AND r.endedAt IS NULL
             RETURN collect(distinct entity {.*, properties: properties(entity)}) as nodes,
             collect(distinct {
                 source: startNode(r).name, 
@@ -85,9 +88,9 @@ class Neo4jMemory:
         entities = []
         for node in nodes:
             if node and node.get('name'):
-                # Get all properties except name and type
+                # Get all properties except name, type, and system properties
                 all_props = node.get('properties', {})
-                filtered_props = {k: v for k, v in all_props.items() if k not in ['name', 'type']}
+                filtered_props = {k: v for k, v in all_props.items() if k not in ['name', 'type', 'createdAt', 'endedAt']}
                 
                 entities.append(Entity(
                     name=node.get('name'),
@@ -95,15 +98,18 @@ class Neo4jMemory:
                     properties=filtered_props
                 ))
         
-        relations = [
-            Relation(
-                source=rel.get('source'),
-                target=rel.get('target'),
-                relationType=rel.get('relationType'),
-                properties=rel.get('properties', {})
-            )
-            for rel in rels if rel.get('source') and rel.get('target') and rel.get('relationType')
-        ]
+        relations = []
+        for rel in rels:
+            if rel.get('source') and rel.get('target') and rel.get('relationType'):
+                # Filter out system properties from relationships too
+                rel_props = rel.get('properties', {})
+                filtered_rel_props = {k: v for k, v in rel_props.items() if k not in ['createdAt', 'endedAt']}
+                relations.append(Relation(
+                    source=rel.get('source'),
+                    target=rel.get('target'),
+                    relationType=rel.get('relationType'),
+                    properties=filtered_rel_props
+                ))
         
         logger.debug(f"Loaded entities: {entities}")
         logger.debug(f"Loaded relations: {relations}")
@@ -111,48 +117,90 @@ class Neo4jMemory:
         return KnowledgeGraph(entities=entities, relations=relations)
 
     async def create_entities(self, entities: List[Entity]) -> List[Entity]:
+        timestamp = datetime.now(timezone.utc).isoformat()
         for entity in entities:
             query = f"""
-            WITH $entity as entity
-            MERGE (e:Memory {{ name: entity.name }})
+            WITH $entity as entity, $timestamp as timestamp
+            CREATE (e:Memory)
+            SET e.name = entity.name
             SET e.type = entity.type
             SET e += entity.properties
+            SET e.createdAt = timestamp
             SET e:{entity.type}
             """
-            self.neo4j_driver.execute_query(query, {"entity": entity.model_dump()})
+            self.neo4j_driver.execute_query(
+                query, 
+                {"entity": entity.model_dump(), "timestamp": timestamp}
+            )
 
         return entities
 
     async def create_relations(self, relations: List[Relation]) -> List[Relation]:
+        timestamp = datetime.now(timezone.utc).isoformat()
         for relation in relations:
             query = f"""
-            WITH $relation as relation
-            MATCH (from:Memory),(to:Memory)
-            WHERE from.name = relation.source
-            AND  to.name = relation.target
-            MERGE (from)-[r:{relation.relationType}]->(to)
+            WITH $relation as relation, $timestamp as timestamp
+            MATCH (from:Memory {{name: relation.source}}),(to:Memory {{name: relation.target}})
+            WHERE from.endedAt IS NULL AND to.endedAt IS NULL
+            CREATE (from)-[r:{relation.relationType}]->(to)
             SET r += relation.properties
+            SET r.createdAt = timestamp
             """
             
             self.neo4j_driver.execute_query(
                 query, 
-                {"relation": relation.model_dump()}
+                {"relation": relation.model_dump(), "timestamp": timestamp}
             )
 
         return relations
 
     async def update_properties(self, updates: List[PropertyUpdate]) -> List[Dict[str, Any]]:
+        timestamp = datetime.now(timezone.utc).isoformat()
         results = []
         for update in updates:
-            query = """
-            MATCH (e:Memory { name: $entityName })
-            SET e += $properties
-            RETURN e.name as name, $properties as updatedProperties
+            # Note: Dynamic label preservation requires fetching current entity first
+            # Get current entity with its type
+            get_current_query = """
+            MATCH (current:Memory {name: $entityName})
+            WHERE current.endedAt IS NULL
+            RETURN current.type as type, properties(current) as props
+            """
+            current_result = self.neo4j_driver.execute_query(
+                get_current_query,
+                {"entityName": update.entityName}
+            )
+            
+            if not current_result.records:
+                continue
+                
+            current_type = current_result.records[0].get("type")
+            current_props = current_result.records[0].get("props")
+            
+            # Create new version with dynamic label
+            query = f"""
+            // Find current version
+            MATCH (current:Memory {{name: $entityName}})
+            WHERE current.endedAt IS NULL
+            // Create new version with all current properties plus updates
+            CREATE (new:Memory:{current_type})
+            SET new = $current_props
+            SET new += $properties
+            SET new.createdAt = $timestamp
+            // End current version
+            SET current.endedAt = $timestamp
+            // Link versions
+            CREATE (current)-[:NEXT_VERSION]->(new)
+            RETURN new.name as name, $properties as updatedProperties
             """
             
             result = self.neo4j_driver.execute_query(
                 query, 
-                {"entityName": update.entityName, "properties": update.properties}
+                {
+                    "entityName": update.entityName, 
+                    "properties": update.properties, 
+                    "timestamp": timestamp,
+                    "current_props": current_props
+                }
             )
             
             if result.records:
@@ -165,41 +213,87 @@ class Neo4jMemory:
         return results
 
     async def delete_entities(self, entity_names: List[str]) -> None:
+        timestamp = datetime.now(timezone.utc).isoformat()
         query = """
         UNWIND $entities as name
         MATCH (e:Memory { name: name })
-        DETACH DELETE e
+        WHERE e.endedAt IS NULL
+        SET e.endedAt = $timestamp
         """
         
-        self.neo4j_driver.execute_query(query, {"entities": entity_names})
+        self.neo4j_driver.execute_query(query, {"entities": entity_names, "timestamp": timestamp})
 
     async def delete_properties(self, deletions: List[PropertyDeletion]) -> None:
         if not deletions:
             return
+        
+        timestamp = datetime.now(timezone.utc).isoformat()
+        
+        # Process each deletion by creating a new version
+        for deletion in deletions:
+            # Get current entity with its type
+            get_current_query = """
+            MATCH (current:Memory {name: $entityName})
+            WHERE current.endedAt IS NULL
+            RETURN current.type as type, properties(current) as props, labels(current) as labels
+            """
+            current_result = self.neo4j_driver.execute_query(
+                get_current_query,
+                {"entityName": deletion.entityName}
+            )
             
-        query = """
-        UNWIND $deletions as deletion
-        MATCH (e:Memory { name: deletion.entityName })
-        UNWIND deletion.propertyKeys as key
-        REMOVE e[key]
-        """
-        self.neo4j_driver.execute_query(
-            query, 
-            {"deletions": [deletion.model_dump() for deletion in deletions]}
-        )
+            if not current_result.records:
+                continue
+                
+            current_type = current_result.records[0].get("type")
+            current_props = current_result.records[0].get("props").copy()
+            
+            # Remove the specified keys from properties
+            for key in deletion.propertyKeys:
+                current_props.pop(key, None)
+            
+            logger.debug(f"Properties after deletion: {current_props}")
+            
+            # Create new version with removed properties
+            query = f"""
+            // Find current version
+            MATCH (current:Memory {{name: $entityName}})
+            WHERE current.endedAt IS NULL
+            // Create new version without the deleted properties
+            CREATE (new:Memory:{current_type})
+            SET new = $new_props
+            SET new.createdAt = $timestamp
+            // End current version
+            SET current.endedAt = $timestamp
+            // Link versions
+            CREATE (current)-[:NEXT_VERSION]->(new)
+            """
+            
+            self.neo4j_driver.execute_query(
+                query, 
+                {
+                    "entityName": deletion.entityName,
+                    "timestamp": timestamp,
+                    "new_props": current_props
+                }
+            )
 
     async def delete_relations(self, relations: List[Relation]) -> None:
+        timestamp = datetime.now(timezone.utc).isoformat()
         for relation in relations:
             query = f"""
-            WITH $relation as relation
+            WITH $relation as relation, $timestamp as timestamp
             MATCH (source:Memory)-[r:{relation.relationType}]->(target:Memory)
             WHERE source.name = relation.source
             AND target.name = relation.target
-            DELETE r
+            AND source.endedAt IS NULL
+            AND target.endedAt IS NULL
+            AND r.endedAt IS NULL
+            SET r.endedAt = timestamp
             """
             self.neo4j_driver.execute_query(
                 query, 
-                {"relation": relation.model_dump()}
+                {"relation": relation.model_dump(), "timestamp": timestamp}
             )
 
     async def read_graph(self) -> KnowledgeGraph:
@@ -214,8 +308,9 @@ class Neo4jMemory:
         # For complex queries with property searches, use a custom query
         cypher_query = """
             MATCH (entity:Memory)
-            WHERE """ + query + """
+            WHERE entity.endedAt IS NULL AND (""" + query + """)
             OPTIONAL MATCH (entity)-[r]-(other)
+            WHERE other.endedAt IS NULL AND r.endedAt IS NULL
             RETURN collect(distinct entity {.*, properties: properties(entity)}) as nodes,
             collect(distinct {
                 source: startNode(r).name, 
@@ -237,9 +332,9 @@ class Neo4jMemory:
         entities = []
         for node in nodes:
             if node and node.get('name'):
-                # Get all properties except name and type
+                # Get all properties except name, type, and system properties
                 all_props = node.get('properties', {})
-                filtered_props = {k: v for k, v in all_props.items() if k not in ['name', 'type']}
+                filtered_props = {k: v for k, v in all_props.items() if k not in ['name', 'type', 'createdAt', 'endedAt']}
                 
                 entities.append(Entity(
                     name=node.get('name'),
@@ -247,15 +342,18 @@ class Neo4jMemory:
                     properties=filtered_props
                 ))
         
-        relations = [
-            Relation(
-                source=rel.get('source'),
-                target=rel.get('target'),
-                relationType=rel.get('relationType'),
-                properties=rel.get('properties', {})
-            )
-            for rel in rels if rel.get('source') and rel.get('target') and rel.get('relationType')
-        ]
+        relations = []
+        for rel in rels:
+            if rel.get('source') and rel.get('target') and rel.get('relationType'):
+                # Filter out system properties from relationships too
+                rel_props = rel.get('properties', {})
+                filtered_rel_props = {k: v for k, v in rel_props.items() if k not in ['createdAt', 'endedAt']}
+                relations.append(Relation(
+                    source=rel.get('source'),
+                    target=rel.get('target'),
+                    relationType=rel.get('relationType'),
+                    properties=filtered_rel_props
+                ))
         
         return KnowledgeGraph(entities=entities, relations=relations)
 
