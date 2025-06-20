@@ -174,16 +174,19 @@ class Neo4jMemory:
         self.neo4j_driver.execute_query(query, {"entities": entity_names})
 
     async def delete_properties(self, deletions: List[PropertyDeletion]) -> None:
-        for deletion in deletions:
-            query = """
-            MATCH (e:Memory { name: $entityName })
-            UNWIND $propertyKeys as key
-            REMOVE e[key]
-            """
-            self.neo4j_driver.execute_query(
-                query, 
-                {"entityName": deletion.entityName, "propertyKeys": deletion.propertyKeys}
-            )
+        if not deletions:
+            return
+            
+        query = """
+        UNWIND $deletions as deletion
+        MATCH (e:Memory { name: deletion.entityName })
+        UNWIND deletion.propertyKeys as key
+        REMOVE e[key]
+        """
+        self.neo4j_driver.execute_query(
+            query, 
+            {"deletions": [deletion.model_dump() for deletion in deletions]}
+        )
 
     async def delete_relations(self, relations: List[Relation]) -> None:
         for relation in relations:

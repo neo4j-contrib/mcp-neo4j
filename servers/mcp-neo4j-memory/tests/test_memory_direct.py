@@ -187,6 +187,36 @@ async def test_delete_properties(memory):
     assert "prop2" not in dave.properties
     assert dave.properties.get("prop3") == "value3"
 
+
+@pytest.mark.asyncio
+async def test_delete_properties_batch(memory):
+    # Create multiple test entities with properties
+    test_entities = [
+        Entity(name="Entity1", type="Test", properties={"a": 1, "b": 2, "c": 3}),
+        Entity(name="Entity2", type="Test", properties={"x": 10, "y": 20, "z": 30}),
+        Entity(name="Entity3", type="Test", properties={"foo": "bar", "baz": "qux"})
+    ]
+    await memory.create_entities(test_entities)
+    
+    # Delete different properties from multiple entities in one call
+    property_deletions = [
+        PropertyDeletion(entityName="Entity1", propertyKeys=["b"]),
+        PropertyDeletion(entityName="Entity2", propertyKeys=["x", "z"]),
+        PropertyDeletion(entityName="Entity3", propertyKeys=["foo"])
+    ]
+    
+    await memory.delete_properties(property_deletions)
+    
+    # Read the graph
+    graph = await memory.read_graph()
+    
+    # Verify properties were deleted correctly for each entity
+    entities = {e.name: e for e in graph.entities}
+    
+    assert entities["Entity1"].properties == {"a": 1, "c": 3}
+    assert entities["Entity2"].properties == {"y": 20}
+    assert entities["Entity3"].properties == {"baz": "qux"}
+
 @pytest.mark.asyncio
 async def test_delete_entities(memory):
     # Create test entities
