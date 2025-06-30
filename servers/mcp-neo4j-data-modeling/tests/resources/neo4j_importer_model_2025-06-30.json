@@ -1,0 +1,899 @@
+{
+  "version": "2.3.1-beta.0",
+  "visualisation": {
+    "nodes": [
+      {
+        "id": "n:0",
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": "n:1",
+        "position": {
+          "x": 59.4453125,
+          "y": -93.5
+        }
+      },
+      {
+        "id": "n:2",
+        "position": {
+          "x": 68.11197916666667,
+          "y": 7.166666666666666
+        }
+      },
+      {
+        "id": "n:3",
+        "position": {
+          "x": -52.888020833333336,
+          "y": -94.83333333333333
+        }
+      },
+      {
+        "id": "n:4",
+        "position": {
+          "x": 42.778645833333336,
+          "y": 102.83333333333333
+        }
+      }
+    ]
+  },
+  "dataModel": {
+    "version": "2.3.1-beta.0",
+    "graphSchemaRepresentation": {
+      "version": "1.0.0",
+      "graphSchema": {
+        "nodeLabels": [
+          {
+            "$id": "nl:0",
+            "token": "Country",
+            "properties": [
+              {
+                "$id": "p:0_0",
+                "token": "countryId",
+                "type": {
+                  "type": "integer"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_1",
+                "token": "name",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_2",
+                "token": "iso3",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_3",
+                "token": "iso2",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_4",
+                "token": "numericCode",
+                "type": {
+                  "type": "integer"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_5",
+                "token": "phoneCode",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_6",
+                "token": "capital",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_10",
+                "token": "tld",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_11",
+                "token": "native",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_15",
+                "token": "latitude",
+                "type": {
+                  "type": "float"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_16",
+                "token": "longitude",
+                "type": {
+                  "type": "float"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_17",
+                "token": "emoji",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_18",
+                "token": "emojiU",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              }
+            ]
+          },
+          {
+            "$id": "nl:1",
+            "token": "SubRegion",
+            "properties": [
+              {
+                "$id": "p:3",
+                "token": "subregion",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              }
+            ]
+          },
+          {
+            "$id": "nl:2",
+            "token": "Region",
+            "properties": [
+              {
+                "$id": "p:1",
+                "token": "region",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              }
+            ]
+          },
+          {
+            "$id": "nl:3",
+            "token": "TimeZones",
+            "properties": [
+              {
+                "$id": "p:2",
+                "token": "timezones",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              }
+            ]
+          },
+          {
+            "$id": "nl:4",
+            "token": "Currency",
+            "properties": [
+              {
+                "$id": "p:4",
+                "token": "currency",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:5",
+                "token": "currency_name",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:6",
+                "token": "currency_symbol",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              }
+            ]
+          }
+        ],
+        "relationshipTypes": [
+          {
+            "$id": "rt:1",
+            "token": "IN_SUBREGION",
+            "properties": []
+          },
+          {
+            "$id": "rt:2",
+            "token": "IN_REGION",
+            "properties": []
+          },
+          {
+            "$id": "rt:3",
+            "token": "IN_TIMEZONE",
+            "properties": []
+          },
+          {
+            "$id": "rt:4",
+            "token": "USES_CURRENCY",
+            "properties": []
+          }
+        ],
+        "nodeObjectTypes": [
+          {
+            "$id": "n:0",
+            "labels": [
+              {
+                "$ref": "#nl:0"
+              }
+            ]
+          },
+          {
+            "$id": "n:1",
+            "labels": [
+              {
+                "$ref": "#nl:1"
+              }
+            ]
+          },
+          {
+            "$id": "n:2",
+            "labels": [
+              {
+                "$ref": "#nl:2"
+              }
+            ]
+          },
+          {
+            "$id": "n:3",
+            "labels": [
+              {
+                "$ref": "#nl:3"
+              }
+            ]
+          },
+          {
+            "$id": "n:4",
+            "labels": [
+              {
+                "$ref": "#nl:4"
+              }
+            ]
+          }
+        ],
+        "relationshipObjectTypes": [
+          {
+            "$id": "r:1",
+            "type": {
+              "$ref": "#rt:1"
+            },
+            "from": {
+              "$ref": "#n:0"
+            },
+            "to": {
+              "$ref": "#n:1"
+            }
+          },
+          {
+            "$id": "r:2",
+            "type": {
+              "$ref": "#rt:2"
+            },
+            "from": {
+              "$ref": "#n:1"
+            },
+            "to": {
+              "$ref": "#n:2"
+            }
+          },
+          {
+            "$id": "r:3",
+            "type": {
+              "$ref": "#rt:3"
+            },
+            "from": {
+              "$ref": "#n:0"
+            },
+            "to": {
+              "$ref": "#n:3"
+            }
+          },
+          {
+            "$id": "r:4",
+            "type": {
+              "$ref": "#rt:4"
+            },
+            "from": {
+              "$ref": "#n:0"
+            },
+            "to": {
+              "$ref": "#n:4"
+            }
+          }
+        ],
+        "constraints": [
+          {
+            "$id": "c:0",
+            "name": "countries.csv",
+            "constraintType": "uniqueness",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:0"
+            },
+            "relationshipType": null,
+            "properties": [
+              {
+                "$ref": "#p:0_0"
+              }
+            ]
+          },
+          {
+            "$id": "c:1",
+            "name": "region_Region_uniq",
+            "constraintType": "uniqueness",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:2"
+            },
+            "properties": [
+              {
+                "$ref": "#p:1"
+              }
+            ]
+          },
+          {
+            "$id": "c:2",
+            "name": "timezones_TimeZones_uniq",
+            "constraintType": "uniqueness",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:3"
+            },
+            "properties": [
+              {
+                "$ref": "#p:2"
+              }
+            ]
+          },
+          {
+            "$id": "c:3",
+            "name": "subregion_SubRegion_uniq",
+            "constraintType": "uniqueness",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:1"
+            },
+            "properties": [
+              {
+                "$ref": "#p:3"
+              }
+            ]
+          },
+          {
+            "$id": "c:4",
+            "name": "currency_Currency_uniq",
+            "constraintType": "uniqueness",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:4"
+            },
+            "properties": [
+              {
+                "$ref": "#p:4"
+              }
+            ]
+          }
+        ],
+        "indexes": [
+          {
+            "$id": "i:0",
+            "name": "countries.csv",
+            "indexType": "default",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:0"
+            },
+            "relationshipType": null,
+            "properties": [
+              {
+                "$ref": "#p:0_0"
+              }
+            ]
+          },
+          {
+            "$id": "i:1",
+            "name": "region_Region_uniq",
+            "indexType": "default",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:2"
+            },
+            "properties": [
+              {
+                "$ref": "#p:1"
+              }
+            ]
+          },
+          {
+            "$id": "i:2",
+            "name": "timezones_TimeZones_uniq",
+            "indexType": "default",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:3"
+            },
+            "properties": [
+              {
+                "$ref": "#p:2"
+              }
+            ]
+          },
+          {
+            "$id": "i:3",
+            "name": "subregion_SubRegion_uniq",
+            "indexType": "default",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:1"
+            },
+            "properties": [
+              {
+                "$ref": "#p:3"
+              }
+            ]
+          },
+          {
+            "$id": "i:4",
+            "name": "currency_Currency_uniq",
+            "indexType": "default",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:4"
+            },
+            "properties": [
+              {
+                "$ref": "#p:4"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "graphSchemaExtensionsRepresentation": {
+      "nodeKeyProperties": [
+        {
+          "node": {
+            "$ref": "#n:0"
+          },
+          "keyProperty": {
+            "$ref": "#p:0_0"
+          }
+        },
+        {
+          "node": {
+            "$ref": "#n:2"
+          },
+          "keyProperty": {
+            "$ref": "#p:1"
+          }
+        },
+        {
+          "node": {
+            "$ref": "#n:3"
+          },
+          "keyProperty": {
+            "$ref": "#p:2"
+          }
+        },
+        {
+          "node": {
+            "$ref": "#n:1"
+          },
+          "keyProperty": {
+            "$ref": "#p:3"
+          }
+        },
+        {
+          "node": {
+            "$ref": "#n:4"
+          },
+          "keyProperty": {
+            "$ref": "#p:4"
+          }
+        }
+      ]
+    },
+    "graphMappingRepresentation": {
+      "dataSourceSchema": {
+        "type": "local",
+        "tableSchemas": [
+          {
+            "name": "countries.csv",
+            "fields": [
+              {
+                "name": "id",
+                "sample": "",
+                "recommendedType": {
+                  "type": "integer"
+                }
+              },
+              {
+                "name": "name",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "iso3",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "iso2",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "numeric_code",
+                "sample": "",
+                "recommendedType": {
+                  "type": "integer"
+                }
+              },
+              {
+                "name": "phone_code",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "capital",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "currency",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "currency_name",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "currency_symbol",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "tld",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "native",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "region",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "subregion",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "timezones",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "latitude",
+                "sample": "",
+                "recommendedType": {
+                  "type": "float"
+                }
+              },
+              {
+                "name": "longitude",
+                "sample": "",
+                "recommendedType": {
+                  "type": "float"
+                }
+              },
+              {
+                "name": "emoji",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "emojiU",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              }
+            ],
+            "primaryKeys": [],
+            "foreignKeys": [],
+            "expanded": true
+          }
+        ]
+      },
+      "nodeMappings": [
+        {
+          "node": {
+            "$ref": "#n:0"
+          },
+          "tableName": "countries.csv",
+          "propertyMappings": [
+            {
+              "property": {
+                "$ref": "#p:0_0"
+              },
+              "fieldName": "id"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_1"
+              },
+              "fieldName": "name"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_2"
+              },
+              "fieldName": "iso3"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_3"
+              },
+              "fieldName": "iso2"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_4"
+              },
+              "fieldName": "numeric_code"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_5"
+              },
+              "fieldName": "phone_code"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_6"
+              },
+              "fieldName": "capital"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_10"
+              },
+              "fieldName": "tld"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_11"
+              },
+              "fieldName": "native"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_15"
+              },
+              "fieldName": "latitude"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_16"
+              },
+              "fieldName": "longitude"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_17"
+              },
+              "fieldName": "emoji"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_18"
+              },
+              "fieldName": "emojiU"
+            }
+          ]
+        },
+        {
+          "node": {
+            "$ref": "#n:1"
+          },
+          "tableName": "countries.csv",
+          "propertyMappings": [
+            {
+              "fieldName": "subregion",
+              "property": {
+                "$ref": "#p:3"
+              }
+            }
+          ]
+        },
+        {
+          "node": {
+            "$ref": "#n:2"
+          },
+          "tableName": "countries.csv",
+          "propertyMappings": [
+            {
+              "fieldName": "region",
+              "property": {
+                "$ref": "#p:1"
+              }
+            }
+          ]
+        },
+        {
+          "node": {
+            "$ref": "#n:3"
+          },
+          "tableName": "countries.csv",
+          "propertyMappings": [
+            {
+              "fieldName": "timezones",
+              "property": {
+                "$ref": "#p:2"
+              }
+            }
+          ]
+        },
+        {
+          "node": {
+            "$ref": "#n:4"
+          },
+          "tableName": "countries.csv",
+          "propertyMappings": [
+            {
+              "fieldName": "currency",
+              "property": {
+                "$ref": "#p:4"
+              }
+            },
+            {
+              "fieldName": "currency_name",
+              "property": {
+                "$ref": "#p:5"
+              }
+            },
+            {
+              "fieldName": "currency_symbol",
+              "property": {
+                "$ref": "#p:6"
+              }
+            }
+          ]
+        }
+      ],
+      "relationshipMappings": [
+        {
+          "relationship": {
+            "$ref": "#r:3"
+          },
+          "tableName": "countries.csv",
+          "propertyMappings": [],
+          "fromMapping": {
+            "fieldName": "id"
+          },
+          "toMapping": {
+            "fieldName": "timezones"
+          }
+        },
+        {
+          "relationship": {
+            "$ref": "#r:1"
+          },
+          "tableName": "countries.csv",
+          "propertyMappings": [],
+          "fromMapping": {
+            "fieldName": "id"
+          },
+          "toMapping": {
+            "fieldName": "subregion"
+          }
+        },
+        {
+          "relationship": {
+            "$ref": "#r:2"
+          },
+          "tableName": "countries.csv",
+          "propertyMappings": [],
+          "fromMapping": {
+            "fieldName": "subregion"
+          },
+          "toMapping": {
+            "fieldName": "region"
+          }
+        },
+        {
+          "relationship": {
+            "$ref": "#r:4"
+          },
+          "tableName": "countries.csv",
+          "propertyMappings": [],
+          "fromMapping": {
+            "fieldName": "id"
+          },
+          "toMapping": {
+            "fieldName": "currency"
+          }
+        }
+      ]
+    },
+    "configurations": {
+      "idsToIgnore": []
+    }
+  }
+}
