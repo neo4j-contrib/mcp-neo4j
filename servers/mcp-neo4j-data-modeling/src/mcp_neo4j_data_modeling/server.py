@@ -110,10 +110,24 @@ def create_mcp_server() -> FastMCP:
         return DataModel.from_arrows(arrows_data_model_dict)
 
     @mcp.tool()
-    def export_to_arrows_json(data_model: DataModel) -> str:
+    def export_to_arrows_json_str(data_model: DataModel) -> str:
         "Export the data model to the Arrows web application format. Returns a JSON string. This should be presented to the user as an artifact if possible."
         logger.info("Exporting the data model to the Arrows web application format.")
         return data_model.to_arrows_json_str()
+
+    @mcp.tool()
+    def load_from_aura_data_import_json(
+        aura_data_import_dict: dict[str, Any],
+    ) -> DataModel:
+        "Load a data model from the Aura Data Import format. Returns a data model as a JSON string."
+        logger.info("Loading a data model from the Aura Data Import format.")
+        return DataModel.from_aura_data_import(aura_data_import_dict)
+
+    @mcp.tool()
+    def export_to_aura_data_import_json_str(data_model: DataModel) -> str:
+        "Export the data model to the Aura Data Import format. Returns a JSON string. This should be presented to the user as an artifact if possible."
+        logger.info("Exporting the data model to the Aura Data Import format.")
+        return data_model.to_aura_data_import_json_str()
 
     @mcp.tool()
     def get_mermaid_config_str(data_model: DataModel) -> str:
