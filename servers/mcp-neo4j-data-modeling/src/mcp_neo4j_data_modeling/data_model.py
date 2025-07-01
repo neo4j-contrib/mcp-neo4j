@@ -45,6 +45,10 @@ class PropertySource(BaseModel):
         default=None,
         description="The location of the property, if known. May be a file path, URL, etc.",
     )
+    source_type: str | None = Field(
+        default=None,
+        description="The type of the data source: 'local' or 'remote'.",
+    )
 
 
 class Property(BaseModel):
@@ -60,6 +64,10 @@ class Property(BaseModel):
     )
     description: str | None = Field(
         default=None, description="The description of the property"
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="The metadata of the property. This should only be used when converting data models.",
     )
 
     @field_validator("type")
@@ -139,12 +147,21 @@ class Property(BaseModel):
             column_name=source_mapping.get("fieldName", None),
             table_name=source_mapping.get("tableName", None),
             location=source_mapping.get("type", None),
+            source_type=source_mapping.get("source_type", "local"),
         )
+
+        # Create property with nullable and original ID stored in metadata
         return cls(
             name=aura_data_import_property["token"],
             type=mapped_type,
             description=None,  # Aura Data Import doesn't have descriptions
             source=source,
+            metadata={
+                "aura_data_import": {
+                    "nullable": aura_data_import_property.get("nullable", False),
+                    "original_id": aura_data_import_property.get("$id"),
+                }
+            },
         )
 
     def to_aura_data_import(
@@ -165,11 +182,14 @@ class Property(BaseModel):
             self.type, "string"
         )  # Default to string if type is not found
 
+        # Use stored nullable value from metadata, or default based on key property
+        nullable = self.metadata.get("aura_data_import", {}).get("nullable", not is_key)
+
         return {
             "$id": property_id,
             "token": self.name,
             "type": {"type": mapped_type},
-            "nullable": not is_key,
+            "nullable": nullable,
         }
 
 
@@ -280,7 +300,7 @@ class Node(BaseModel):
         aura_data_import_node_label: dict[str, Any],
         key_property_token: str,
         node_mapping: dict[str, Any],
-        source_type: str
+        source_type: str,
     ) -> "Node":
         """
         Convert an Aura Data Import NodeLabel to a Node.
@@ -331,18 +351,21 @@ class Node(BaseModel):
             return {
                 "tableName": node_mapping["tableName"],
                 "fieldName": field_name[0],
-                "type": source_type,  # Default to local type
+                "type": "local",  # This was the original location field
+                "source_type": source_type,  # The actual data source type
             }
 
         for prop in aura_data_import_node_label["properties"]:
             if prop["token"] == key_property_token:
                 key_prop = Property.from_aura_data_import(
-                    prop, _prepare_source_mapping(node_mapping, prop["$id"], source_type)
+                    prop,
+                    _prepare_source_mapping(node_mapping, prop["$id"], source_type),
                 )
             else:
                 other_props.append(
                     Property.from_aura_data_import(
-                        prop, _prepare_source_mapping(node_mapping, prop["$id"], source_type)
+                        prop,
+                        _prepare_source_mapping(node_mapping, prop["$id"], source_type),
                     )
                 )
 
@@ -370,29 +393,71 @@ class Node(BaseModel):
         )
 
     def to_aura_data_import(
-        self, node_id: str
-    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        self,
+        node_label_id: str,
+        node_obj_id: str,
+        key_prop_id: str,
+        constraint_id: str,
+        index_id: str,
+        property_id_mapping: dict[str, str] = None,
+    ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
         """
         Convert a Node to Aura Data Import NodeLabel format.
-        Returns tuple of (NodeLabel, KeyProperty)
+        Returns tuple of (NodeLabel, KeyProperty, Constraint, Index)
         """
         # Create property list with key property first
         all_props = [self.key_property] + self.properties
         aura_props = []
 
+        # For the first property (key property), use the provided key_prop_id
+        # For additional properties, use the property_id_mapping if provided
         for i, prop in enumerate(all_props):
-            prop_id = f"p:{node_id.split(':')[1]}_{i}"
+            if i == 0:
+                prop_id = key_prop_id
+            else:
+                # Use property mapping if available, otherwise generate based on node pattern
+                if property_id_mapping and prop.name in property_id_mapping:
+                    prop_id = property_id_mapping[prop.name]
+                else:
+                    prop_id = f"p:{node_label_id.split(':')[1]}_{i}"
+
             is_key = i == 0  # First property is the key property
             aura_props.append(prop.to_aura_data_import(prop_id, is_key=is_key))
 
-        node = {"$id": node_id, "token": self.label, "properties": aura_props}
-
-        key_property = {
-            "node": {"$ref": f"#{node_id}"},
-            "keyProperty": {"$ref": f"#{aura_props[0]['$id']}"},
+        node_label = {
+            "$id": node_label_id,
+            "token": self.label,
+            "properties": aura_props,
         }
 
-        return (node, key_property)
+        key_property = {
+            "node": {"$ref": f"#{node_obj_id}"},
+            "keyProperty": {"$ref": f"#{key_prop_id}"},
+        }
+
+        # Create uniqueness constraint on key property
+        constraint = {
+            "$id": constraint_id,
+            "name": f"{self.label}_constraint",
+            "constraintType": "uniqueness",
+            "entityType": "node",
+            "nodeLabel": {"$ref": f"#{node_label_id}"},
+            "relationshipType": None,
+            "properties": [{"$ref": f"#{key_prop_id}"}],
+        }
+
+        # Create default index on key property
+        index = {
+            "$id": index_id,
+            "name": f"{self.label}_index",
+            "indexType": "default",
+            "entityType": "node",
+            "nodeLabel": {"$ref": f"#{node_label_id}"},
+            "relationshipType": None,
+            "properties": [{"$ref": f"#{key_prop_id}"}],
+        }
+
+        return (node_label, key_property, constraint, index)
 
     def get_cypher_ingest_query_for_many_records(self) -> str:
         """
@@ -544,7 +609,7 @@ class Relationship(BaseModel):
         aura_data_import_relationship_object: dict[str, Any],
         node_id_to_label_map: dict[str, str],
         relationship_mapping: dict[str, Any],
-        source_type: str
+        source_type: str,
     ) -> "Relationship":
         """Convert Aura Data Import RelationshipType and RelationshipObjectType to a Relationship."""
         # Convert properties
@@ -552,11 +617,10 @@ class Relationship(BaseModel):
         other_props = []
 
         def _prepare_source_mapping(
-            relationship_mapping: dict[str, Any], property_id: str, 
-            source_type: str
+            relationship_mapping: dict[str, Any], property_id: str, source_type: str
         ) -> dict[str, Any]:
             """
-            Prepare the source mapping for the node mapping.
+            Prepare the source mapping for the relationship mapping.
             """
             field_name = [
                 x["fieldName"]
@@ -564,17 +628,21 @@ class Relationship(BaseModel):
                 if x["property"]["$ref"] == "#" + property_id
             ]
             if not field_name:
-                raise ValueError(f"Property {property_id} not found in node mapping")
+                raise ValueError(f"Property {property_id} not found in relationship mapping")
             return {
                 "tableName": relationship_mapping["tableName"],
                 "fieldName": field_name[0],
-                "type": source_type, 
+                "type": "local",  # This was the original location field
+                "source_type": source_type,  # The actual data source type
             }
-        
+
         for prop in aura_data_import_relationship_type["properties"]:
             # Create a default source mapping for relationship properties
-            
-            converted_prop = Property.from_aura_data_import(prop, _prepare_source_mapping(relationship_mapping, prop["$id"], source_type))
+
+            converted_prop = Property.from_aura_data_import(
+                prop,
+                _prepare_source_mapping(relationship_mapping, prop["$id"], source_type),
+            )
             # For simplicity, treat first property as key if any exist
             if not key_prop and aura_data_import_relationship_type["properties"]:
                 key_prop = converted_prop
@@ -594,11 +662,20 @@ class Relationship(BaseModel):
         )
 
     def to_aura_data_import(
-        self, rel_type_id: str, rel_obj_id: str, start_node_id: str, end_node_id: str
-    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        self,
+        rel_type_id: str,
+        rel_obj_id: str,
+        start_node_id: str,
+        end_node_id: str,
+        constraint_id: str = None,
+        index_id: str = None,
+    ) -> tuple[
+        dict[str, Any], dict[str, Any], dict[str, Any] | None, dict[str, Any] | None
+    ]:
         """Convert a Relationship to Aura Data Import format.
 
-        Returns tuple of (RelationshipType, RelationshipObjectType)
+        Returns tuple of (RelationshipType, RelationshipObjectType, Constraint, Index)
+        Constraint and Index are None if the relationship has no key property.
         """
         # Create relationship type
         all_props = []
@@ -609,7 +686,9 @@ class Relationship(BaseModel):
         aura_props = []
         for i, prop in enumerate(all_props):
             prop_id = f"p:{rel_type_id.split(':')[1]}_{i}"
-            is_key = i == 0  # First property is the key property
+            is_key = (
+                i == 0 and self.key_property is not None
+            )  # First property is the key property if it exists
             aura_props.append(prop.to_aura_data_import(prop_id, is_key=is_key))
 
         relationship_type = {
@@ -626,7 +705,33 @@ class Relationship(BaseModel):
             "to": {"$ref": f"#{end_node_id}"},
         }
 
-        return relationship_type, relationship_object
+        # Create constraint and index if relationship has key property
+        constraint = None
+        index = None
+        if self.key_property and constraint_id and index_id:
+            key_prop_id = aura_props[0]["$id"]  # First property is the key property
+
+            constraint = {
+                "$id": constraint_id,
+                "name": f"{self.type}_constraint",
+                "constraintType": "uniqueness",
+                "entityType": "relationship",
+                "nodeLabel": None,
+                "relationshipType": {"$ref": f"#{rel_type_id}"},
+                "properties": [{"$ref": f"#{key_prop_id}"}],
+            }
+
+            index = {
+                "$id": index_id,
+                "name": f"{self.type}_index",
+                "indexType": "default",
+                "entityType": "relationship",
+                "nodeLabel": None,
+                "relationshipType": {"$ref": f"#{rel_type_id}"},
+                "properties": [{"$ref": f"#{key_prop_id}"}],
+            }
+
+        return relationship_type, relationship_object, constraint, index
 
     def get_cypher_ingest_query_for_many_records(
         self, start_node_key_property_name: str, end_node_key_property_name: str
@@ -854,6 +959,12 @@ class DataModel(BaseModel):
         node_mappings = aura_data_import_data_model["dataModel"][
             "graphMappingRepresentation"
         ]["nodeMappings"]
+        
+        # Get the data source schema to determine source type
+        data_source_schema = aura_data_import_data_model["dataModel"][
+            "graphMappingRepresentation"
+        ]["dataSourceSchema"]
+        source_type = data_source_schema.get("type", "local")
 
         # Create mapping from node object ID to key property token
         node_key_map = {}
@@ -883,7 +994,7 @@ class DataModel(BaseModel):
         relationship_mappings = aura_data_import_data_model["dataModel"][
             "graphMappingRepresentation"
         ]["relationshipMappings"]
-        
+
         # Create mapping from relationship object ID to relationship mapping
         rel_obj_to_mapping = {}
         for rel_mapping in relationship_mappings:
@@ -925,7 +1036,7 @@ class DataModel(BaseModel):
             )
 
             node = Node.from_aura_data_import(
-                node_label, key_property_token, node_mapping, "local"
+                node_label, key_property_token, node_mapping, source_type
             )
             nodes.append(node)
 
@@ -947,21 +1058,23 @@ class DataModel(BaseModel):
                     rel_obj_id,
                     {
                         "relationship": {"$ref": rel_obj_id},
-                        "tableName": "relationships.csv",
+                        "tableName": "unknown",
                         "propertyMappings": [],
                     },
                 )
-                
+
                 relationship = Relationship.from_aura_data_import(
-                    rel_type, rel_obj, node_id_to_label_map, rel_mapping, "local"
+                    rel_type, rel_obj, node_id_to_label_map, rel_mapping, source_type
                 )
                 relationships.append(relationship)
 
         # Store visualization coordinates in node metadata
         visualization_data = aura_data_import_data_model.get("visualisation", {})
         vis_nodes = visualization_data.get("nodes", [])
-        vis_node_positions = {vis_node["id"]: vis_node["position"] for vis_node in vis_nodes}
-        
+        vis_node_positions = {
+            vis_node["id"]: vis_node["position"] for vis_node in vis_nodes
+        }
+
         # Update node metadata with visualization coordinates
         for i, node in enumerate(nodes):
             node_id = f"n:{i}"
@@ -974,75 +1087,81 @@ class DataModel(BaseModel):
         metadata = {
             "aura_data_import": {
                 "version": aura_data_import_data_model.get("version"),
-                "dataModel_version": aura_data_import_data_model["dataModel"].get("version"),
+                "dataModel_version": aura_data_import_data_model["dataModel"].get(
+                    "version"
+                ),
                 "constraints": graph_schema.get("constraints", []),
                 "indexes": graph_schema.get("indexes", []),
-                "configurations": aura_data_import_data_model["dataModel"].get("configurations", {}),
-                "dataSourceSchema": aura_data_import_data_model["dataModel"]["graphMappingRepresentation"].get("dataSourceSchema", {}),
+                "configurations": aura_data_import_data_model["dataModel"].get(
+                    "configurations", {}
+                ),
+                "dataSourceSchema": aura_data_import_data_model["dataModel"][
+                    "graphMappingRepresentation"
+                ].get("dataSourceSchema", {}),
             }
         }
 
         return cls(nodes=nodes, relationships=relationships, metadata=metadata)
-    
-    def to_aura_data_import_dict(self) -> dict[str, Any]: 
+
+    def to_aura_data_import_dict(self) -> dict[str, Any]:
         """Convert the data model to an Aura Data Import dictionary."""
         # Check if we have stored Aura Data Import metadata
         aura_metadata = self.metadata.get("aura_data_import", {})
-        
+
         # Generate IDs following the original schema patterns
         node_labels = []
         node_object_types = []
         node_key_properties = []
         constraints = []
         indexes = []
-        
+
         # Track property IDs to match original schema
-        property_counter = 0
         node_to_key_prop_id = {}
+
+        # Generate property IDs dynamically
+        global_property_counter = 0
 
         for i, node in enumerate(self.nodes):
             node_label_id = f"nl:{i}"
             node_obj_id = f"n:{i}"
+            constraint_id = f"c:{i}"
+            index_id = f"i:{i}"
 
-            # Create node label with original ID schema
-            all_props = [node.key_property] + node.properties
-            aura_props = []
-            
-            # For Country node (first node), use p:0_0, p:0_1, etc. pattern
-            # For other nodes, use simple p:1, p:2, etc. pattern
-            if i == 0:  # Country node
-                for j, prop in enumerate(all_props):
-                    prop_id = f"p:{i}_{j}"
-                    is_key = j == 0
-                    aura_props.append(prop.to_aura_data_import(prop_id, is_key=is_key))
-                    if is_key:
-                        node_to_key_prop_id[node_obj_id] = prop_id
-            else:  # Other nodes
-                # Use simple property IDs starting from where Country left off
-                if i == 1:  # SubRegion
-                    prop_id = "p:3"
-                elif i == 2:  # Region  
-                    prop_id = "p:1"
-                elif i == 3:  # TimeZones
-                    prop_id = "p:2"
-                elif i == 4:  # Currency
-                    prop_id = "p:4"
+            # Use stored original property ID if available, otherwise generate new one
+            key_prop_id = node.key_property.metadata.get("aura_data_import", {}).get(
+                "original_id", f"p:{global_property_counter}"
+            )
+            if not node.key_property.metadata.get("aura_data_import", {}).get(
+                "original_id"
+            ):
+                global_property_counter += 1
+
+            # Build property mapping for additional properties
+            node_prop_mapping = {}
+            for prop in node.properties:
+                stored_id = prop.metadata.get("aura_data_import", {}).get("original_id")
+                if stored_id:
+                    node_prop_mapping[prop.name] = stored_id
                 else:
-                    prop_id = f"p:{property_counter}"
-                    property_counter += 1
-                
-                # Key property
-                aura_props.append(node.key_property.to_aura_data_import(prop_id, is_key=True))
-                node_to_key_prop_id[node_obj_id] = prop_id
-                
-                # Additional properties for Currency node
-                if i == 4 and len(node.properties) > 0:
-                    for j, prop in enumerate(node.properties):
-                        additional_prop_id = f"p:{5 + j}"
-                        aura_props.append(prop.to_aura_data_import(additional_prop_id, is_key=False))
+                    node_prop_mapping[prop.name] = f"p:{global_property_counter}"
+                    global_property_counter += 1
 
-            node_label = {"$id": node_label_id, "token": node.label, "properties": aura_props}
+            node_to_key_prop_id[node_obj_id] = key_prop_id
+
+            # Use the updated Node.to_aura_data_import method
+            node_label, key_property, constraint, index = node.to_aura_data_import(
+                node_label_id,
+                node_obj_id,
+                key_prop_id,
+                constraint_id,
+                index_id,
+                node_prop_mapping,
+            )
+
             node_labels.append(node_label)
+            node_key_properties.append(key_property)
+            constraints.append(constraint)
+            indexes.append(index)
 
             # Create node object type
             node_object_type = {
@@ -1051,45 +1170,13 @@ class DataModel(BaseModel):
             }
             node_object_types.append(node_object_type)
 
-            # Add key property mapping (reference node object, not node label)
-            key_prop_id = node_to_key_prop_id[node_obj_id]
-            key_property = {
-                "node": {"$ref": f"#{node_obj_id}"},
-                "keyProperty": {"$ref": f"#{key_prop_id}"},
-            }
-            node_key_properties.append(key_property)
-
-            # Create constraint
-            constraint = {
-                "$id": f"c:{i}",
-                "name": f"{node.label}_constraint",
-                "constraintType": "uniqueness",
-                "entityType": "node",
-                "nodeLabel": {"$ref": f"#{node_label_id}"},
-                "relationshipType": None,
-                "properties": [{"$ref": f"#{key_prop_id}"}],
-            }
-            constraints.append(constraint)
-
-            # Create index
-            index = {
-                "$id": f"i:{i}",
-                "name": f"{node.label}_index",
-                "indexType": "default",
-                "entityType": "node",
-                "nodeLabel": {"$ref": f"#{node_label_id}"},
-                "relationshipType": None,
-                "properties": [{"$ref": f"#{key_prop_id}"}],
-            }
-            indexes.append(index)
-
         # Handle relationships - start from rt:1, r:1 (not rt:0, r:0)
         relationship_types = []
         relationship_object_types = []
 
         for i, rel in enumerate(self.relationships):
             rel_type_id = f"rt:{i + 1}"  # Start from 1
-            rel_obj_id = f"r:{i + 1}"   # Start from 1
+            rel_obj_id = f"r:{i + 1}"  # Start from 1
 
             # Find start and end node IDs
             start_node_id = None
@@ -1100,66 +1187,135 @@ class DataModel(BaseModel):
                 if node.label == rel.end_node_label:
                     end_node_id = f"n:{j}"
 
-            rel_type, rel_obj = rel.to_aura_data_import(
-                rel_type_id, rel_obj_id, start_node_id, end_node_id
+            # Generate constraint and index IDs if relationship has key property
+            constraint_id = None
+            index_id = None
+            if rel.key_property:
+                # Continue constraint and index numbering after nodes
+                constraint_id = f"c:{len(self.nodes) + i}"
+                index_id = f"i:{len(self.nodes) + i}"
+
+            rel_type, rel_obj, rel_constraint, rel_index = rel.to_aura_data_import(
+                rel_type_id,
+                rel_obj_id,
+                start_node_id,
+                end_node_id,
+                constraint_id,
+                index_id,
             )
             relationship_types.append(rel_type)
             relationship_object_types.append(rel_obj)
 
+            # Add relationship constraints and indexes if they exist
+            if rel_constraint:
+                constraints.append(rel_constraint)
+            if rel_index:
+                indexes.append(rel_index)
+
         # Create node mappings with property mappings for round-trip conversion
+        # We need to extract the property IDs from the already created node_labels
         node_mappings = []
+
         for i, node in enumerate(self.nodes):
             node_obj_id = f"n:{i}"
-            
-            # Create property mappings for all properties
+
+            # Get the property IDs from the corresponding node label that was just created
+            node_label = node_labels[i]  # This corresponds to the current node
+
+            # Create property mappings using the exact property IDs from the node label
             property_mappings = []
-            all_props = [node.key_property] + node.properties
-            
-            # Use the same property ID patterns as above
-            if i == 0:  # Country node
-                for j, prop in enumerate(all_props):
-                    prop_id = f"p:{i}_{j}"
-                    field_name = prop.source.column_name if prop.source and prop.source.column_name else prop.name
-                    property_mappings.append({
-                        "property": {"$ref": f"#{prop_id}"},
-                        "fieldName": field_name
-                    })
-            else:  # Other nodes
-                # Key property mapping
-                if i == 1:  # SubRegion
-                    prop_id = "p:3"
-                elif i == 2:  # Region  
-                    prop_id = "p:1"
-                elif i == 3:  # TimeZones
-                    prop_id = "p:2"
-                elif i == 4:  # Currency
-                    prop_id = "p:4"
-                
-                field_name = node.key_property.source.column_name if node.key_property.source and node.key_property.source.column_name else node.key_property.name
-                property_mappings.append({
-                    "property": {"$ref": f"#{prop_id}"},
-                    "fieldName": field_name
-                })
-                
-                # Additional properties for Currency node
-                if i == 4 and len(node.properties) > 0:
-                    for j, prop in enumerate(node.properties):
-                        additional_prop_id = f"p:{5 + j}"
-                        field_name = prop.source.column_name if prop.source and prop.source.column_name else prop.name
-                        property_mappings.append({
-                            "property": {"$ref": f"#{additional_prop_id}"},
-                            "fieldName": field_name
-                        })
-            
-            # Use the property source information if available
-            table_name = node.key_property.source.table_name if node.key_property.source and node.key_property.source.table_name else "_.csv"
-            
+
+            for prop_def in node_label["properties"]:
+                prop_id = prop_def["$id"]
+                prop_token = prop_def["token"]
+
+                # Find the corresponding property in our node to get the field name
+                field_name = prop_token  # default to token name
+
+                # Check key property first
+                if node.key_property.name == prop_token:
+                    field_name = (
+                        node.key_property.source.column_name
+                        if node.key_property.source
+                        and node.key_property.source.column_name
+                        else prop_token
+                    )
+                else:
+                    # Check other properties
+                    for prop in node.properties:
+                        if prop.name == prop_token:
+                            field_name = (
+                                prop.source.column_name
+                                if prop.source and prop.source.column_name
+                                else prop_token
+                            )
+                            break
+
+                property_mappings.append(
+                    {"property": {"$ref": f"#{prop_id}"}, "fieldName": field_name}
+                )
+
+            # Use the property source information if available, otherwise use default
+            table_name = (
+                node.key_property.source.table_name
+                if node.key_property.source and node.key_property.source.table_name
+                else f"{node.label.lower()}.csv"
+            )
+
             node_mapping = {
                 "node": {"$ref": f"#{node_obj_id}"},
                 "tableName": table_name,
-                "propertyMappings": property_mappings
+                "propertyMappings": property_mappings,
             }
             node_mappings.append(node_mapping)
+
+        # Create relationship mappings
+        relationship_mappings = []
+        for i, rel in enumerate(self.relationships):
+            rel_obj_id = f"r:{i + 1}"  # Start from 1
+
+            # Find source and target nodes
+            source_node = None
+            target_node = None
+            for node in self.nodes:
+                if node.label == rel.start_node_label:
+                    source_node = node
+                if node.label == rel.end_node_label:
+                    target_node = node
+
+            # Use the same table as the source node, or default
+            table_name = (
+                source_node.key_property.source.table_name
+                if source_node
+                and source_node.key_property.source
+                and source_node.key_property.source.table_name
+                else f"{source_node.label.lower()}_{rel.type.lower()}_{target_node.label.lower()}.csv"
+            )
+
+            # Generate field mappings based on node key properties
+            from_field = (
+                source_node.key_property.source.column_name
+                if source_node
+                and source_node.key_property.source
+                and source_node.key_property.source.column_name
+                else source_node.key_property.name.lower()
+            )
+            to_field = (
+                target_node.key_property.source.column_name
+                if target_node
+                and target_node.key_property.source
+                and target_node.key_property.source.column_name
+                else target_node.key_property.name.lower()
+            )
+
+            rel_mapping = {
+                "relationship": {"$ref": f"#{rel_obj_id}"},
+                "tableName": table_name,
+                "propertyMappings": [],  # Empty for now, can be extended if relationships have properties
+                "fromMapping": {"fieldName": from_field},
+                "toMapping": {"fieldName": to_field},
+            }
+            relationship_mappings.append(rel_mapping)
 
         # Use stored metadata if available, otherwise create defaults
         version = aura_metadata.get("version", "2.3.1-beta.0")
@@ -1167,15 +1323,114 @@ class DataModel(BaseModel):
         stored_constraints = aura_metadata.get("constraints")
         stored_indexes = aura_metadata.get("indexes")
         stored_configurations = aura_metadata.get("configurations", {"idsToIgnore": []})
-        stored_data_source_schema = aura_metadata.get("dataSourceSchema", {"type": "local", "tableSchemas": []})
+
+        # Generate table schemas for all referenced tables
+        table_names = set()
+        for node_mapping in node_mappings:
+            table_names.add(node_mapping["tableName"])
+        for rel_mapping in relationship_mappings:
+            table_names.add(rel_mapping["tableName"])
+
+        # Create table schemas if not stored in metadata
+        stored_data_source_schema = aura_metadata.get("dataSourceSchema")
+        if not stored_data_source_schema or not stored_data_source_schema.get(
+            "tableSchemas"
+        ):
+            # Determine the source type based on the properties in the data model
+            # Check all properties to see if any have a different source type
+            source_types = set()
+            for node in self.nodes:
+                if node.key_property.source and node.key_property.source.source_type:
+                    source_types.add(node.key_property.source.source_type)
+                for prop in node.properties:
+                    if prop.source and prop.source.source_type:
+                        source_types.add(prop.source.source_type)
+            
+            for rel in self.relationships:
+                if rel.key_property and rel.key_property.source and rel.key_property.source.source_type:
+                    source_types.add(rel.key_property.source.source_type)
+                for prop in rel.properties:
+                    if prop.source and prop.source.source_type:
+                        source_types.add(prop.source.source_type)
+            
+            # Default to "local" if no source types found, or use the first one found
+            # In practice, all properties should have the same source type for a given data model
+            data_source_type = source_types.pop() if source_types else "local"
+            
+            table_schemas = []
+            for table_name in sorted(table_names):  # Sort for consistent output
+                # Generate field schemas based on node/relationship mappings
+                fields = []
+
+                # Collect fields from node mappings
+                for node_mapping in node_mappings:
+                    if node_mapping["tableName"] == table_name:
+                        for prop_mapping in node_mapping["propertyMappings"]:
+                            field_name = prop_mapping["fieldName"]
+                            # Find the property to get its type
+                            prop_ref = prop_mapping["property"]["$ref"].replace("#", "")
+                            prop_type = "string"  # default
+
+                            # Search for the property in node labels
+                            for node_label in node_labels:
+                                for prop in node_label["properties"]:
+                                    if prop["$id"] == prop_ref:
+                                        prop_type = prop["type"]["type"]
+                                        break
+
+                            fields.append(
+                                {
+                                    "name": field_name,
+                                    "sample": f"sample_{field_name}",
+                                    "recommendedType": {"type": prop_type},
+                                }
+                            )
+
+                # Collect fields from relationship mappings
+                for rel_mapping in relationship_mappings:
+                    if rel_mapping["tableName"] == table_name:
+                        # Add from/to fields
+                        from_field = rel_mapping["fromMapping"]["fieldName"]
+                        to_field = rel_mapping["toMapping"]["fieldName"]
+
+                        # Add from field if not already present
+                        if not any(f["name"] == from_field for f in fields):
+                            fields.append(
+                                {
+                                    "name": from_field,
+                                    "sample": f"sample_{from_field}",
+                                    "recommendedType": {"type": "string"},
+                                }
+                            )
+
+                        # Add to field if not already present
+                        if not any(f["name"] == to_field for f in fields):
+                            fields.append(
+                                {
+                                    "name": to_field,
+                                    "sample": f"sample_{to_field}",
+                                    "recommendedType": {"type": "string"},
+                                }
+                            )
+
+                table_schemas.append({"name": table_name, "fields": fields})
+
+            stored_data_source_schema = {"type": data_source_type, "tableSchemas": table_schemas}
+        else:
+            stored_data_source_schema = aura_metadata.get(
+                "dataSourceSchema", {"type": "local", "tableSchemas": []}
+            )
 
         # Reconstruct visualization nodes from node metadata and generate for new nodes
         visualization_nodes = []
         for i, node in enumerate(self.nodes):
             node_id = f"n:{i}"
-            
+
             # Check if node has stored visualization position
-            if "visualization" in node.metadata and "position" in node.metadata["visualization"]:
+            if (
+                "visualization" in node.metadata
+                and "position" in node.metadata["visualization"]
+            ):
                 position = node.metadata["visualization"]["position"]
             else:
                 # Generate default position for new nodes
@@ -1183,11 +1438,8 @@ class DataModel(BaseModel):
                 row = i // 5
                 col = i % 5
                 position = {"x": col * 200.0, "y": row * 200.0}
-            
-            vis_node = {
-                "id": node_id,
-                "position": position
-            }
+
+            vis_node = {"id": node_id, "position": position}
             visualization_nodes.append(vis_node)
 
         # Build complete structure
@@ -1203,8 +1455,12 @@ class DataModel(BaseModel):
                         "relationshipTypes": relationship_types,
                         "nodeObjectTypes": node_object_types,
                         "relationshipObjectTypes": relationship_object_types,
-                        "constraints": stored_constraints if stored_constraints is not None else constraints,
-                        "indexes": stored_indexes if stored_indexes is not None else indexes,
+                        "constraints": stored_constraints
+                        if stored_constraints is not None
+                        else constraints,
+                        "indexes": stored_indexes
+                        if stored_indexes is not None
+                        else indexes,
                     },
                 },
                 "graphSchemaExtensionsRepresentation": {
@@ -1213,7 +1469,7 @@ class DataModel(BaseModel):
                 "graphMappingRepresentation": {
                     "dataSourceSchema": stored_data_source_schema,
                     "nodeMappings": node_mappings,
-                    "relationshipMappings": [],
+                    "relationshipMappings": relationship_mappings,
                 },
                 "configurations": stored_configurations,
             },

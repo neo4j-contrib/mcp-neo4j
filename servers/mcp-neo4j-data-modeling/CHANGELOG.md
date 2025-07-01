@@ -5,6 +5,7 @@
 ### Changed
 
 ### Added
+* Add import and export from Aura Data Import tool format
 
 ## v0.1.1
 
