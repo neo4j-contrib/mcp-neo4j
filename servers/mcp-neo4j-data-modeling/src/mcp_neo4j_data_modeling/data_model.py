@@ -1,6 +1,6 @@
 import json
 from collections import Counter
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
@@ -45,9 +45,9 @@ class PropertySource(BaseModel):
         default=None,
         description="The location of the property, if known. May be a file path, URL, etc.",
     )
-    source_type: str | None = Field(
+    source_type: Literal["local", "remote"] | None = Field(
         default=None,
-        description="The type of the data source: 'local' or 'remote'.",
+        description="The type of the data source: 'local' or 'remote'. 'local' means the data source is a file or database table on the local machine. 'remote' means the data source is a file or database table on a remote machine.",
     )
 
 
@@ -60,7 +60,7 @@ class Property(BaseModel):
         description="The Neo4j type of the property. Should be all caps.",
     )
     source: PropertySource | None = Field(
-        default=None, description="The source of the property, if known."
+        default=None, description="The source of the property, if known. For example this may be a CSV file or a database table."
     )
     description: str | None = Field(
         default=None, description="The description of the property"
