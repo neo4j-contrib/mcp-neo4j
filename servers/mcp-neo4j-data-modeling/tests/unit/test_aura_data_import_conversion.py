@@ -10,6 +10,7 @@ from mcp_neo4j_data_modeling.data_model import (
     DataModel,
     Node,
     Property,
+    PropertySource,
     Relationship,
 )
 
@@ -431,6 +432,88 @@ class TestRelationshipConversion:
         assert index["indexType"] == "default"
         assert index["entityType"] == "relationship"
         assert index["relationshipType"]["$ref"] == "#rt:2"
+
+    def test_relationship_source_info_export(self):
+        """Test that relationship property source information is properly exported."""
+        # Create nodes with source information
+        country_source = PropertySource(
+            column_name="country_id",
+            table_name="countries.csv",
+            location="local",
+            source_type="local",
+        )
+
+        country_key_prop = Property(
+            name="id",
+            type="INTEGER",
+            source=country_source,
+            description="Country identifier",
+        )
+
+        country_node = Node(
+            label="Country", key_property=country_key_prop, properties=[]
+        )
+
+        region_source = PropertySource(
+            column_name="region_name",
+            table_name="regions.csv",
+            location="local",
+            source_type="local",
+        )
+
+        region_key_prop = Property(
+            name="name", type="STRING", source=region_source, description="Region name"
+        )
+
+        region_node = Node(label="Region", key_property=region_key_prop, properties=[])
+
+        # Create relationship with property that has different source table
+        rel_prop_source = PropertySource(
+            column_name="connection_weight",
+            table_name="country_region_connections.csv",
+            location="local",
+            source_type="local",
+        )
+
+        rel_prop = Property(
+            name="weight",
+            type="FLOAT",
+            source=rel_prop_source,
+            description="Connection weight",
+        )
+
+        relationship = Relationship(
+            type="BELONGS_TO",
+            start_node_label="Country",
+            end_node_label="Region",
+            properties=[rel_prop],
+        )
+
+        # Create data model and export
+        data_model = DataModel(
+            nodes=[country_node, region_node], relationships=[relationship]
+        )
+        aura_dict = data_model.to_aura_data_import_dict()
+
+        # Verify that relationship uses its own table name, not the source node's table
+        rel_mappings = aura_dict["dataModel"]["graphMappingRepresentation"][
+            "relationshipMappings"
+        ]
+        assert len(rel_mappings) == 1
+        assert rel_mappings[0]["tableName"] == "country_region_connections.csv"
+
+        # Verify that relationship property field name is correct
+        rel_prop_mappings = rel_mappings[0]["propertyMappings"]
+        assert len(rel_prop_mappings) == 1
+        assert rel_prop_mappings[0]["fieldName"] == "connection_weight"
+
+        # Verify that node mappings still use their own table names
+        node_mappings = aura_dict["dataModel"]["graphMappingRepresentation"][
+            "nodeMappings"
+        ]
+        assert len(node_mappings) == 2
+        assert node_mappings[0]["tableName"] == "countries.csv"
+        assert node_mappings[1]["tableName"] == "regions.csv"
 
 
 class TestDataModelConversion:

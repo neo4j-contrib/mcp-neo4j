@@ -63,10 +63,10 @@ class Property(BaseModel):
     )
     source: PropertySource | None = Field(
         default=None,
-        description="The source of the property, if known. For example this may be a CSV file or a database table.",
+        description="The source of the property, if known. For example this may be a CSV file or a database table. This should always be provided if possible, especially when exporting data models to the Aura Data Import format.",
     )
     description: str | None = Field(
-        default=None, description="The description of the property"
+        default=None, description="The description of the property."
     )
     metadata: dict[str, Any] = Field(
         default_factory=dict,
@@ -207,9 +207,12 @@ class Node(BaseModel):
     label: str = Field(
         description="The label of the node. Should be in PascalCase.", min_length=1
     )
-    key_property: Property = Field(description="The key property of the node")
+    key_property: Property = Field(
+        description="The key property of the node. This must exist!"
+    )
     properties: list[Property] = Field(
-        default_factory=list, description="The properties of the node"
+        default_factory=list,
+        description="The other properties of the node. The key property is not included here.",
     )
     metadata: dict[str, Any] = Field(
         default_factory=dict,
@@ -504,10 +507,11 @@ class Relationship(BaseModel):
     start_node_label: str = Field(description="The label of the start node")
     end_node_label: str = Field(description="The label of the end node")
     key_property: Property | None = Field(
-        default=None, description="The key property of the relationship, if any."
+        default=None, description="The key property of the relationship, if it exists."
     )
     properties: list[Property] = Field(
-        default_factory=list, description="The properties of the relationship, if any."
+        default_factory=list,
+        description="The other properties of the relationship, if any.",
     )
     metadata: dict[str, Any] = Field(
         default_factory=dict,
@@ -1302,14 +1306,31 @@ class DataModel(BaseModel):
                 if node.label == rel.end_node_label:
                     target_node = node
 
-            # Use the same table as the source node, or default
-            table_name = (
-                source_node.key_property.source.table_name
-                if source_node
-                and source_node.key_property.source
-                and source_node.key_property.source.table_name
-                else f"{source_node.label.lower()}_{rel.type.lower()}_{target_node.label.lower()}.csv"
-            )
+            # Determine table name from relationship properties first, then fall back to source node
+            table_name = None
+
+            # Check if any relationship property has source information with table name
+            if (
+                rel.key_property
+                and rel.key_property.source
+                and rel.key_property.source.table_name
+            ):
+                table_name = rel.key_property.source.table_name
+            else:
+                for prop in rel.properties:
+                    if prop.source and prop.source.table_name:
+                        table_name = prop.source.table_name
+                        break
+
+            # If no relationship property has table info, use source node's table or default
+            if not table_name:
+                table_name = (
+                    source_node.key_property.source.table_name
+                    if source_node
+                    and source_node.key_property.source
+                    and source_node.key_property.source.table_name
+                    else f"{source_node.label.lower()}_{rel.type.lower()}_{target_node.label.lower()}.csv"
+                )
 
             # Generate field mappings based on node key properties
             from_field = (
