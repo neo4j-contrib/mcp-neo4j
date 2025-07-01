@@ -360,9 +360,12 @@ class TestRelationshipConversion:
         )
 
         assert relationship.type == "CONNECTED_TO"
-        assert relationship.key_property.name == "weight"  # First property becomes key
-        assert len(relationship.properties) == 1  # Second property
-        assert relationship.properties[0].name == "since"
+        assert relationship.key_property is None  # No automatic key property assignment
+        assert (
+            len(relationship.properties) == 2
+        )  # Both properties are regular properties
+        assert relationship.properties[0].name == "weight"
+        assert relationship.properties[1].name == "since"
 
     def test_to_aura_data_import_simple_relationship(self):
         """Test converting a simple relationship to Aura Data Import format."""
@@ -706,9 +709,11 @@ class TestDataModelConversion:
         assert aura_dict["version"] == "2.3.1-beta.0"
         assert aura_dict["dataModel"]["version"] == "2.3.1-beta.0"
         assert aura_dict["dataModel"]["configurations"] == {"idsToIgnore": []}
-        
+
         # Verify that table schemas are automatically generated (not empty)
-        data_source_schema = aura_dict["dataModel"]["graphMappingRepresentation"]["dataSourceSchema"]
+        data_source_schema = aura_dict["dataModel"]["graphMappingRepresentation"][
+            "dataSourceSchema"
+        ]
         assert data_source_schema["type"] == "local"
         assert len(data_source_schema["tableSchemas"]) == 1
         assert data_source_schema["tableSchemas"][0]["name"] == "testnode.csv"
@@ -851,9 +856,9 @@ def test_aura_data_import_round_trip_data_integrity(
     # Check that all nodes are preserved
     original_node_labels = {
         nl["token"]
-        for nl in sample_aura_data_import_model["dataModel"]["graphSchemaRepresentation"][
-            "graphSchema"
-        ]["nodeLabels"]
+        for nl in sample_aura_data_import_model["dataModel"][
+            "graphSchemaRepresentation"
+        ]["graphSchema"]["nodeLabels"]
     }
     converted_node_labels = {
         nl["token"]
@@ -866,9 +871,9 @@ def test_aura_data_import_round_trip_data_integrity(
     # Check that all relationships are preserved
     original_rel_types = {
         rt["token"]
-        for rt in sample_aura_data_import_model["dataModel"]["graphSchemaRepresentation"][
-            "graphSchema"
-        ]["relationshipTypes"]
+        for rt in sample_aura_data_import_model["dataModel"][
+            "graphSchemaRepresentation"
+        ]["graphSchema"]["relationshipTypes"]
     }
     converted_rel_types = {
         rt["token"]

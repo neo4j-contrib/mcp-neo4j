@@ -4,6 +4,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
+from .aura_data_import import models as AuraDataImportModels
+
 NODE_COLOR_PALETTE = [
     ("#e3f2fd", "#1976d2"),  # Light Blue / Blue
     ("#f3e5f5", "#7b1fa2"),  # Light Purple / Purple
@@ -60,7 +62,8 @@ class Property(BaseModel):
         description="The Neo4j type of the property. Should be all caps.",
     )
     source: PropertySource | None = Field(
-        default=None, description="The source of the property, if known. For example this may be a CSV file or a database table."
+        default=None,
+        description="The source of the property, if known. For example this may be a CSV file or a database table.",
     )
     description: str | None = Field(
         default=None, description="The description of the property"
@@ -111,26 +114,31 @@ class Property(BaseModel):
 
     @classmethod
     def from_aura_data_import(
-        cls, aura_data_import_property: dict[str, Any], source_mapping: dict[str, Any]
+        cls,
+        aura_data_import_property: AuraDataImportModels.Property,
+        source_mapping: dict[str, Any],
     ) -> "Property":
         """
         Convert an Aura Data Import Property to a Property.
-        aura_data_import_property is a dict with the following structure:
-        {
-            "$id": "p:4",
-            "token": "currency",
-            "type": {
-                "type": "string"
-            },
-            "nullable": true
-        }
 
-        source_mapping is a dict with the following structure:
-        {
-            "tableName": "countries.csv",
-            "fieldName": "currency",
-            "type": "local"
-        }
+        Parameters
+        ----------
+        aura_data_import_property : AuraProperty
+            The Aura Data Import property with structure:
+            {
+                "$id": "p:4",
+                "token": "currency",
+                "type": "string",
+                "nullable": true
+            }
+        source_mapping : dict[str, Any]
+            Source mapping information with structure:
+            {
+                "tableName": "countries.csv",
+                "fieldName": "currency",
+                "type": "local",
+                "source_type": "local"
+            }
         """
         # Map Neo4j Data Importer types to our internal types
         type_mapping = {
@@ -166,7 +174,7 @@ class Property(BaseModel):
 
     def to_aura_data_import(
         self, property_id: str, is_key: bool = False
-    ) -> dict[str, Any]:
+    ) -> AuraDataImportModels.Property:
         """
         Convert a Property to Aura Data Import format.
         """
@@ -297,9 +305,9 @@ class Node(BaseModel):
     @classmethod
     def from_aura_data_import(
         cls,
-        aura_data_import_node_label: dict[str, Any],
+        aura_data_import_node_label: AuraDataImportModels.NodeLabel,
         key_property_token: str,
-        node_mapping: dict[str, Any],
+        node_mapping: AuraDataImportModels.NodeMapping,
         source_type: str,
     ) -> "Node":
         """
@@ -336,7 +344,9 @@ class Node(BaseModel):
         other_props = []
 
         def _prepare_source_mapping(
-            node_mapping: dict[str, Any], property_id: str, source_type: str
+            node_mapping: AuraDataImportModels.NodeMapping,
+            property_id: str,
+            source_type: str,
         ) -> dict[str, Any]:
             """
             Prepare the source mapping for the node mapping.
@@ -400,7 +410,12 @@ class Node(BaseModel):
         constraint_id: str,
         index_id: str,
         property_id_mapping: dict[str, str] = None,
-    ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+    ) -> tuple[
+        AuraDataImportModels.NodeLabel,
+        AuraDataImportModels.NodeKeyProperty,
+        AuraDataImportModels.Constraint,
+        AuraDataImportModels.Index,
+    ]:
         """
         Convert a Node to Aura Data Import NodeLabel format.
         Returns tuple of (NodeLabel, KeyProperty, Constraint, Index)
@@ -605,10 +620,10 @@ class Relationship(BaseModel):
     @classmethod
     def from_aura_data_import(
         cls,
-        aura_data_import_relationship_type: dict[str, Any],
-        aura_data_import_relationship_object: dict[str, Any],
+        aura_data_import_relationship_type: AuraDataImportModels.RelationshipType,
+        aura_data_import_relationship_object: AuraDataImportModels.RelationshipObjectType,
         node_id_to_label_map: dict[str, str],
-        relationship_mapping: dict[str, Any],
+        relationship_mapping: AuraDataImportModels.RelationshipMapping,
         source_type: str,
     ) -> "Relationship":
         """Convert Aura Data Import RelationshipType and RelationshipObjectType to a Relationship."""
@@ -617,7 +632,9 @@ class Relationship(BaseModel):
         other_props = []
 
         def _prepare_source_mapping(
-            relationship_mapping: dict[str, Any], property_id: str, source_type: str
+            relationship_mapping: AuraDataImportModels.RelationshipMapping,
+            property_id: str,
+            source_type: str,
         ) -> dict[str, Any]:
             """
             Prepare the source mapping for the relationship mapping.
@@ -628,7 +645,9 @@ class Relationship(BaseModel):
                 if x["property"]["$ref"] == "#" + property_id
             ]
             if not field_name:
-                raise ValueError(f"Property {property_id} not found in relationship mapping")
+                raise ValueError(
+                    f"Property {property_id} not found in relationship mapping"
+                )
             return {
                 "tableName": relationship_mapping["tableName"],
                 "fieldName": field_name[0],
@@ -643,11 +662,8 @@ class Relationship(BaseModel):
                 prop,
                 _prepare_source_mapping(relationship_mapping, prop["$id"], source_type),
             )
-            # For simplicity, treat first property as key if any exist
-            if not key_prop and aura_data_import_relationship_type["properties"]:
-                key_prop = converted_prop
-            else:
-                other_props.append(converted_prop)
+            # Add all properties as regular properties (no automatic key property assignment)
+            other_props.append(converted_prop)
 
         # Get start and end node labels from the object type
         start_node_ref = aura_data_import_relationship_object["from"]["$ref"]
@@ -670,7 +686,10 @@ class Relationship(BaseModel):
         constraint_id: str = None,
         index_id: str = None,
     ) -> tuple[
-        dict[str, Any], dict[str, Any], dict[str, Any] | None, dict[str, Any] | None
+        AuraDataImportModels.RelationshipType,
+        AuraDataImportModels.RelationshipObjectType,
+        AuraDataImportModels.Constraint | None,
+        AuraDataImportModels.Index | None,
     ]:
         """Convert a Relationship to Aura Data Import format.
 
@@ -947,7 +966,7 @@ class DataModel(BaseModel):
 
     @classmethod
     def from_aura_data_import(
-        cls, aura_data_import_data_model: dict[str, Any]
+        cls, aura_data_import_data_model: AuraDataImportModels.AuraDataImportDataModel
     ) -> "DataModel":
         """Convert an Aura Data Import DataModel to a DataModel."""
         graph_schema = aura_data_import_data_model["dataModel"][
@@ -959,7 +978,7 @@ class DataModel(BaseModel):
         node_mappings = aura_data_import_data_model["dataModel"][
             "graphMappingRepresentation"
         ]["nodeMappings"]
-        
+
         # Get the data source schema to determine source type
         data_source_schema = aura_data_import_data_model["dataModel"][
             "graphMappingRepresentation"
@@ -1103,7 +1122,7 @@ class DataModel(BaseModel):
 
         return cls(nodes=nodes, relationships=relationships, metadata=metadata)
 
-    def to_aura_data_import_dict(self) -> dict[str, Any]:
+    def to_aura_data_import_dict(self) -> AuraDataImportModels.AuraDataImportDataModel:
         """Convert the data model to an Aura Data Import dictionary."""
         # Check if we have stored Aura Data Import metadata
         aura_metadata = self.metadata.get("aura_data_import", {})
@@ -1308,10 +1327,52 @@ class DataModel(BaseModel):
                 else target_node.key_property.name.lower()
             )
 
+            # Create property mappings for relationship properties
+            property_mappings = []
+
+            # Find the corresponding relationship type to get property IDs
+            rel_type_id = f"rt:{i + 1}"
+            rel_type = None
+            for rt in relationship_types:
+                if rt["$id"] == rel_type_id:
+                    rel_type = rt
+                    break
+
+            if rel_type and rel_type["properties"]:
+                for prop_def in rel_type["properties"]:
+                    prop_id = prop_def["$id"]
+                    prop_token = prop_def["token"]
+
+                    # Find the corresponding property in our relationship to get the field name
+                    field_name = prop_token  # default to token name
+
+                    # Check key property first
+                    if rel.key_property and rel.key_property.name == prop_token:
+                        field_name = (
+                            rel.key_property.source.column_name
+                            if rel.key_property.source
+                            and rel.key_property.source.column_name
+                            else prop_token
+                        )
+                    else:
+                        # Check other properties
+                        for prop in rel.properties:
+                            if prop.name == prop_token:
+                                field_name = (
+                                    prop.source.column_name
+                                    if prop.source and prop.source.column_name
+                                    else prop_token
+                                )
+                                break
+
+                    property_mappings.append(
+                        {"property": {"$ref": f"#{prop_id}"}, "fieldName": field_name}
+                    )
+
             rel_mapping = {
                 "relationship": {"$ref": f"#{rel_obj_id}"},
                 "tableName": table_name,
-                "propertyMappings": [],  # Empty for now, can be extended if relationships have properties
+                "propertyMappings": property_mappings,
                 "fromMapping": {"fieldName": from_field},
                 "toMapping": {"fieldName": to_field},
             }
@@ -1345,18 +1406,22 @@ class DataModel(BaseModel):
                 for prop in node.properties:
                     if prop.source and prop.source.source_type:
                         source_types.add(prop.source.source_type)
-            
+
             for rel in self.relationships:
-                if rel.key_property and rel.key_property.source and rel.key_property.source.source_type:
+                if (
+                    rel.key_property
+                    and rel.key_property.source
+                    and rel.key_property.source.source_type
+                ):
                     source_types.add(rel.key_property.source.source_type)
                 for prop in rel.properties:
                     if prop.source and prop.source.source_type:
                         source_types.add(prop.source.source_type)
-            
+
             # Default to "local" if no source types found, or use the first one found
             # In practice, all properties should have the same source type for a given data model
             data_source_type = source_types.pop() if source_types else "local"
-            
+
             table_schemas = []
             for table_name in sorted(table_names):  # Sort for consistent output
                 # Generate field schemas based on node/relationship mappings
@@ -1413,9 +1478,36 @@ class DataModel(BaseModel):
                                 }
                             )
 
+                        # Add relationship property fields
+                        for prop_mapping in rel_mapping["propertyMappings"]:
+                            field_name = prop_mapping["fieldName"]
+                            # Find the property to get its type
+                            prop_ref = prop_mapping["property"]["$ref"].replace("#", "")
+                            prop_type = "string"  # default
+
+                            # Search for the property in relationship types
+                            for rel_type in relationship_types:
+                                for prop in rel_type["properties"]:
+                                    if prop["$id"] == prop_ref:
+                                        prop_type = prop["type"]["type"]
+                                        break
+
+                            # Add field if not already present
+                            if not any(f["name"] == field_name for f in fields):
+                                fields.append(
+                                    {
+                                        "name": field_name,
+                                        "sample": f"sample_{field_name}",
+                                        "recommendedType": {"type": prop_type},
+                                    }
+                                )
+
                 table_schemas.append({"name": table_name, "fields": fields})
 
-            stored_data_source_schema = {"type": data_source_type, "tableSchemas": table_schemas}
+            stored_data_source_schema = {
+                "type": data_source_type,
+                "tableSchemas": table_schemas,
+            }
         else:
             stored_data_source_schema = aura_metadata.get(
                 "dataSourceSchema", {"type": "local", "tableSchemas": []}
