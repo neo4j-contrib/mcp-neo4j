@@ -3,8 +3,10 @@
 ### Fixed
 
 ### Changed
+* Update tool name `export_to_arrows_json` to `export_to_arrows_json_str` to be more specific
 
 ### Added
+* Add tools to import and export from Aura Data Import tool format
 
 ## v0.1.1
 
