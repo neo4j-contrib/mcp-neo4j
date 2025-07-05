@@ -59,12 +59,73 @@ def create_mcp_server(neo4j_driver: AsyncDriver, database: str = "neo4j", namesp
         """
 
         get_schema_query = """
-call apoc.meta.data() yield label, property, type, other, unique, index, elementType
-where elementType = 'node' and not label starts with '_'
-with label, 
-    collect(case when type <> 'RELATIONSHIP' then [property, type + case when unique then " unique" else "" end + case when index then " indexed" else "" end] end) as attributes,
-    collect(case when type = 'RELATIONSHIP' then [property, head(other)] end) as relationships
-RETURN label, apoc.map.fromPairs(attributes) as attributes, apoc.map.fromPairs(relationships) as relationships
+CALL apoc.meta.data()
+YIELD label, property, type, other, unique, index, elementType
+
+// 1) collect all rows
+WITH collect({label:label,
+              property:property,
+              type:type,
+              other:other,
+              unique:unique,
+              index:index,
+              elementType:elementType}) AS meta
+
+// 2) extract each node‐label exactly once
+WITH meta,
+     apoc.coll.toSet([
+       row IN meta
+       WHERE row.elementType='node'
+         AND NOT row.label STARTS WITH '_'
+       | row.label
+     ]) AS labels
+
+UNWIND labels AS label
+
+// 3) build node attributes
+WITH meta, label,
+     [row IN meta
+      WHERE row.elementType='node'
+        AND row.label = label
+        AND row.type <> 'RELATIONSHIP'
+      | [ row.property,
+          row.type
+          + CASE WHEN row.unique THEN ' unique' ELSE '' END
+          + CASE WHEN row.index  THEN ' indexed' ELSE '' END
+        ]
+     ] AS attributes,
+
+     // 4) collect the outgoing‐rel “stubs”
+     [row IN meta
+      WHERE row.elementType='node'
+        AND row.label = label
+        AND row.type = 'RELATIONSHIP'
+      | row
+     ] AS relRows
+
+// 5) for each rel stub, look up its target and its own props
+WITH label, attributes,
+     [ r IN relRows |
+       [ r.property,
+         {
+           target: head(r.other),
+           properties: apoc.map.fromPairs(
+             [ rr IN meta
+               WHERE rr.elementType = 'relationship'
+                 AND rr.label = r.property
+                 AND rr.property <> '...'   // filter out any spurious meta-rows if needed
+               | [ rr.property, rr.type ]
+             ]
+           )
+         }
+       ]
+     ] AS relationships
+
+RETURN
+  label,
+  apoc.map.fromPairs(attributes)    AS attributes,
+  apoc.map.fromPairs(relationships) AS relationships;
+
 """
 
         try:
