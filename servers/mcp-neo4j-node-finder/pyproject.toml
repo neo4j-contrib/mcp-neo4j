@@ -1,0 +1,27 @@
+[project]
+name = "mcp-neo4j-node-finder"
+version = "0.2.3"
+description = "A simple Neo4j MCP server"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp[cli]>=1.6.0",
+    "neo4j>=5.26.0",
+    "pydantic>=2.10.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pyright>=1.1.389",
+ "pytest>=7.0.0",
+ "pytest-asyncio>=0.20.3",
+ "ruff>=0.11.5",
+ "testcontainers[neo4j]>=4.10.0"
+]
+
+[project.scripts]
+mcp-neo4j-node-finder = "mcp_neo4j_node_finder:main"

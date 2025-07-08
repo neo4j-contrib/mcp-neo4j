@@ -1,0 +1,2 @@
+# test mcp-neo4j-cypher with a local database and Inspector
+npx @modelcontextprotocol/inspector uv --directory src/mcp_neo4j_cypher run mcp-neo4j-cypher --db-url bolt://localhost:7687 --username neo4j --password password --database neo4j
