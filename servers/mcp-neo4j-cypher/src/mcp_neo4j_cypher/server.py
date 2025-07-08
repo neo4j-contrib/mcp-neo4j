@@ -59,13 +59,8 @@ def create_mcp_server(neo4j_driver: AsyncDriver, database: str = "neo4j", namesp
         """
 
         get_schema_query = """
-call apoc.meta.data() yield label, property, type, other, unique, index, elementType
-where elementType = 'node' and not label starts with '_'
-with label, 
-    collect(case when type <> 'RELATIONSHIP' then [property, type + case when unique then " unique" else "" end + case when index then " indexed" else "" end] end) as attributes,
-    collect(case when type = 'RELATIONSHIP' then [property, head(other)] end) as relationships
-RETURN label, apoc.map.fromPairs(attributes) as attributes, apoc.map.fromPairs(relationships) as relationships
-"""
+        CALL apoc.meta.schema();
+        """
 
         try:
             async with neo4j_driver.session(database=database) as session:
