@@ -119,6 +119,36 @@ Add the server to your `claude_desktop_config.json` with the transport method sp
 }
 ```
 
+### 🌐 HTTP Transport Mode
+
+The server supports HTTP transport for web-based deployments and microservices:
+
+```bash
+# Basic HTTP mode (defaults: host=127.0.0.1, port=8000, path=/mcp/)
+mcp-neo4j-data-modeling --transport http
+
+# Custom HTTP configuration
+mcp-neo4j-data-modeling --transport http --host 0.0.0.0 --port 8080 --path /api/mcp/
+```
+
+Environment variables for HTTP configuration:
+
+```bash
+export MCP_TRANSPORT=http
+export MCP_HTTP_HOST=0.0.0.0
+export MCP_HTTP_PORT=8080
+export MCP_HTTP_PATH=/api/mcp/
+mcp-neo4j-data-modeling
+```
+
+### 🔄 Transport Modes
+
+The server supports three transport modes:
+
+- **STDIO** (default): Standard input/output for local tools and Claude Desktop
+- **SSE**: Server-Sent Events for web-based deployments  
+- **HTTP**: Streamable HTTP for modern web deployments and microservices
+
 ### 🐳 Using with Docker
 
 ```json

@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Literal
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp.server import FastMCP
 from pydantic import Field, ValidationError
 
 from .data_model import (
@@ -18,7 +18,9 @@ logger = logging.getLogger("mcp_neo4j_data_modeling")
 def create_mcp_server() -> FastMCP:
     """Create an MCP server instance for data modeling."""
 
-    mcp: FastMCP = FastMCP("mcp-neo4j-data-modeling", dependencies=["pydantic"])
+    mcp: FastMCP = FastMCP(
+        "mcp-neo4j-data-modeling", dependencies=["pydantic"], stateless_http=True
+    )
 
     @mcp.resource("resource://schema/node")
     def node_schema() -> dict[str, Any]:
@@ -182,21 +184,22 @@ def create_mcp_server() -> FastMCP:
 
 
 async def main(
-    transport: Literal["stdio", "sse"] = "stdio",
+    transport: Literal["stdio", "sse", "http"] = "stdio",
+    host: str = "127.0.0.1",
+    port: int = 8000,
+    path: str = "/mcp/",
 ) -> None:
     logger.info("Starting MCP Neo4j Data Modeling Server")
 
     mcp = create_mcp_server()
 
     match transport:
+        case "http":
+            await mcp.run_http_async(host=host, port=port, path=path)
         case "stdio":
             await mcp.run_stdio_async()
         case "sse":
-            await mcp.run_sse_async()
-        case _:
-            raise ValueError(
-                f"Invalid transport: {transport} | Must be either 'stdio' or 'sse'"
-            )
+            await mcp.run_sse_async(host=host, port=port, path=path)
 
 
 if __name__ == "__main__":

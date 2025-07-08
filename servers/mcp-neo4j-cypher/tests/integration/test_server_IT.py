@@ -2,17 +2,19 @@ import json
 from typing import Any
 
 import pytest
-from mcp.server import FastMCP
+from fastmcp.server import FastMCP
 
 
 @pytest.mark.asyncio(loop_scope="function")
 async def test_get_neo4j_schema(mcp_server: FastMCP, init_data: Any):
-    response = await mcp_server.call_tool("get_neo4j_schema", dict())
+    tool = await mcp_server.get_tool("get_neo4j_schema")
+    response = await tool.run(dict())
 
-    temp_parsed = json.loads(response[0].text)['content'][0]['text']
-    schema = json.loads(temp_parsed)[0]
+    text_content = response.content[0].text
+    outer = json.loads(text_content)
+    inner = json.loads(outer["text"])
+    schema = inner[0]
 
-    # Verify the schema result
     assert "label" in schema
     assert "attributes" in schema
     assert "relationships" in schema
@@ -20,12 +22,17 @@ async def test_get_neo4j_schema(mcp_server: FastMCP, init_data: Any):
 
 @pytest.mark.asyncio(loop_scope="function")
 async def test_write_neo4j_cypher(mcp_server: FastMCP):
-    # Execute a Cypher query to create a node
     query = "CREATE (n:Test {name: 'test', age: 123}) RETURN n.name"
-    response = await mcp_server.call_tool("write_neo4j_cypher", dict(query=query))
-    result = json.loads(json.loads(response[0].text)['content'][0]['text'])
-    # Verify the node creation
-    assert len(result) == 4
+    tool = await mcp_server.get_tool("write_neo4j_cypher")
+    response = await tool.run(dict(query=query))
+
+    text_content = response.content[0].text
+    outer = json.loads(text_content)
+    result = json.loads(outer["text"])
+
+    assert "nodes_created" in result
+    assert "labels_added" in result
+    assert "properties_set" in result
     assert result["nodes_created"] == 1
     assert result["labels_added"] == 1
     assert result["properties_set"] == 2
@@ -33,18 +40,19 @@ async def test_write_neo4j_cypher(mcp_server: FastMCP):
 
 @pytest.mark.asyncio(loop_scope="function")
 async def test_read_neo4j_cypher(mcp_server: FastMCP, init_data: Any):
-    # Prepare test data
-
-    # Execute a complex read query
     query = """
     MATCH (p:Person)-[:FRIEND]->(friend)
     RETURN p.name AS person, friend.name AS friend_name
     ORDER BY p.name, friend.name
     """
 
-    response = await mcp_server.call_tool("read_neo4j_cypher", dict(query=query))
-    result = json.loads(json.loads(response[0].text)['content'][0]['text'])
-    # # Verify the query result
+    tool = await mcp_server.get_tool("read_neo4j_cypher")
+    response = await tool.run(dict(query=query))
+
+    text_content = response.content[0].text
+    outer = json.loads(text_content)
+    result = json.loads(outer["text"])
+
     assert len(result) == 2
     assert result[0]["person"] == "Alice"
     assert result[0]["friend_name"] == "Bob"

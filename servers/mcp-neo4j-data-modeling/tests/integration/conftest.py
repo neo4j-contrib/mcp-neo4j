@@ -45,9 +45,8 @@ async def async_neo4j_driver(setup: Neo4jContainer):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def mcp_server(async_neo4j_driver):
-    mcp = create_mcp_server(async_neo4j_driver, "neo4j")
-
+async def mcp_server():
+    mcp = create_mcp_server()
     return mcp
 
 

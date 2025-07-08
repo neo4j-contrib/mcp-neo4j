@@ -39,6 +39,36 @@ Create and destroy instances, find instances by name, scale them up and down and
 
 Create, validate, and visualize Neo4j graph data models. Allows for model import/export from Arrows.app.
 
+## Transport Modes
+
+All servers support multiple transport modes:
+
+- **STDIO** (default): Standard input/output for local tools and Claude Desktop integration
+- **SSE**: Server-Sent Events for web-based deployments
+- **HTTP**: Streamable HTTP for modern web deployments and microservices
+
+### HTTP Transport Configuration
+
+To run a server in HTTP mode, use the `--transport http` flag:
+
+```bash
+# Basic HTTP mode
+mcp-neo4j-cypher --transport http
+
+# Custom HTTP configuration
+mcp-neo4j-cypher --transport http --host 0.0.0.0 --port 8080 --path /api/mcp/
+```
+
+Environment variables are also supported:
+
+```bash
+export NEO4J_TRANSPORT=http
+export NEO4J_HTTP_HOST=0.0.0.0
+export NEO4J_HTTP_PORT=8080
+export NEO4J_HTTP_PATH=/api/mcp/
+mcp-neo4j-cypher
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

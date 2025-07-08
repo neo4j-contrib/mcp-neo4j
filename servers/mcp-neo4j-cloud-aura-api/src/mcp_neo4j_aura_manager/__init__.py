@@ -26,7 +26,10 @@ def main():
         sys.exit(1)
     
     try:
-        asyncio.run(server.main(args.client_id, args.client_secret))
+        asyncio.run(server.main(
+            args.client_id, 
+            args.client_secret,
+        ))
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
     except Exception as e:

@@ -1,15 +1,11 @@
 import json
 import logging
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Literal
 
-import mcp
 import requests
-import mcp.types as types
-from mcp.server import NotificationOptions, Server
-from mcp.server.models import InitializationOptions
-import mcp.server.stdio
-
+from fastmcp.server import FastMCP
+from pydantic import Field
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -203,39 +199,39 @@ class AuraAPIClient:
             raise ValueError(f"Invalid type {type}")
         
         _validate_region(cloud_provider, region)
-            
-        url = f"{self.BASE_URL}/instances"
+        
+        if graph_analytics_plugin and type not in ["professional-db", "enterprise-db", "business-critical"]:
+            raise ValueError("graph analytics plugin is only available for professional, enterprise, and business-critical instances")
+
+        if vector_optimized and type not in ["professional-db", "enterprise-db", "business-critical"]:
+            raise ValueError("vector optimized instances are only available for professional, enterprise, and business-critical instances")
+
+
         payload = {
+            "tenant_id": tenant_id,
             "name": name,
-            "memory": f"{memory}GB",  # in GB
+            "memory": f"{memory}GB",
             "region": region,
             "version": version,
             "type": type,
-            "tenant_id": tenant_id,
-            "cloud_provider": cloud_provider
+            "vector_optimized": vector_optimized,
+            "cloud_provider": cloud_provider,
+            "graph_analytics_plugin": graph_analytics_plugin
         }
         
-        # Add optional parameters only if they're provided and applicable            
-        if graph_analytics_plugin and type in ["professional-db", "enterprise-db", "business-critical"]:
-            payload["graph_analytics_plugin"] = str(graph_analytics_plugin).lower()
-            
-        if vector_optimized and type in ["professional-db", "enterprise-db", "business-critical"]:
-            payload["vector_optimized"] = str(vector_optimized).lower()
-            
-        if source_instance_id and type in ["professional-db", "enterprise-db", "business-critical"]:
+        # Add source_instance_id if provided (for cloning)
+        if source_instance_id is not None:
             payload["source_instance_id"] = source_instance_id
         
+        url = f"{self.BASE_URL}/instances"
         response = requests.post(url, headers=self._get_headers(), json=payload)
         return self._handle_response(response)
-
     
     def update_instance(self, instance_id: str, name: Optional[str] = None, 
                         memory: Optional[int] = None, 
                         vector_optimized: Optional[bool] = None, 
                         storage: Optional[int] = None) -> Dict[str, Any]:
         """Update an existing instance."""
-        url = f"{self.BASE_URL}/instances/{instance_id}"
-        
         payload = {}
         if name is not None:
             payload["name"] = name
@@ -250,11 +246,8 @@ class AuraAPIClient:
         if payload["vector_optimized"] == "true" and int(payload["memory"]) < 4:
             raise ValueError("vector optimized instances must have at least 4GB memory")
         
-        print("Update instance payload:")
-        print(payload)
+        url = f"{self.BASE_URL}/instances/{instance_id}"
         response = requests.patch(url, headers=self._get_headers(), json=payload)
-        print("Update instance response: "+str(response.status_code))
-        print(response.json())
         return self._handle_response(response)
     
     def pause_instance(self, instance_id: str) -> Dict[str, Any]:
@@ -293,6 +286,7 @@ class AuraAPIClient:
         url = f"{self.BASE_URL}/instances/{instance_id}"
         response = requests.delete(url, headers=self._get_headers())
         return self._handle_response(response)
+
 
 class AuraManager:
     """MCP server for Neo4j Aura instance management."""
@@ -410,388 +404,141 @@ class AuraManager:
             return self.client.get_tenant_details(tenant_id)
         except Exception as e:
             return {"error": str(e)}
-
+    
     async def delete_instance(self, instance_id: str, **kwargs) -> Dict[str, Any]:
         """Delete one database instance."""
         try:
-            return self.client.delete_instance(instance_id=instance_id)
+            return self.client.delete_instance(instance_id)
         except Exception as e:
             return {"error": str(e)}
 
-async def main(client_id: str, client_secret: str):
+
+def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
+    """Create an MCP server instance for Aura management."""
+    
+    mcp: FastMCP = FastMCP("mcp-neo4j-aura-manager", dependencies=["requests", "pydantic"], stateless_http=True)
+
+    @mcp.tool()
+    async def list_instances() -> str:
+        """List all Neo4j Aura database instances."""
+        result = await aura_manager.list_instances()
+        return json.dumps(result, indent=2)
+
+    @mcp.tool()
+    async def get_instance_details(instance_ids: List[str]) -> str:
+        """Get details for one or more Neo4j Aura instances by ID."""
+        result = await aura_manager.get_instance_details(instance_ids)
+        return json.dumps(result, indent=2)
+
+    @mcp.tool()
+    async def get_instance_by_name(name: str) -> str:
+        """Find a Neo4j Aura instance by name and returns the details including the id."""
+        result = await aura_manager.get_instance_by_name(name)
+        return json.dumps(result, indent=2)
+
+    @mcp.tool()
+    async def create_instance(
+        tenant_id: str = Field(..., description="ID of the tenant/project where the instance will be created"),
+        name: str = Field(..., description="Name for the new instance"),
+        memory: int = Field(1, description="Memory allocation in GB"),
+        region: str = Field("us-central1", description="Region for the instance (e.g., 'us-central1')"),
+        type: str = Field("free-db", description="Instance type (free-db, professional-db, enterprise-db, or business-critical)"),
+        vector_optimized: bool = Field(False, description="Whether the instance is optimized for vector operations"),
+        cloud_provider: str = Field("gcp", description="Cloud provider (gcp, aws, azure)"),
+        graph_analytics_plugin: bool = Field(False, description="Whether to enable the graph analytics plugin"),
+        source_instance_id: Optional[str] = Field(None, description="ID of the source instance to clone from")
+    ) -> str:
+        """Create a new Neo4j Aura database instance."""
+        result = await aura_manager.create_instance(
+            tenant_id=tenant_id,
+            name=name,
+            memory=memory,
+            region=region,
+            type=type,
+            vector_optimized=vector_optimized,
+            cloud_provider=cloud_provider,
+            graph_analytics_plugin=graph_analytics_plugin,
+            source_instance_id=source_instance_id
+        )
+        return json.dumps(result, indent=2)
+
+    @mcp.tool()
+    async def update_instance_name(instance_id: str, name: str) -> str:
+        """Update the name of a Neo4j Aura instance."""
+        result = await aura_manager.update_instance_name(instance_id, name)
+        return json.dumps(result, indent=2)
+
+    @mcp.tool()
+    async def update_instance_memory(instance_id: str, memory: int) -> str:
+        """Update the memory allocation of a Neo4j Aura instance."""
+        result = await aura_manager.update_instance_memory(instance_id, memory)
+        return json.dumps(result, indent=2)
+
+    @mcp.tool()
+    async def update_instance_vector_optimization(instance_id: str, vector_optimized: bool) -> str:
+        """Update the vector optimization setting of a Neo4j Aura instance."""
+        result = await aura_manager.update_instance_vector_optimization(instance_id, vector_optimized)
+        return json.dumps(result, indent=2)
+
+    @mcp.tool()
+    async def pause_instance(instance_id: str) -> str:
+        """Pause a Neo4j Aura database instance."""
+        result = await aura_manager.pause_instance(instance_id)
+        return json.dumps(result, indent=2)
+
+    @mcp.tool()
+    async def resume_instance(instance_id: str) -> str:
+        """Resume a paused Neo4j Aura database instance."""
+        result = await aura_manager.resume_instance(instance_id)
+        return json.dumps(result, indent=2)
+
+    @mcp.tool()
+    async def list_tenants() -> str:
+        """List all Neo4j Aura tenants/projects."""
+        result = await aura_manager.list_tenants()
+        return json.dumps(result, indent=2)
+
+    @mcp.tool()
+    async def get_tenant_details(tenant_id: str) -> str:
+        """Get details for a specific Neo4j Aura tenant/project."""
+        result = await aura_manager.get_tenant_details(tenant_id)
+        return json.dumps(result, indent=2)
+
+    @mcp.tool()
+    async def delete_instance(instance_id: str) -> str:
+        """Delete a Neo4j Aura database instance."""
+        result = await aura_manager.delete_instance(instance_id)
+        return json.dumps(result, indent=2)
+
+    return mcp
+
+
+async def main(
+    client_id: str, 
+    client_secret: str,
+    transport: Literal["stdio", "sse", "http"] = "stdio",
+    host: str = "127.0.0.1",
+    port: int = 8000,
+    path: str = "/mcp/",
+) -> None:
     """Start the MCP server."""
+    logger.info("Starting MCP Neo4j Aura Manager Server")
+    
     aura_manager = AuraManager(client_id, client_secret)
     
     # Create MCP server
-    server = Server("mcp-neo4j-aura-manager")
+    mcp = create_mcp_server(aura_manager)
 
-    # Register handlers
-    @server.list_tools()
-    async def handle_list_tools() -> List[types.Tool]:
-        return [
-            types.Tool(
-                name="list_instances",
-                description="List all Neo4j Aura database instances",
-                annotations={
-                    "destructiveHint": False,
-                    "idempotentHint": True,
-                    "readOnlyHint": True,
-                    "title": "List all Neo4j Aura database instances"
-                },
-                inputSchema={
-                    "type": "object",
-                    "properties": {},
-                },
-            ),
-            types.Tool(
-                name="get_instance_details",
-                description="Get details for one or more Neo4j Aura instances by ID, including status, region, memory, storage",
-                annotations={
-                    "destructiveHint": False, 
-                    "idempotentHint": True,
-                    "readOnlyHint": True,
-                    "title": "Get instance details"
-                },
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "instance_ids": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            },
-                            "description": "List of instance IDs to retrieve"
-                        }
-                    },
-                    "required": ["instance_ids"],
-                },
-            ),
-            types.Tool(
-                name="get_instance_by_name",
-                description="Find a Neo4j Aura instance by name and returns the details including the id",
-                annotations={
-                    "destructiveHint": False,
-                    "idempotentHint": True,
-                    "readOnlyHint": True,
-                    "title": "Find instance by name"
-                },
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "Name of the instance to find"
-                        }
-                    },
-                    "required": ["name"],
-                },
-            ),
-            types.Tool(
-                name="create_instance",
-                description="Create a new Neo4j Aura database instance",
-                annotations={
-                    "destructiveHint": False,
-                    "idempotentHint": False,
-                    "readOnlyHint": False,
-                    "title": "Create instance"
-                },
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "tenant_id": {
-                            "type": "string",
-                            "description": "ID of the tenant/project where the instance will be created"
-                        },
-                        "name": {
-                            "type": "string",
-                            "description": "Name for the new instance"
-                        },
-                        "memory": {
-                            "type": "integer",
-                            "description": "Memory allocation in GB",
-                            "default": 1
-                        },
-                        "region": {
-                            "type": "string",
-                            "description": "Region for the instance (e.g., 'us-central1')",
-                            "default": "us-central1"
-                        },
-                        "type": {
-                            "type": "string",
-                            "description": "Instance type (free-db, professional-db, enterprise-db, or business-critical)",
-                            "default": "free-db"
-                        },
-                        "vector_optimized": {
-                            "type": "boolean",
-                            "description": "Whether the instance is optimized for vector operations. Only allowed for instance with more than 4GB memory.",
-                            "default": False
-                        },
-                        "cloud_provider": {
-                            "type": "string",
-                            "description": "Cloud provider (gcp, aws, azure)",
-                            "default": "gcp"
-                        },
-                        "graph_analytics_plugin": {
-                            "type": "boolean",
-                            "description": "Whether to enable the graph analytics plugin",
-                            "default": False
-                        },
-                        "source_instance_id": {
-                            "type": "string",
-                            "description": "ID of the source instance to clone from (for professional/enterprise instances)",
-                        }
-                    },
-                    "required": ["tenant_id", "name"],
-                },
-            ),
-            types.Tool(
-                name="update_instance_name",
-                description="Update the name of a Neo4j Aura instance",
-                annotations={
-                    "destructiveHint": False,
-                    "idempotentHint": True,
-                    "readOnlyHint": False,
-                    "title": "Update instance name"
-                },
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "instance_id": {
-                            "type": "string",
-                            "description": "ID of the instance to update"
-                        },
-                        "name": {
-                            "type": "string",
-                            "description": "New name for the instance"
-                        }
-                    },
-                    "required": ["instance_id", "name"],
-                },
-            ),
-            types.Tool(
-                name="update_instance_memory",
-                description="Update the memory allocation of a Neo4j Aura instance",
-                annotations={
-                    "destructiveHint": False,
-                    "idempotentHint": True,
-                    "readOnlyHint": False,
-                    "title": "Update instance memory"
-                },
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "instance_id": {
-                            "type": "string",
-                            "description": "ID of the instance to update"
-                        },
-                        "memory": {
-                            "type": "integer",
-                            "description": "New memory allocation in GB"
-                        }
-                    },
-                    "required": ["instance_id", "memory"],
-                },
-            ),
-            types.Tool(
-                name="update_instance_vector_optimization",
-                description="Update the vector optimization setting of a Neo4j Aura instance",
-                annotations={
-                    "destructiveHint": False,
-                    "idempotentHint": True,
-                    "readOnlyHint": False,
-                    "title": "Update instance vector optimization"
-                },
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "instance_id": {
-                            "type": "string",
-                            "description": "ID of the instance to update"
-                        },
-                        "vector_optimized": {
-                            "type": "boolean",
-                            "description": "Whether the instance should be optimized for vector operations"
-                        }
-                    },
-                    "required": ["instance_id", "vector_optimized"],
-                },
-            ),
-            types.Tool(
-                name="pause_instance",
-                description="Pause a Neo4j Aura database instance",
-                annotations={
-                    "destructiveHint": False,
-                    "idempotentHint": False,
-                    "readOnlyHint": False,
-                    "title": "Pause instance"
-                },
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "instance_id": {
-                            "type": "string",
-                            "description": "ID of the instance to pause"
-                        }
-                    },
-                    "required": ["instance_id"],
-                },
-            ),
-            types.Tool(
-                name="resume_instance",
-                description="Resume a paused Neo4j Aura database instance",
-                annotations={
-                    "destructiveHint": False,
-                    "idempotentHint": False,
-                    "readOnlyHint": False,
-                    "title": "Resume instance"
-                },
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "instance_id": {
-                            "type": "string",
-                            "description": "ID of the instance to resume"
-                        }
-                    },
-                    "required": ["instance_id"],
-                },
-            ),
-            types.Tool(
-                name="list_tenants",
-                description="List all Neo4j Aura tenants/projects",
-                annotations={
-                    "destructiveHint": False,
-                    "idempotentHint": True,
-                    "readOnlyHint": True,
-                    "title": "List tenants"
-                },
-                inputSchema={
-                    "type": "object",
-                    "properties": {},
-                },
-            ),
-            types.Tool(
-                name="get_tenant_details",
-                description="Get details for a specific Neo4j Aura tenant/project",
-                annotations={
-                    "destructiveHint": False,
-                    "idempotentHint": True,
-                    "readOnlyHint": True,
-                    "title": "Get tenant details"
-                },
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "tenant_id": {
-                            "type": "string",
-                            "description": "ID of the tenant/project to retrieve"
-                        }
-                    },
-                    "required": ["tenant_id"],
-                },
-            ),
-            types.Tool(
-                name="delete_instance",
-                description="Delete a Neo4j Aura database instance",
-                annotations={
-                    "destructiveHint": True,
-                    "idempotentHint": False,
-                    "readOnlyHint": False,
-                    "title": "Delete instance"
-                },
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "instance_id": {
-                            "type": "string",
-                            "description": "ID of the instance to delete"
-                        }
-                    },
-                    "required": ["instance_id"],
-                },
-            ),
-        ]
-
-    @server.call_tool()
-    async def handle_call_tool(
-        name: str, arguments: Dict[str, Any] | None
-    ) -> List[types.TextContent | types.ImageContent]:
-        try:
-            if not arguments and name not in ["list_instances", "list_tenants"]:
-                raise ValueError(f"No arguments provided for tool: {name}")
-
-            if name == "list_instances":
-                result = await aura_manager.list_instances()
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
-            elif name == "get_instance_details":
-                result = await aura_manager.get_instance_details(**arguments)
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
-            elif name == "get_instance_by_name":
-                result = await aura_manager.get_instance_by_name(**arguments)
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
-            elif name == "create_instance":
-                result = await aura_manager.create_instance(**arguments)
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
-            elif name == "update_instance_name":
-                result = await aura_manager.update_instance_name(**arguments)
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
-            elif name == "update_instance_memory":
-                result = await aura_manager.update_instance_memory(**arguments)
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
-            elif name == "update_instance_vector_optimization":
-                result = await aura_manager.update_instance_vector_optimization(**arguments)
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
-            elif name == "pause_instance":
-                result = await aura_manager.pause_instance(**arguments)
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
-            elif name == "resume_instance":
-                result = await aura_manager.resume_instance(**arguments)
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
-            elif name == "list_tenants":
-                result = await aura_manager.list_tenants()
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
-            elif name == "get_tenant_details":
-                result = await aura_manager.get_tenant_details(**arguments)
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
-            elif name == "delete_instance":
-                result = await aura_manager.delete_instance(**arguments)
-                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
-                
-            else:
-                raise ValueError(f"Unknown tool: {name}")
-                
-        except Exception as e:
-            logger.error(f"Error handling tool call: {e}")
-            return [types.TextContent(type="text", text=f"Error: {str(e)}")]
-
-    # Start the server
-    async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-        logger.info("Neo4j Aura Database Manager MCP Server running on stdio")
-        await server.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="mcp-neo4j-aura-manager",
-                server_version="0.1.0",
-                capabilities=server.get_capabilities(
-                    notification_options=NotificationOptions(),
-                    experimental_capabilities={},
-                ),
-            ),
-        )
-    
-    return server
+    # Run the server with the specified transport
+    match transport:
+        case "http":
+            await mcp.run_http_async(host=host, port=port, path=path)
+        case "stdio":
+            await mcp.run_stdio_async()
+        case "sse":
+            await mcp.run_sse_async(host=host, port=port, path=path)
+        case _:
+            raise ValueError(f"Unsupported transport: {transport}")
 
 
 if __name__ == "__main__":

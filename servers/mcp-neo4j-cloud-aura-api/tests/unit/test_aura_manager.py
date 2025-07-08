@@ -316,7 +316,7 @@ async def test_delete_instance(mock_client):
     assert result["id"] == "instance-1"
     
     # Verify the mock was called with the correct parameters
-    mock_client.delete_instance.assert_called_once_with(instance_id="instance-1")
+    mock_client.delete_instance.assert_called_once_with("instance-1")
 
 
 @pytest.mark.asyncio

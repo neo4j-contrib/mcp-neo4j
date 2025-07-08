@@ -17,7 +17,7 @@ pytestmark = pytest.mark.skipif(
 
 def wait_for_instance_status(aura_client, instance_id, status="running"):
     max_wait_time = 500  # Maximum wait time in seconds
-    wait_interval = 10  # Check every 3 seconds
+    wait_interval = 10  # Check every 10 seconds
     start_time = time.time()
     
     time.sleep(wait_interval)
@@ -111,8 +111,6 @@ def test_integration_flow(aura_client, test_type):
             assert "region" in instance_details
             assert "status" in instance_details
             assert "memory" in instance_details
-#            assert "storage" in instance_details
-#            assert "version" in instance_details
             assert "type" in instance_details
             assert isinstance(instance_details["vector_optimized"], bool)
             assert isinstance(instance_details["graph_analytics_plugin"], bool)
@@ -232,7 +230,6 @@ def test_create_and_delete_instance_integration(aura_client, test_type):
     instance_id = instance["id"]
 
     try:
-
         assert "name" in instance
         assert instance["name"] == instance_name
 
@@ -245,8 +242,6 @@ def test_create_and_delete_instance_integration(aura_client, test_type):
         assert "region" in instance_details
         assert "status" in instance_details
         assert "memory" in instance_details
-    #            assert "storage" in instance_details
-    #            assert "version" in instance_details
         assert "type" in instance_details
         assert isinstance(instance_details["vector_optimized"], bool)
         assert isinstance(instance_details["graph_analytics_plugin"], bool)
@@ -270,4 +265,4 @@ def test_create_instance_vector_optimized_and_memory_less_than_4_should_raise_er
 
 def test_update_instance_vector_optimized_and_memory_less_than_4_should_raise_error(aura_client):
     with pytest.raises(ValueError):
-        aura_client.update_instance(instance_id="test-instance-1", memory=3, vector_optimized=True)
+        aura_client.update_instance(instance_id="test-instance", memory=3, vector_optimized=True)

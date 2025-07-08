@@ -147,6 +147,36 @@ Alternatively, you can set environment variables:
 }
 ```
 
+### 🌐 HTTP Transport Mode
+
+The server supports HTTP transport for web-based deployments and microservices:
+
+```bash
+# Basic HTTP mode (defaults: host=127.0.0.1, port=8000, path=/mcp/)
+mcp-neo4j-memory --transport http
+
+# Custom HTTP configuration
+mcp-neo4j-memory --transport http --host 0.0.0.0 --port 8080 --path /api/mcp/
+```
+
+Environment variables for HTTP configuration:
+
+```bash
+export NEO4J_TRANSPORT=http
+export NEO4J_HTTP_HOST=0.0.0.0
+export NEO4J_HTTP_PORT=8080
+export NEO4J_HTTP_PATH=/api/mcp/
+mcp-neo4j-memory
+```
+
+### 🔄 Transport Modes
+
+The server supports three transport modes:
+
+- **STDIO** (default): Standard input/output for local tools and Claude Desktop
+- **SSE**: Server-Sent Events for web-based deployments  
+- **HTTP**: Streamable HTTP for modern web deployments and microservices
+
 ### 🐳 Using with Docker
 
 ```json
