@@ -51,9 +51,7 @@ def create_mcp_server() -> FastMCP:
         return DATA_INGEST_PROCESS
 
     @mcp.tool()
-    def validate_node(
-        node: Node, return_validated: bool = False
-    ) -> bool | dict[str, Any]:
+    def validate_node(node: Node, return_validated: bool = False) -> bool | Node:
         "Validate a single node. Returns True if the node is valid, otherwise raises a ValueError. If return_validated is True, returns the validated node."
         logger.info("Validating a single node.")
         try:
@@ -70,7 +68,7 @@ def create_mcp_server() -> FastMCP:
     @mcp.tool()
     def validate_relationship(
         relationship: Relationship, return_validated: bool = False
-    ) -> bool | dict[str, Any]:
+    ) -> bool | Relationship:
         "Validate a single relationship. Returns True if the relationship is valid, otherwise raises a ValueError. If return_validated is True, returns the validated relationship."
         logger.info("Validating a single relationship.")
         try:
@@ -89,7 +87,7 @@ def create_mcp_server() -> FastMCP:
     @mcp.tool()
     def validate_data_model(
         data_model: DataModel, return_validated: bool = False
-    ) -> bool | dict[str, Any]:
+    ) -> bool | DataModel:
         "Validate the entire data model. Returns True if the data model is valid, otherwise raises a ValueError. If return_validated is True, returns the validated data model."
         logger.info("Validating the entire data model.")
         try:
@@ -110,21 +108,37 @@ def create_mcp_server() -> FastMCP:
         return DataModel.from_arrows(arrows_data_model_dict)
 
     @mcp.tool()
-    def export_to_arrows_json(data_model: DataModel) -> str:
+    def export_to_arrows_json_str(data_model: DataModel) -> str:
         "Export the data model to the Arrows web application format. Returns a JSON string. This should be presented to the user as an artifact if possible."
+        validated_data_model: DataModel = validate_data_model(data_model, True)
         logger.info("Exporting the data model to the Arrows web application format.")
-        return data_model.to_arrows_json_str()
+        return validated_data_model.to_arrows_json_str()
+
+    @mcp.tool()
+    def load_from_aura_data_import_json(
+        aura_data_import_dict: dict[str, Any],
+    ) -> DataModel:
+        "Load a data model from the Aura Data Import format. Returns a data model as a JSON string."
+        logger.info("Loading a data model from the Aura Data Import format.")
+        return DataModel.from_aura_data_import(aura_data_import_dict)
+
+    @mcp.tool()
+    def export_to_aura_data_import_json_str(data_model: DataModel) -> str:
+        """
+        Export the data model to the Aura Data Import format.
+        If the data source information is known, it should be provided in the appropriate fields of the data model.
+        Returns a JSON string. This should be presented to the user as an artifact if possible.
+        """
+        validated_data_model: DataModel = validate_data_model(data_model, True)
+        logger.info("Exporting the data model to the Aura Data Import format.")
+        return validated_data_model.to_aura_data_import_json_str()
 
     @mcp.tool()
     def get_mermaid_config_str(data_model: DataModel) -> str:
         "Get the Mermaid configuration string for the data model. This may be visualized in Claude Desktop and other applications with Mermaid support."
+        validated_data_model: DataModel = validate_data_model(data_model, True)
         logger.info("Getting the Mermaid configuration string for the data model.")
-        try:
-            dm_validated = DataModel.model_validate(data_model, strict=True)
-        except ValidationError as e:
-            logger.error(f"Validation error: {e}")
-            raise ValueError(f"Validation error: {e}")
-        return dm_validated.get_mermaid_config_str()
+        return validated_data_model.get_mermaid_config_str()
 
     @mcp.tool()
     def get_node_cypher_ingest_query(
