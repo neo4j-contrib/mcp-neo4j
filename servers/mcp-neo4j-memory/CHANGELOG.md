@@ -1,6 +1,14 @@
 ## Next
 
 ### Fixed
+
+### Changed
+
+### Added
+
+## v0.2.0
+
+### Fixed
 * Fix bug in `search_nodes` method where query arg wasn't passed properly
 * Fix bug where stdio transport was always selected
 * Fixed argument parsing in server init
