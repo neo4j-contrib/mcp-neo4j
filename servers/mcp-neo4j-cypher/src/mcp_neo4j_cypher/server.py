@@ -170,8 +170,8 @@ def create_mcp_server(neo4j_driver: AsyncDriver, database: str = "neo4j", namesp
                                           ))
     async def read_neo4j_cypher(
         query: str = Field(..., description="The Cypher query to execute."),
-        params: Optional[dict[str, Any]] = Field(
-            None, description="The parameters to pass to the Cypher query."
+        params: dict[str, Any] = Field(
+            dict(), description="The parameters to pass to the Cypher query."
         ),
     ) -> list[ToolResult]:
         """Execute a read Cypher query on the neo4j database."""
@@ -204,8 +204,8 @@ def create_mcp_server(neo4j_driver: AsyncDriver, database: str = "neo4j", namesp
                                           ))
     async def write_neo4j_cypher(
         query: str = Field(..., description="The Cypher query to execute."),
-        params: Optional[dict[str, Any]] = Field(
-            None, description="The parameters to pass to the Cypher query."
+        params: dict[str, Any] = Field(
+            dict(), description="The parameters to pass to the Cypher query."
         ),
     ) -> list[ToolResult]:
         """Execute a write Cypher query on the neo4j database."""
