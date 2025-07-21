@@ -6,11 +6,13 @@
 * Update tool return type hints for structured output
 * Move `Neo4jMemory` class and related classes to separate file
 * Change tool responses to return the `ToolResponse` object
+* Updated tool argument types with Pydantic models
 
 ### Added
 * Add structured output to tool responses
 * Add error handling to catch Neo4j specific errors and improve error responses
 * Implement `ToolError` class from FastMCP
+* Add tool annotations
 
 ## v0.2.0
 
