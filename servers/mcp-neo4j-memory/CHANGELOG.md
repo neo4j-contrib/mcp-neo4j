@@ -3,8 +3,12 @@
 ### Fixed
 
 ### Changed
+* Update tool return type hints for structured output
+* Move `Neo4jMemory` class and related classes to separate file
+* Change tool responses to return the `ToolResponse` object
 
 ### Added
+* Add structured output to tool responses
 
 ## v0.2.0
 

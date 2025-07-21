@@ -8,6 +8,7 @@ from pydantic import Field
 from fastmcp.server import FastMCP
 from fastmcp.exceptions import ToolError
 from fastmcp.tools.tool import ToolResult, TextContent
+from neo4j.exceptions import Neo4jError
 from mcp.types import ToolAnnotations
 
 from .neo4j_memory import Neo4jMemory, Entity, Relation, ObservationAddition, ObservationDeletion, KnowledgeGraph
@@ -26,78 +27,141 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
     async def read_graph() -> KnowledgeGraph:
         """Read the entire knowledge graph."""
         logger.info("MCP tool: read_graph")
-        result = await memory.read_graph()
-        return ToolResult(content=[TextContent(type="text", text=result.model_dump_json())],
+        try:
+            result = await memory.read_graph()
+            return ToolResult(content=[TextContent(type="text", text=result.model_dump_json())],
                           structured_content=result)
+        except Neo4jError as e:
+            logger.error(f"Neo4j error reading full knowledge graph: {e}")
+            raise ToolError(f"Neo4j error reading full knowledge graph: {e}")
+        except Exception as e:
+            logger.error(f"Error reading full knowledge graph: {e}")
+            raise ToolError(f"Error reading full knowledge graph: {e}")
 
     @mcp.tool()
     async def create_entities(entities: List[Dict[str, Any]] = Field(..., description="List of entities to create")) -> list[Entity]:
         """Create multiple new entities in the knowledge graph."""
         logger.info(f"MCP tool: create_entities ({len(entities)} entities)")
-        entity_objects = [Entity(**entity) for entity in entities]
-        result = await memory.create_entities(entity_objects)
-        return ToolResult(content=[TextContent(type="text", text=json.dumps([e.model_dump() for e in result]))],
+        try:
+            entity_objects = [Entity(**entity) for entity in entities]
+            result = await memory.create_entities(entity_objects)
+            return ToolResult(content=[TextContent(type="text", text=json.dumps([e.model_dump() for e in result]))],
                           structured_content={"result": result})
+        except Neo4jError as e:
+            logger.error(f"Neo4j error creating entities: {e}")
+            raise ToolError(f"Neo4j error creating entities: {e}")
+        except Exception as e:
+            logger.error(f"Error creating entities: {e}")
+            raise ToolError(f"Error creating entities: {e}")
 
     @mcp.tool()
     async def create_relations(relations: List[Dict[str, Any]] = Field(..., description="List of relations to create")) -> list[Relation]:
         """Create multiple new relations between entities."""
         logger.info(f"MCP tool: create_relations ({len(relations)} relations)")
-        relation_objects = [Relation(**relation) for relation in relations]
-        result = await memory.create_relations(relation_objects)
-        return ToolResult(content=[TextContent(type="text", text=json.dumps([r.model_dump() for r in result]))],
+        try:
+            relation_objects = [Relation(**relation) for relation in relations]
+            result = await memory.create_relations(relation_objects)
+            return ToolResult(content=[TextContent(type="text", text=json.dumps([r.model_dump() for r in result]))],
                           structured_content={"result": result})
+        except Neo4jError as e:
+            logger.error(f"Neo4j error creating relations: {e}")
+            raise ToolError(f"Neo4j error creating relations: {e}")
+        except Exception as e:
+            logger.error(f"Error creating relations: {e}")
+            raise ToolError(f"Error creating relations: {e}")
 
     @mcp.tool()
     async def add_observations(observations: List[Dict[str, Any]] = Field(..., description="List of observations to add")) -> list[dict[str, str | list[str]]]:
         """Add new observations to existing entities."""
         logger.info(f"MCP tool: add_observations ({len(observations)} additions)")
-        observation_objects = [ObservationAddition(**obs) for obs in observations]
-        result = await memory.add_observations(observation_objects)
-        return ToolResult(content=[TextContent(type="text", text=json.dumps(result))],
+        try:
+            observation_objects = [ObservationAddition(**obs) for obs in observations]
+            result = await memory.add_observations(observation_objects)
+            return ToolResult(content=[TextContent(type="text", text=json.dumps(result))],
                           structured_content={"result": result})
+        except Neo4jError as e:
+            logger.error(f"Neo4j error adding observations: {e}")
+            raise ToolError(f"Neo4j error adding observations: {e}")
+        except Exception as e:
+            logger.error(f"Error adding observations: {e}")
+            raise ToolError(f"Error adding observations: {e}")
 
     @mcp.tool()
     async def delete_entities(entityNames: List[str] = Field(..., description="List of entity names to delete")) -> str:
         """Delete multiple entities and their associated relations."""
         logger.info(f"MCP tool: delete_entities ({len(entityNames)} entities)")
-        await memory.delete_entities(entityNames)
-        return ToolResult(content=[TextContent(type="text", text="Entities deleted successfully")],
-                          structured_content={"result": "Entities deleted successfully"})
+        try:
+            await memory.delete_entities(entityNames)
+            return ToolResult(content=[TextContent(type="text", text="Entities deleted successfully")],
+                              structured_content={"result": "Entities deleted successfully"})
+        except Neo4jError as e:
+            logger.error(f"Neo4j error deleting entities: {e}")
+            raise ToolError(f"Neo4j error deleting entities: {e}")
+        except Exception as e:
+            logger.error(f"Error deleting entities: {e}")
+            raise ToolError(f"Error deleting entities: {e}")
 
     @mcp.tool()
     async def delete_observations(deletions: List[Dict[str, Any]] = Field(..., description="List of observations to delete")) -> str:
         """Delete specific observations from entities."""
         logger.info(f"MCP tool: delete_observations ({len(deletions)} deletions)")
-        deletion_objects = [ObservationDeletion(**deletion) for deletion in deletions]
-        await memory.delete_observations(deletion_objects)
-        return ToolResult(content=[TextContent(type="text", text="Observations deleted successfully")],
+        try:    
+            deletion_objects = [ObservationDeletion(**deletion) for deletion in deletions]
+            await memory.delete_observations(deletion_objects)
+            return ToolResult(content=[TextContent(type="text", text="Observations deleted successfully")],
                           structured_content={"result": "Observations deleted successfully"})
+        except Neo4jError as e:
+            logger.error(f"Neo4j error deleting observations: {e}")
+            raise ToolError(f"Neo4j error deleting observations: {e}")
+        except Exception as e:
+            logger.error(f"Error deleting observations: {e}")
+            raise ToolError(f"Error deleting observations: {e}")
 
     @mcp.tool()
     async def delete_relations(relations: List[Dict[str, Any]] = Field(..., description="List of relations to delete")) -> str:
         """Delete multiple relations from the graph."""
         logger.info(f"MCP tool: delete_relations ({len(relations)} relations)")
-        relation_objects = [Relation(**relation) for relation in relations]
-        await memory.delete_relations(relation_objects)
-        return ToolResult(content=[TextContent(type="text", text="Relations deleted successfully")],
+        try:
+            relation_objects = [Relation(**relation) for relation in relations]
+            await memory.delete_relations(relation_objects)
+            return ToolResult(content=[TextContent(type="text", text="Relations deleted successfully")],
                           structured_content={"result": "Relations deleted successfully"})
+        except Neo4jError as e:
+            logger.error(f"Neo4j error deleting relations: {e}")
+            raise ToolError(f"Neo4j error deleting relations: {e}")
+        except Exception as e:
+            logger.error(f"Error deleting relations: {e}")
+            raise ToolError(f"Error deleting relations: {e}")
 
     @mcp.tool()
     async def search_memories(query: str = Field(..., description="Search query for nodes")) -> KnowledgeGraph:
         """Search for memories based on a query containing search terms."""
         logger.info(f"MCP tool: search_memories ('{query}')")
-        result = await memory.search_memories(query)
-        return ToolResult(content=[TextContent(type="text", text=result.model_dump_json())],
-                          structured_content=result)
-
+        try:
+            result = await memory.search_memories(query)
+            return ToolResult(content=[TextContent(type="text", text=result.model_dump_json())],
+                              structured_content=result)
+        except Neo4jError as e:
+            logger.error(f"Neo4j error searching memories: {e}")
+            raise ToolError(f"Neo4j error searching memories: {e}")
+        except Exception as e:
+            logger.error(f"Error searching memories: {e}")
+            raise ToolError(f"Error searching memories: {e}")
+        
     @mcp.tool()
     async def find_memories_by_name(names: List[str] = Field(..., description="List of node names to find")) -> KnowledgeGraph:
         """Find specific memories by name."""
         logger.info(f"MCP tool: find_memories_by_name ({len(names)} names)")
-        result = await memory.find_memories_by_name(names)
-        return ToolResult(content=[TextContent(type="text", text=result.model_dump_json())],
-                          structured_content=result)
+        try:
+            result = await memory.find_memories_by_name(names)
+            return ToolResult(content=[TextContent(type="text", text=result.model_dump_json())],
+                              structured_content=result)
+        except Neo4jError as e:
+            logger.error(f"Neo4j error finding memories by name: {e}")
+            raise ToolError(f"Neo4j error finding memories by name: {e}")
+        except Exception as e:
+            logger.error(f"Error finding memories by name: {e}")
+            raise ToolError(f"Error finding memories by name: {e}")
 
     return mcp
 
