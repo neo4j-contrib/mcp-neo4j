@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Dict, List, Literal
+from typing import Literal
 
 from neo4j import AsyncGraphDatabase
 from pydantic import Field
@@ -47,7 +47,7 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
                                           destructiveHint=False, 
                                           idempotentHint=True, 
                                           openWorldHint=True))
-    async def create_entities(entities: List[Entity] = Field(..., description="List of entities to create")) -> list[Entity]:
+    async def create_entities(entities: list[Entity] = Field(..., description="List of entities to create")) -> list[Entity]:
         """Create multiple new entities in the knowledge graph."""
         logger.info(f"MCP tool: create_entities ({len(entities)} entities)")
         try:
@@ -67,7 +67,7 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
                                           destructiveHint=False, 
                                           idempotentHint=True, 
                                           openWorldHint=True))
-    async def create_relations(relations: List[Relation] = Field(..., description="List of relations to create")) -> list[Relation]:
+    async def create_relations(relations: list[Relation] = Field(..., description="List of relations to create")) -> list[Relation]:
         """Create multiple new relations between entities."""
         logger.info(f"MCP tool: create_relations ({len(relations)} relations)")
         try:
@@ -87,7 +87,7 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
                                           destructiveHint=False, 
                                           idempotentHint=True, 
                                           openWorldHint=True))
-    async def add_observations(observations: List[ObservationAddition] = Field(..., description="List of observations to add")) -> list[dict[str, str | list[str]]]:
+    async def add_observations(observations: list[ObservationAddition] = Field(..., description="List of observations to add")) -> list[dict[str, str | list[str]]]:
         """Add new observations to existing entities."""
         logger.info(f"MCP tool: add_observations ({len(observations)} additions)")
         try:
@@ -107,7 +107,7 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
                                           destructiveHint=True, 
                                           idempotentHint=True, 
                                           openWorldHint=True))
-    async def delete_entities(entityNames: List[str] = Field(..., description="List of entity names to delete")) -> str:
+    async def delete_entities(entityNames: list[str] = Field(..., description="List of entity names to delete")) -> str:
         """Delete multiple entities and their associated relations."""
         logger.info(f"MCP tool: delete_entities ({len(entityNames)} entities)")
         try:
@@ -126,7 +126,7 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
                                           destructiveHint=True, 
                                           idempotentHint=True, 
                                           openWorldHint=True))
-    async def delete_observations(deletions: List[ObservationDeletion] = Field(..., description="List of observations to delete")) -> str:
+    async def delete_observations(deletions: list[ObservationDeletion] = Field(..., description="List of observations to delete")) -> str:
         """Delete specific observations from entities."""
         logger.info(f"MCP tool: delete_observations ({len(deletions)} deletions)")
         try:    
@@ -146,7 +146,7 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
                                           destructiveHint=True, 
                                           idempotentHint=True, 
                                           openWorldHint=True))
-    async def delete_relations(relations: List[Relation] = Field(..., description="List of relations to delete")) -> str:
+    async def delete_relations(relations: list[Relation] = Field(..., description="List of relations to delete")) -> str:
         """Delete multiple relations from the graph."""
         logger.info(f"MCP tool: delete_relations ({len(relations)} relations)")
         try:
@@ -185,7 +185,7 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
                                           destructiveHint=False, 
                                           idempotentHint=True, 
                                           openWorldHint=True))
-    async def find_memories_by_name(names: List[str] = Field(..., description="List of node names to find")) -> KnowledgeGraph:
+    async def find_memories_by_name(names: list[str] = Field(..., description="List of node names to find")) -> KnowledgeGraph:
         """Find specific memories by name."""
         logger.info(f"MCP tool: find_memories_by_name ({len(names)} names)")
         try:
