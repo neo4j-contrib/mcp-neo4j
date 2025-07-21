@@ -9,6 +9,8 @@
 
 ### Added
 * Add structured output to tool responses
+* Add error handling to catch Neo4j specific errors and improve error responses
+* Implement `ToolError` class from FastMCP
 
 ## v0.2.0
 
