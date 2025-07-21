@@ -114,7 +114,7 @@ Add the server to your `claude_desktop_config.json` with the transport method sp
 "mcpServers": {
   "neo4j-data-modeling": {
     "command": "uvx",
-    "args": [ "mcp-neo4j-data-modeling@0.1.1", "--transport", "stdio" ]
+    "args": [ "mcp-neo4j-data-modeling@0.2.0", "--transport", "stdio" ]
   }
 }
 ```

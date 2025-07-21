@@ -1,11 +1,11 @@
 [project]
 name = "mcp-neo4j-data-modeling"
-version = "0.1.1"
+version = "0.2.0"
 description = "A simple Neo4j MCP server for creating graph data models."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "fastmcp[cli]>=2.0.0",
+    "fastmcp>=2.0.0",
     "pydantic>=2.10.1",
 ]
 
