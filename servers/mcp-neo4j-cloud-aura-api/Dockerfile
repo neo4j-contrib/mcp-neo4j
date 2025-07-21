@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir hatchling
 COPY pyproject.toml /app/
 
 # Install runtime dependencies
-RUN pip install --no-cache-dir mcp>=1.6.0 requests>=2.31.0
+RUN pip install --no-cache-dir fastmcp>=2.0.0 requests>=2.31.0
 
 # Copy the source code
 COPY src/ /app/src/
@@ -22,6 +22,10 @@ RUN pip install --no-cache-dir -e .
 # Environment variables for Neo4j Aura API credentials
 ENV NEO4J_AURA_CLIENT_ID=""
 ENV NEO4J_AURA_CLIENT_SECRET=""
+ENV NEO4J_TRANSPORT="http"
+ENV NEO4J_MCP_SERVER_HOST="127.0.0.1"
+ENV NEO4J_MCP_SERVER_PORT=8000
+ENV NEO4J_MCP_SERVER_PATH="/mcp/"
 
 # Command to run the server using the package entry point
-CMD ["sh", "-c", "mcp-neo4j-aura-manager --client-id ${NEO4J_AURA_CLIENT_ID} --client-secret ${NEO4J_AURA_CLIENT_SECRET}"]
+CMD ["sh", "-c", "mcp-neo4j-aura-manager"]

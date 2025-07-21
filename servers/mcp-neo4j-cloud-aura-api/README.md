@@ -122,7 +122,7 @@ Add the server to your `claude_desktop_config.json`:
   "neo4j-aura": {
     "command": "uvx",
     "args": [
-      "mcp-neo4j-aura-manager@0.2.2",
+      "mcp-neo4j-aura-manager@0.3.0",
       "--client-id",
       "<your-client-id>",
       "--client-secret",
@@ -138,7 +138,7 @@ Alternatively, you can set environment variables:
 "mcpServers": {
   "neo4j-aura": {
     "command": "uvx",
-    "args": [ "mcp-neo4j-aura-manager@0.2.2" ],
+    "args": [ "mcp-neo4j-aura-manager@0.3.0" ],
     "env": {
       "NEO4J_AURA_CLIENT_ID": "<your-client-id>",
       "NEO4J_AURA_CLIENT_SECRET": "<your-client-secret>"
@@ -158,7 +158,7 @@ Alternatively, you can set environment variables:
       "--rm",
       "-e", "NEO4J_AURA_CLIENT_ID=${NEO4J_AURA_CLIENT_ID}",
       "-e", "NEO4J_AURA_CLIENT_SECRET=${NEO4J_AURA_CLIENT_SECRET}",
-      "mcp-neo4j-aura-manager:0.2.2"
+      "mcp-neo4j-aura-manager:0.3.0"
     ]
   }
 }
