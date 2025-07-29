@@ -10,7 +10,16 @@ from .data_model import (
     Property,
     Relationship,
 )
-from .static import DATA_INGEST_PROCESS
+from .static import (
+    DATA_INGEST_PROCESS,
+    PATIENT_JOURNEY_MODEL,
+    SUPPLY_CHAIN_MODEL,
+    SOFTWARE_DEPENDENCY_MODEL,
+    OIL_GAS_MONITORING_MODEL,
+    CUSTOMER_360_MODEL,
+    FRAUD_AML_MODEL,
+    HEALTH_INSURANCE_FRAUD_MODEL,
+)
 
 logger = logging.getLogger("mcp_neo4j_data_modeling")
 
@@ -51,6 +60,62 @@ def create_mcp_server() -> FastMCP:
         """Get the process for ingesting data into a Neo4j database."""
         logger.info("Getting the process for ingesting data into a Neo4j database.")
         return DATA_INGEST_PROCESS
+
+    @mcp.resource("resource://examples/patient_journey_model")
+    def example_patient_journey_model() -> str:
+        """Get a real-world Patient Journey healthcare data model in JSON format."""
+        logger.info("Getting the Patient Journey healthcare data model.")
+        import json
+
+        return json.dumps(PATIENT_JOURNEY_MODEL, indent=2)
+
+    @mcp.resource("resource://examples/supply_chain_model")
+    def example_supply_chain_model() -> str:
+        """Get a real-world Supply Chain data model in JSON format."""
+        logger.info("Getting the Supply Chain data model.")
+        import json
+
+        return json.dumps(SUPPLY_CHAIN_MODEL, indent=2)
+
+    @mcp.resource("resource://examples/software_dependency_model")
+    def example_software_dependency_model() -> str:
+        """Get a real-world Software Dependency Graph data model in JSON format."""
+        logger.info("Getting the Software Dependency Graph data model.")
+        import json
+
+        return json.dumps(SOFTWARE_DEPENDENCY_MODEL, indent=2)
+
+    @mcp.resource("resource://examples/oil_gas_monitoring_model")
+    def example_oil_gas_monitoring_model() -> str:
+        """Get a real-world Oil and Gas Equipment Monitoring data model in JSON format."""
+        logger.info("Getting the Oil and Gas Equipment Monitoring data model.")
+        import json
+
+        return json.dumps(OIL_GAS_MONITORING_MODEL, indent=2)
+
+    @mcp.resource("resource://examples/customer_360_model")
+    def example_customer_360_model() -> str:
+        """Get a real-world Customer 360 data model in JSON format."""
+        logger.info("Getting the Customer 360 data model.")
+        import json
+
+        return json.dumps(CUSTOMER_360_MODEL, indent=2)
+
+    @mcp.resource("resource://examples/fraud_aml_model")
+    def example_fraud_aml_model() -> str:
+        """Get a real-world Fraud & AML data model in JSON format."""
+        logger.info("Getting the Fraud & AML data model.")
+        import json
+
+        return json.dumps(FRAUD_AML_MODEL, indent=2)
+
+    @mcp.resource("resource://examples/health_insurance_fraud_model")
+    def example_health_insurance_fraud_model() -> str:
+        """Get a real-world Health Insurance Fraud Detection data model in JSON format."""
+        logger.info("Getting the Health Insurance Fraud Detection data model.")
+        import json
+
+        return json.dumps(HEALTH_INSURANCE_FRAUD_MODEL, indent=2)
 
     @mcp.tool()
     def validate_node(
@@ -180,6 +245,92 @@ def create_mcp_server() -> FastMCP:
         )
         return data_model.get_cypher_constraints_query()
 
+    @mcp.tool()
+    def load_example_data_model(
+        example_name: str = Field(
+            ...,
+            description="Name of the example to load: 'patient_journey', 'supply_chain', 'software_dependency', 'oil_gas_monitoring', 'customer_360', 'fraud_aml', or 'health_insurance_fraud'",
+        ),
+    ) -> DataModel:
+        """Load an example data model from the available templates. Returns a DataModel object that can be used with validation and export tools."""
+        logger.info(f"Loading example data model: {example_name}")
+
+        example_map = {
+            "patient_journey": PATIENT_JOURNEY_MODEL,
+            "supply_chain": SUPPLY_CHAIN_MODEL,
+            "software_dependency": SOFTWARE_DEPENDENCY_MODEL,
+            "oil_gas_monitoring": OIL_GAS_MONITORING_MODEL,
+            "customer_360": CUSTOMER_360_MODEL,
+            "fraud_aml": FRAUD_AML_MODEL,
+            "health_insurance_fraud": HEALTH_INSURANCE_FRAUD_MODEL,
+        }
+
+        if example_name not in example_map:
+            raise ValueError(
+                f"Unknown example: {example_name}. Available examples: {list(example_map.keys())}"
+            )
+
+        example_data = example_map[example_name]
+
+        # Use the new from_dict method to convert the JSON to a DataModel object
+        return DataModel.from_dict(example_data)
+
+    @mcp.tool()
+    def list_example_data_models() -> dict[str, Any]:
+        """List all available example data models with descriptions. Returns a dictionary with example names and their descriptions."""
+        logger.info("Listing available example data models.")
+
+        examples = {
+            "patient_journey": {
+                "name": "Patient Journey",
+                "description": "Healthcare data model for tracking patient encounters, conditions, medications, and care plans",
+                "nodes": len(PATIENT_JOURNEY_MODEL["nodes"]),
+                "relationships": len(PATIENT_JOURNEY_MODEL["relationships"]),
+            },
+            "supply_chain": {
+                "name": "Supply Chain",
+                "description": "Supply chain management data model for tracking products, orders, inventory, and locations",
+                "nodes": len(SUPPLY_CHAIN_MODEL["nodes"]),
+                "relationships": len(SUPPLY_CHAIN_MODEL["relationships"]),
+            },
+            "software_dependency": {
+                "name": "Software Dependency Graph",
+                "description": "Software dependency tracking with security vulnerabilities, commits, and contributor analysis",
+                "nodes": len(SOFTWARE_DEPENDENCY_MODEL["nodes"]),
+                "relationships": len(SOFTWARE_DEPENDENCY_MODEL["relationships"]),
+            },
+            "oil_gas_monitoring": {
+                "name": "Oil & Gas Equipment Monitoring",
+                "description": "Industrial monitoring data model for oil and gas equipment, sensors, alerts, and maintenance",
+                "nodes": len(OIL_GAS_MONITORING_MODEL["nodes"]),
+                "relationships": len(OIL_GAS_MONITORING_MODEL["relationships"]),
+            },
+            "customer_360": {
+                "name": "Customer 360",
+                "description": "Customer relationship management data model for accounts, contacts, orders, tickets, and surveys",
+                "nodes": len(CUSTOMER_360_MODEL["nodes"]),
+                "relationships": len(CUSTOMER_360_MODEL["relationships"]),
+            },
+            "fraud_aml": {
+                "name": "Fraud & AML",
+                "description": "Financial fraud detection and anti-money laundering data model for customers, transactions, alerts, and compliance",
+                "nodes": len(FRAUD_AML_MODEL["nodes"]),
+                "relationships": len(FRAUD_AML_MODEL["relationships"]),
+            },
+            "health_insurance_fraud": {
+                "name": "Health Insurance Fraud Detection",
+                "description": "Healthcare fraud detection data model for tracking investigations, prescriptions, executions, and beneficiary relationships",
+                "nodes": len(HEALTH_INSURANCE_FRAUD_MODEL["nodes"]),
+                "relationships": len(HEALTH_INSURANCE_FRAUD_MODEL["relationships"]),
+            },
+        }
+
+        return {
+            "available_examples": examples,
+            "total_examples": len(examples),
+            "usage": "Use the load_example_data_model tool with any of the example names above to load a specific data model",
+        }
+
     return mcp
 
 
@@ -203,4 +354,5 @@ async def main(
 
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())

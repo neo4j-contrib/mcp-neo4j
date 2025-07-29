@@ -644,3 +644,543 @@ def test_get_cypher_constraints_query(valid_data_model: DataModel):
         queries[1]
         == "CREATE CONSTRAINT Place_constraint IF NOT EXISTS FOR (n:Place) REQUIRE (n.id) IS NODE KEY;"
     )
+
+
+def test_from_dict_basic():
+    """Test basic from_dict conversion with minimal data."""
+    data = {
+        "nodes": [
+            {
+                "label": "Person",
+                "key_property": {"name": "id", "type": "STRING"},
+                "properties": [{"name": "name", "type": "STRING"}],
+            }
+        ],
+        "relationships": [
+            {
+                "type": "KNOWS",
+                "start_node_label": "Person",
+                "end_node_label": "Person",
+            }
+        ],
+    }
+
+    data_model = DataModel.from_dict(data)
+
+    assert len(data_model.nodes) == 1
+    assert len(data_model.relationships) == 1
+    assert data_model.nodes[0].label == "Person"
+    assert data_model.nodes[0].key_property.name == "id"
+    assert data_model.nodes[0].key_property.type == "STRING"
+    assert len(data_model.nodes[0].properties) == 1
+    assert data_model.nodes[0].properties[0].name == "name"
+    assert data_model.relationships[0].type == "KNOWS"
+
+
+def test_from_dict_with_relationship_properties():
+    """Test from_dict conversion with relationship properties."""
+    data = {
+        "nodes": [
+            {
+                "label": "Person",
+                "key_property": {"name": "id", "type": "STRING"},
+                "properties": [],
+            }
+        ],
+        "relationships": [
+            {
+                "type": "KNOWS",
+                "start_node_label": "Person",
+                "end_node_label": "Person",
+                "key_property": {"name": "since", "type": "DATE"},
+                "properties": [{"name": "strength", "type": "FLOAT"}],
+            }
+        ],
+    }
+
+    data_model = DataModel.from_dict(data)
+
+    assert len(data_model.relationships) == 1
+    rel = data_model.relationships[0]
+    assert rel.key_property.name == "since"
+    assert rel.key_property.type == "DATE"
+    assert len(rel.properties) == 1
+    assert rel.properties[0].name == "strength"
+    assert rel.properties[0].type == "FLOAT"
+
+
+def test_from_dict_without_relationship_properties():
+    """Test from_dict conversion without relationship properties."""
+    data = {
+        "nodes": [
+            {
+                "label": "Person",
+                "key_property": {"name": "id", "type": "STRING"},
+                "properties": [],
+            }
+        ],
+        "relationships": [
+            {
+                "type": "KNOWS",
+                "start_node_label": "Person",
+                "end_node_label": "Person",
+            }
+        ],
+    }
+
+    data_model = DataModel.from_dict(data)
+
+    assert len(data_model.relationships) == 1
+    rel = data_model.relationships[0]
+    assert rel.key_property is None
+    assert len(rel.properties) == 0
+
+
+def test_from_dict_multiple_nodes_and_relationships():
+    """Test from_dict conversion with multiple nodes and relationships."""
+    data = {
+        "nodes": [
+            {
+                "label": "Person",
+                "key_property": {"name": "id", "type": "STRING"},
+                "properties": [{"name": "name", "type": "STRING"}],
+            },
+            {
+                "label": "Company",
+                "key_property": {"name": "id", "type": "STRING"},
+                "properties": [{"name": "name", "type": "STRING"}],
+            },
+        ],
+        "relationships": [
+            {
+                "type": "WORKS_FOR",
+                "start_node_label": "Person",
+                "end_node_label": "Company",
+                "properties": [{"name": "start_date", "type": "DATE"}],
+            },
+            {
+                "type": "MANAGES",
+                "start_node_label": "Person",
+                "end_node_label": "Person",
+            },
+        ],
+    }
+
+    data_model = DataModel.from_dict(data)
+
+    assert len(data_model.nodes) == 2
+    assert len(data_model.relationships) == 2
+    
+    # Check nodes
+    person_node = next(n for n in data_model.nodes if n.label == "Person")
+    company_node = next(n for n in data_model.nodes if n.label == "Company")
+    assert person_node is not None
+    assert company_node is not None
+    
+    # Check relationships
+    works_for_rel = next(r for r in data_model.relationships if r.type == "WORKS_FOR")
+    manages_rel = next(r for r in data_model.relationships if r.type == "MANAGES")
+    assert works_for_rel is not None
+    assert manages_rel is not None
+    assert len(works_for_rel.properties) == 1
+    assert works_for_rel.properties[0].name == "start_date"
+
+
+def test_from_dict_empty_properties():
+    """Test from_dict conversion with empty properties arrays."""
+    data = {
+        "nodes": [
+            {
+                "label": "Person",
+                "key_property": {"name": "id", "type": "STRING"},
+                "properties": [],
+            }
+        ],
+        "relationships": [
+            {
+                "type": "KNOWS",
+                "start_node_label": "Person",
+                "end_node_label": "Person",
+                "properties": [],
+            }
+        ],
+    }
+
+    data_model = DataModel.from_dict(data)
+
+    assert len(data_model.nodes[0].properties) == 0
+    assert len(data_model.relationships[0].properties) == 0
+
+
+def test_from_dict_missing_properties_key():
+    """Test from_dict conversion when properties key is missing."""
+    data = {
+        "nodes": [
+            {
+                "label": "Person",
+                "key_property": {"name": "id", "type": "STRING"},
+            }
+        ],
+        "relationships": [
+            {
+                "type": "KNOWS",
+                "start_node_label": "Person",
+                "end_node_label": "Person",
+            }
+        ],
+    }
+
+    data_model = DataModel.from_dict(data)
+
+    assert len(data_model.nodes[0].properties) == 0
+    assert len(data_model.relationships[0].properties) == 0
+
+
+def test_from_dict_all_example_models():
+    """Test from_dict conversion with all example models from static.py."""
+    from mcp_neo4j_data_modeling.static import (
+        PATIENT_JOURNEY_MODEL,
+        SUPPLY_CHAIN_MODEL,
+        SOFTWARE_DEPENDENCY_MODEL,
+        OIL_GAS_MONITORING_MODEL,
+        CUSTOMER_360_MODEL,
+        FRAUD_AML_MODEL,
+        HEALTH_INSURANCE_FRAUD_MODEL,
+    )
+
+    models = [
+        PATIENT_JOURNEY_MODEL,
+        SUPPLY_CHAIN_MODEL,
+        SOFTWARE_DEPENDENCY_MODEL,
+        OIL_GAS_MONITORING_MODEL,
+        CUSTOMER_360_MODEL,
+        FRAUD_AML_MODEL,
+        HEALTH_INSURANCE_FRAUD_MODEL,
+    ]
+
+    for i, model_data in enumerate(models):
+        data_model = DataModel.from_dict(model_data)
+        
+        # Verify the conversion worked
+        assert isinstance(data_model, DataModel)
+        assert len(data_model.nodes) > 0
+        assert len(data_model.relationships) >= 0
+        
+        # Verify all nodes have required fields
+        for node in data_model.nodes:
+            assert node.label is not None
+            assert node.key_property is not None
+            assert node.key_property.name is not None
+            assert node.key_property.type is not None
+        
+        # Verify all relationships have required fields
+        for rel in data_model.relationships:
+            assert rel.type is not None
+            assert rel.start_node_label is not None
+            assert rel.end_node_label is not None
+
+
+def test_from_dict_invalid_data():
+    """Test from_dict conversion with invalid data structure."""
+    # Missing nodes
+    with pytest.raises(KeyError):
+        DataModel.from_dict({"relationships": []})
+
+    # Missing relationships
+    with pytest.raises(KeyError):
+        DataModel.from_dict({"nodes": []})
+
+    # Invalid node structure
+    with pytest.raises(KeyError):
+        DataModel.from_dict({
+            "nodes": [{"label": "Person"}],  # Missing key_property
+            "relationships": []
+        })
+
+    # Invalid relationship structure
+    with pytest.raises(KeyError):
+        DataModel.from_dict({
+            "nodes": [{"label": "Person", "key_property": {"name": "id", "type": "STRING"}, "properties": []}],
+            "relationships": [{"type": "KNOWS"}]  # Missing start_node_label and end_node_label
+        })
+
+
+# ============================================================================
+# Server Tools and MCP Resources Tests
+# ============================================================================
+
+@pytest.mark.asyncio
+async def test_list_example_data_models_tool():
+    """Test the list_example_data_models tool functionality."""
+    from mcp_neo4j_data_modeling.server import create_mcp_server
+    
+    mcp = create_mcp_server()
+    
+    # Get the tool function
+    tools = await mcp.get_tools()
+    list_tool = tools.get("list_example_data_models")
+    
+    assert list_tool is not None, "list_example_data_models tool not found"
+    
+    # Test the tool
+    result = list_tool.fn()
+    
+    # Verify structure
+    assert "available_examples" in result
+    assert "total_examples" in result
+    assert "usage" in result
+    
+    # Verify expected examples
+    expected_examples = [
+        "patient_journey", "supply_chain", "software_dependency", 
+        "oil_gas_monitoring", "customer_360", "fraud_aml", "health_insurance_fraud"
+    ]
+    
+    assert result["total_examples"] == 7
+    assert set(result["available_examples"].keys()) == set(expected_examples)
+    
+    # Verify each example has required fields
+    for example_key, example_data in result["available_examples"].items():
+        assert "name" in example_data
+        assert "description" in example_data
+        assert "nodes" in example_data
+        assert "relationships" in example_data
+        assert isinstance(example_data["nodes"], int)
+        assert isinstance(example_data["relationships"], int)
+        assert example_data["nodes"] > 0
+        assert example_data["relationships"] >= 0
+
+
+@pytest.mark.asyncio
+async def test_load_example_data_model_tool_all_examples():
+    """Test the load_example_data_model tool with all available examples."""
+    from mcp_neo4j_data_modeling.server import create_mcp_server
+    
+    mcp = create_mcp_server()
+    
+    # Get the tool function
+    tools = await mcp.get_tools()
+    load_tool = tools.get("load_example_data_model")
+    
+    assert load_tool is not None, "load_example_data_model tool not found"
+    
+    # Test all examples
+    examples = [
+        "patient_journey", "supply_chain", "software_dependency", 
+        "oil_gas_monitoring", "customer_360", "fraud_aml", "health_insurance_fraud"
+    ]
+    
+    for example_name in examples:
+        data_model = load_tool.fn(example_name=example_name)
+        
+        # Verify it's a valid DataModel
+        assert isinstance(data_model, DataModel)
+        assert len(data_model.nodes) > 0
+        assert len(data_model.relationships) >= 0
+        
+        # Verify all nodes have required fields
+        for node in data_model.nodes:
+            assert node.label is not None
+            assert node.key_property is not None
+            assert node.key_property.name is not None
+            assert node.key_property.type is not None
+        
+        # Verify all relationships have required fields
+        for rel in data_model.relationships:
+            assert rel.type is not None
+            assert rel.start_node_label is not None
+            assert rel.end_node_label is not None
+
+
+@pytest.mark.asyncio
+async def test_load_example_data_model_tool_invalid_example():
+    """Test the load_example_data_model tool with invalid example name."""
+    from mcp_neo4j_data_modeling.server import create_mcp_server
+    
+    mcp = create_mcp_server()
+    
+    # Get the tool function
+    tools = await mcp.get_tools()
+    load_tool = tools.get("load_example_data_model")
+    
+    assert load_tool is not None, "load_example_data_model tool not found"
+    
+    # Test with invalid example name
+    with pytest.raises(ValueError, match="Unknown example"):
+        load_tool.fn(example_name="invalid_example")
+
+
+@pytest.mark.asyncio
+async def test_mcp_resources_schemas():
+    """Test that all MCP schema resources return valid JSON schemas."""
+    from mcp_neo4j_data_modeling.server import create_mcp_server
+    
+    mcp = create_mcp_server()
+    
+    # Test schema resources
+    schema_resources = [
+        "resource://schema/node",
+        "resource://schema/relationship", 
+        "resource://schema/property",
+        "resource://schema/data_model"
+    ]
+    
+    resources = await mcp.get_resources()
+    for resource_uri in schema_resources:
+        resource_func = resources.get(resource_uri)
+        
+        assert resource_func is not None, f"Resource {resource_uri} not found"
+        
+        # Test the resource
+        schema = resource_func.fn()
+        
+        # Verify it's a valid JSON schema
+        assert isinstance(schema, dict)
+        assert "type" in schema or "properties" in schema or "$schema" in schema
+
+
+@pytest.mark.asyncio
+async def test_mcp_resources_example_models():
+    """Test that all MCP example model resources return valid JSON."""
+    from mcp_neo4j_data_modeling.server import create_mcp_server
+    import json
+    
+    mcp = create_mcp_server()
+    
+    # Test example model resources
+    example_resources = [
+        "resource://examples/patient_journey_model",
+        "resource://examples/supply_chain_model",
+        "resource://examples/software_dependency_model",
+        "resource://examples/oil_gas_monitoring_model",
+        "resource://examples/customer_360_model",
+        "resource://examples/fraud_aml_model",
+        "resource://examples/health_insurance_fraud_model"
+    ]
+    
+    resources = await mcp.get_resources()
+    for resource_uri in example_resources:
+        resource_func = resources.get(resource_uri)
+        
+        assert resource_func is not None, f"Resource {resource_uri} not found"
+        
+        # Test the resource
+        json_str = resource_func.fn()
+        
+        # Verify it's valid JSON
+        assert isinstance(json_str, str)
+        
+        # Parse JSON and verify structure
+        data = json.loads(json_str)
+        assert "nodes" in data
+        assert "relationships" in data
+        assert isinstance(data["nodes"], list)
+        assert isinstance(data["relationships"], list)
+        
+        # Verify nodes have required structure
+        for node in data["nodes"]:
+            assert "label" in node
+            assert "key_property" in node
+            assert "properties" in node
+            assert "name" in node["key_property"]
+            assert "type" in node["key_property"]
+        
+        # Verify relationships have required structure
+        for rel in data["relationships"]:
+            assert "type" in rel
+            assert "start_node_label" in rel
+            assert "end_node_label" in rel
+
+
+@pytest.mark.asyncio
+async def test_mcp_resource_neo4j_data_ingest_process():
+    """Test the neo4j_data_ingest_process resource."""
+    from mcp_neo4j_data_modeling.server import create_mcp_server
+    
+    mcp = create_mcp_server()
+    
+    # Find the resource
+    resources = await mcp.get_resources()
+    resource_func = resources.get("resource://static/neo4j_data_ingest_process")
+    
+    assert resource_func is not None, "neo4j_data_ingest_process resource not found"
+    
+    # Test the resource
+    process_text = resource_func.fn()
+    
+    # Verify it returns a string with content
+    assert isinstance(process_text, str)
+    assert len(process_text) > 0
+    assert "Neo4j" in process_text or "ingest" in process_text.lower()
+
+
+@pytest.mark.asyncio
+async def test_tool_validation_with_example_models():
+    """Test that all example models can be validated using the validation tools."""
+    from mcp_neo4j_data_modeling.server import create_mcp_server
+    
+    mcp = create_mcp_server()
+    
+    # Get the tools
+    tools = await mcp.get_tools()
+    load_tool = tools.get("load_example_data_model")
+    validate_tool = tools.get("validate_data_model")
+    
+    assert load_tool is not None, "load_example_data_model tool not found"
+    assert validate_tool is not None, "validate_data_model tool not found"
+    
+    # Test all examples
+    examples = [
+        "patient_journey", "supply_chain", "software_dependency", 
+        "oil_gas_monitoring", "customer_360", "fraud_aml", "health_insurance_fraud"
+    ]
+    
+    for example_name in examples:
+        # Load the example
+        data_model = load_tool.fn(example_name=example_name)
+        
+        # Validate it
+        validation_result = validate_tool.fn(data_model=data_model)
+        
+        # Should return True for valid models
+        assert validation_result is True
+
+
+@pytest.mark.asyncio
+async def test_consistency_between_resources_and_tools():
+    """Test that MCP resources and tools return consistent data for the same example."""
+    from mcp_neo4j_data_modeling.server import create_mcp_server
+    import json
+    
+    mcp = create_mcp_server()
+    
+    # Get the patient journey example from both resource and tool
+    resources = await mcp.get_resources()
+    tools = await mcp.get_tools()
+    
+    patient_journey_resource = resources.get("resource://examples/patient_journey_model")
+    load_tool = tools.get("load_example_data_model")
+    
+    assert patient_journey_resource is not None, "patient_journey_model resource not found"
+    assert load_tool is not None, "load_example_data_model tool not found"
+    
+    # Get data from resource (JSON string)
+    resource_json_str = patient_journey_resource.fn()
+    resource_data = json.loads(resource_json_str)
+    
+    # Get data from tool (DataModel object)
+    tool_data_model = load_tool.fn(example_name="patient_journey")
+    
+    # Verify consistency
+    assert len(resource_data["nodes"]) == len(tool_data_model.nodes)
+    assert len(resource_data["relationships"]) == len(tool_data_model.relationships)
+    
+    # Verify node labels match
+    resource_node_labels = {node["label"] for node in resource_data["nodes"]}
+    tool_node_labels = {node.label for node in tool_data_model.nodes}
+    assert resource_node_labels == tool_node_labels
+    
+    # Verify relationship types match
+    resource_rel_types = {rel["type"] for rel in resource_data["relationships"]}
+    tool_rel_types = {rel.type for rel in tool_data_model.relationships}
+    assert resource_rel_types == tool_rel_types
