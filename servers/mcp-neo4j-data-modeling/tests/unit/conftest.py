@@ -1,9 +1,16 @@
 from typing import Any
 
 import pytest
+from fastmcp.server import FastMCP
 
 from mcp_neo4j_data_modeling.data_model import DataModel, Node, Property, Relationship
+from mcp_neo4j_data_modeling.server import create_mcp_server
 
+
+@pytest.fixture
+def test_mcp_server() -> FastMCP:
+    """Create an MCP server instance for testing."""
+    return create_mcp_server()
 
 @pytest.fixture(scope="function")
 def arrows_data_model_dict() -> dict[str, Any]:
@@ -165,3 +172,5 @@ def valid_data_model() -> DataModel:
         end_node_label="Place",
     )
     return DataModel(nodes=nodes, relationships=[relationship])
+
+

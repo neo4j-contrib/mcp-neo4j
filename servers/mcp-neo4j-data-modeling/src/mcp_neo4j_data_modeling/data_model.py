@@ -534,11 +534,6 @@ class DataModel(BaseModel):
         }
         return cls(nodes=nodes, relationships=relationships, metadata=metadata)
 
-    @classmethod
-    def from_dict(cls, data_model_dict: dict[str, Any]) -> "DataModel":
-        """Convert a dictionary representation to a DataModel object."""
-        return cls(**data_model_dict)
-
     def to_arrows_dict(self) -> dict[str, Any]:
         "Convert the data model to an Arrows Data Model Python dictionary."
         node_spacing: int = 200

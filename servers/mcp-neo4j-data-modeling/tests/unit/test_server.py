@@ -1,26 +1,14 @@
-# ============================================================================
-# Server Tools and MCP Resources Tests
-# ============================================================================
-
 import pytest
 from fastmcp.server import FastMCP
-
-from mcp_neo4j_data_modeling.server import create_mcp_server
-
-
-@pytest.fixture
-def mcp() -> FastMCP:
-    """Create an MCP server instance for testing."""
-    return create_mcp_server()
 
 
 class TestServerTools:
     """Test server tools functionality."""
 
     @pytest.mark.asyncio
-    async def test_list_example_data_models_tool(self, mcp: FastMCP):
+    async def test_list_example_data_models_tool(self, test_mcp_server: FastMCP):
         """Test the list_example_data_models tool."""
-        tools = await mcp.get_tools()
+        tools = await test_mcp_server.get_tools()
         list_tool = tools.get("list_example_data_models")
         
         assert list_tool is not None
@@ -45,9 +33,9 @@ class TestServerTools:
             assert "relationships" in examples[example]
 
     @pytest.mark.asyncio
-    async def test_get_example_data_model_tool_all_examples(self, mcp: FastMCP):
+    async def test_get_example_data_model_tool_all_examples(self, test_mcp_server: FastMCP):
         """Test the get_example_data_model tool with all available examples."""
-        tools = await mcp.get_tools()
+        tools = await test_mcp_server.get_tools()
         get_tool = tools.get("get_example_data_model")
         
         assert get_tool is not None
@@ -67,9 +55,9 @@ class TestServerTools:
             assert len(result.relationships) > 0
 
     @pytest.mark.asyncio
-    async def test_get_example_data_model_tool_invalid_example(self, mcp: FastMCP):
+    async def test_get_example_data_model_tool_invalid_example(self, test_mcp_server: FastMCP):
         """Test the get_example_data_model tool with invalid example name."""
-        tools = await mcp.get_tools()
+        tools = await test_mcp_server.get_tools()
         get_tool = tools.get("get_example_data_model")
         
         assert get_tool is not None
@@ -82,9 +70,9 @@ class TestMCPResources:
     """Test MCP resources functionality."""
 
     @pytest.mark.asyncio
-    async def test_mcp_resources_schemas(self, mcp: FastMCP):
+    async def test_mcp_resources_schemas(self, test_mcp_server: FastMCP):
         """Test that schema resources return valid JSON schemas."""
-        resources = await mcp.get_resources()
+        resources = await test_mcp_server.get_resources()
         
         schema_resources = [
             "resource://schema/node",
@@ -101,9 +89,9 @@ class TestMCPResources:
             assert "type" in result or "properties" in result
 
     @pytest.mark.asyncio
-    async def test_mcp_resources_example_models(self, mcp: FastMCP):
+    async def test_mcp_resources_example_models(self, test_mcp_server: FastMCP):
         """Test that example model resources return valid JSON strings."""
-        resources = await mcp.get_resources()
+        resources = await test_mcp_server.get_resources()
         
         example_resources = [
             "resource://examples/patient_journey_model",
@@ -127,9 +115,9 @@ class TestMCPResources:
             assert "relationships" in parsed
 
     @pytest.mark.asyncio
-    async def test_mcp_resource_neo4j_data_ingest_process(self, mcp: FastMCP):
+    async def test_mcp_resource_neo4j_data_ingest_process(self, test_mcp_server: FastMCP):
         """Test the Neo4j data ingest process resource."""
-        resources = await mcp.get_resources()
+        resources = await test_mcp_server.get_resources()
         resource = resources.get("resource://static/neo4j_data_ingest_process")
         
         assert resource is not None
@@ -140,9 +128,9 @@ class TestMCPResources:
         assert "relationships" in result.lower()
 
     @pytest.mark.asyncio
-    async def test_tool_validation_with_example_models(self, mcp: FastMCP):
+    async def test_tool_validation_with_example_models(self, test_mcp_server: FastMCP):
         """Test that example models can be validated using the validation tools."""
-        tools = await mcp.get_tools()
+        tools = await test_mcp_server.get_tools()
         get_tool = tools.get("get_example_data_model")
         validate_tool = tools.get("validate_data_model")
         
@@ -158,10 +146,10 @@ class TestMCPResources:
             assert validation_result is True
 
     @pytest.mark.asyncio
-    async def test_consistency_between_resources_and_tools(self, mcp: FastMCP):
+    async def test_consistency_between_resources_and_tools(self, test_mcp_server: FastMCP):
         """Test that resources and tools return consistent data for the same models."""
-        tools = await mcp.get_tools()
-        resources = await mcp.get_resources()
+        tools = await test_mcp_server.get_tools()
+        resources = await test_mcp_server.get_resources()
         
         get_tool = tools.get("get_example_data_model")
         patient_journey_resource = resources.get("resource://examples/patient_journey_model")

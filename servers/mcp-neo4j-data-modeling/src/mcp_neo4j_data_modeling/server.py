@@ -11,6 +11,7 @@ from .data_model import (
     Property,
     Relationship,
 )
+from .models import ExampleDataModelResponse
 from .static import (
     DATA_INGEST_PROCESS,
     PATIENT_JOURNEY_MODEL,
@@ -238,8 +239,8 @@ def create_mcp_server() -> FastMCP:
             ...,
             description="Name of the example to load: 'patient_journey', 'supply_chain', 'software_dependency', 'oil_gas_monitoring', 'customer_360', 'fraud_aml', or 'health_insurance_fraud'",
         ),
-    ) -> DataModel:
-        """Get an example data model from the available templates. Returns a DataModel object that can be used with validation and export tools."""
+    ) -> ExampleDataModelResponse:
+        """Get an example graph data model from the available templates. Returns a DataModel object and the Mermaid visualization configuration for the example graph data model."""
         logger.info(f"Getting example data model: {example_name}")
 
         example_map = {
@@ -259,8 +260,12 @@ def create_mcp_server() -> FastMCP:
 
         example_data = example_map[example_name]
 
-        # Use the new from_dict method to convert the JSON to a DataModel object
-        return DataModel.from_dict(example_data)
+        validated_data_model = DataModel.model_validate(example_data)
+
+        return ExampleDataModelResponse(
+            data_model=validated_data_model,
+            mermaid_config=validated_data_model.get_mermaid_config_str(),
+        )
 
     @mcp.tool()
     def list_example_data_models() -> dict[str, Any]:
