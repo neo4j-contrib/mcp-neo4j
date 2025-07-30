@@ -104,7 +104,7 @@ class Neo4jMemory:
             WITH $entity as entity
             MERGE (e:Memory {{ name: entity.name }})
             SET e += entity {{ .type, .observations }}
-            SET e:{entity.type}
+            SET e:`{entity.type}`
             """
             await self.driver.execute_query(query, {"entity": entity.model_dump()}, routing_control=RoutingControl.WRITE)
 
@@ -119,7 +119,7 @@ class Neo4jMemory:
             MATCH (from:Memory),(to:Memory)
             WHERE from.name = relation.source
             AND  to.name = relation.target
-            MERGE (from)-[r:{relation.relationType}]->(to)
+            MERGE (from)-[r:`{relation.relationType}`]->(to)
             """
             
             await self.driver.execute_query(
@@ -183,7 +183,7 @@ class Neo4jMemory:
         for relation in relations:
             query = f"""
             WITH $relation as relation
-            MATCH (source:Memory)-[r:{relation.relationType}]->(target:Memory)
+            MATCH (source:Memory)-[r:`{relation.relationType}`]->(target:Memory)
             WHERE source.name = relation.source
             AND target.name = relation.target
             DELETE r
