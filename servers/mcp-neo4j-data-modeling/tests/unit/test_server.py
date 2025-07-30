@@ -48,11 +48,17 @@ class TestServerTools:
         
         for example in examples:
             result = get_tool.fn(example_name=example)
-            assert result is not None
-            assert hasattr(result, "nodes")
-            assert hasattr(result, "relationships")
-            assert len(result.nodes) > 0
-            assert len(result.relationships) > 0
+            data_model = result.data_model
+            mermaid_config = result.mermaid_config
+
+            assert data_model is not None
+            assert hasattr(data_model, "nodes")
+            assert hasattr(data_model, "relationships")
+            assert len(data_model.nodes) > 0
+            assert len(data_model.relationships) > 0
+
+            assert isinstance(mermaid_config, str)
+            assert len(mermaid_config) > 0
 
     @pytest.mark.asyncio
     async def test_get_example_data_model_tool_invalid_example(self, test_mcp_server: FastMCP):
@@ -141,7 +147,7 @@ class TestMCPResources:
         examples = ["patient_journey", "supply_chain", "software_dependency"]
         
         for example in examples:
-            data_model = get_tool.fn(example_name=example)
+            data_model = get_tool.fn(example_name=example).data_model
             validation_result = validate_tool.fn(data_model=data_model)
             assert validation_result is True
 
@@ -158,7 +164,7 @@ class TestMCPResources:
         assert patient_journey_resource is not None
         
         # Get model via tool
-        tool_model = get_tool.fn(example_name="patient_journey")
+        tool_model = get_tool.fn(example_name="patient_journey").data_model
         
         # Get model via resource
         import json
