@@ -536,65 +536,8 @@ class DataModel(BaseModel):
 
     @classmethod
     def from_dict(cls, data_model_dict: dict[str, Any]) -> "DataModel":
-        "Convert a dictionary representation to a DataModel object."
-        # Convert nodes
-        nodes = []
-        for node_data in data_model_dict["nodes"]:
-            # Create key property
-            key_prop = Property(
-                name=node_data["key_property"]["name"],
-                type=node_data["key_property"]["type"]
-            )
-            
-            # Create other properties
-            properties = []
-            for prop_data in node_data.get("properties", []):
-                prop = Property(
-                    name=prop_data["name"],
-                    type=prop_data["type"]
-                )
-                properties.append(prop)
-            
-            # Create node
-            node = Node(
-                label=node_data["label"],
-                key_property=key_prop,
-                properties=properties
-            )
-            nodes.append(node)
-        
-        # Convert relationships
-        relationships = []
-        for rel_data in data_model_dict["relationships"]:
-            # Create key property if it exists
-            key_property = None
-            if "key_property" in rel_data:
-                key_property = Property(
-                    name=rel_data["key_property"]["name"],
-                    type=rel_data["key_property"]["type"]
-                )
-            
-            # Create other properties
-            properties = []
-            for prop_data in rel_data.get("properties", []):
-                prop = Property(
-                    name=prop_data["name"],
-                    type=prop_data["type"]
-                )
-                properties.append(prop)
-            
-            # Create relationship
-            relationship = Relationship(
-                type=rel_data["type"],
-                start_node_label=rel_data["start_node_label"],
-                end_node_label=rel_data["end_node_label"],
-                key_property=key_property,
-                properties=properties
-            )
-            relationships.append(relationship)
-        
-        # Create and return the data model
-        return cls(nodes=nodes, relationships=relationships)
+        """Convert a dictionary representation to a DataModel object."""
+        return cls(**data_model_dict)
 
     def to_arrows_dict(self) -> dict[str, Any]:
         "Convert the data model to an Arrows Data Model Python dictionary."

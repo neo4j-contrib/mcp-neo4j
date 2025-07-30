@@ -24,38 +24,32 @@ Please provide examples of the main entities in your data:
 
 ### Entity 1: [Entity Name]
 - **Properties**: 
-  - [property1]: [type] - [description]
-  - [property2]: [type] - [description]
+  - [property1]: [type] - [description] - [example data]
+  - [property2]: [type] - [description] - [example data]
 - **Key Property**: [What uniquely identifies this entity?]
-- **Example Data**: [Sample values]
 
 ### Entity 2: [Entity Name]
 - **Properties**: 
-  - [property1]: [type] - [description]
-  - [property2]: [type] - [description]
+  - [property1]: [type] - [description] - [example data]
+  - [property2]: [type] - [description] - [example data]
 - **Key Property**: [What uniquely identifies this entity?]
-- **Example Data**: [Sample values]
 
 ## Example Relationships
 How do your entities connect to each other?
 
 ### Relationship 1: [Entity1] → [Entity2]
 - **Type**: [RELATIONSHIP_TYPE]
-- **Direction**: [Unidirectional/Bidirectional]
 - **Properties**: [Any properties on the relationship?]
-- **Cardinality**: [One-to-One/One-to-Many/Many-to-Many]
+- **Cardinality**: [One-to-One/One-to-Many/Many-to-Many] (optional)
 
 ### Relationship 2: [Entity1] → [Entity2]
 - **Type**: [RELATIONSHIP_TYPE]
-- **Direction**: [Unidirectional/Bidirectional]
 - **Properties**: [Any properties on the relationship?]
-- **Cardinality**: [One-to-One/One-to-Many/Many-to-Many]
+- **Cardinality**: [One-to-One/One-to-Many/Many-to-Many] (optional)
 
 ## Additional Context
 - **Domain**: [Business/Technical/Social/Other]
 - **Special Requirements**: [Constraints, indexes, specific query patterns]
-- **Integration Needs**: [How will this integrate with existing systems?]
-- **Compliance**: [Any regulatory or compliance requirements?]
 """
 
 # Real-World Example: Patient Journey Healthcare Data Model

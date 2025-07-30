@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any, Literal
 
@@ -65,56 +66,42 @@ def create_mcp_server() -> FastMCP:
     def example_patient_journey_model() -> str:
         """Get a real-world Patient Journey healthcare data model in JSON format."""
         logger.info("Getting the Patient Journey healthcare data model.")
-        import json
-
         return json.dumps(PATIENT_JOURNEY_MODEL, indent=2)
 
     @mcp.resource("resource://examples/supply_chain_model")
     def example_supply_chain_model() -> str:
         """Get a real-world Supply Chain data model in JSON format."""
         logger.info("Getting the Supply Chain data model.")
-        import json
-
         return json.dumps(SUPPLY_CHAIN_MODEL, indent=2)
 
     @mcp.resource("resource://examples/software_dependency_model")
     def example_software_dependency_model() -> str:
         """Get a real-world Software Dependency Graph data model in JSON format."""
         logger.info("Getting the Software Dependency Graph data model.")
-        import json
-
         return json.dumps(SOFTWARE_DEPENDENCY_MODEL, indent=2)
 
     @mcp.resource("resource://examples/oil_gas_monitoring_model")
     def example_oil_gas_monitoring_model() -> str:
         """Get a real-world Oil and Gas Equipment Monitoring data model in JSON format."""
         logger.info("Getting the Oil and Gas Equipment Monitoring data model.")
-        import json
-
         return json.dumps(OIL_GAS_MONITORING_MODEL, indent=2)
 
     @mcp.resource("resource://examples/customer_360_model")
     def example_customer_360_model() -> str:
         """Get a real-world Customer 360 data model in JSON format."""
         logger.info("Getting the Customer 360 data model.")
-        import json
-
         return json.dumps(CUSTOMER_360_MODEL, indent=2)
 
     @mcp.resource("resource://examples/fraud_aml_model")
     def example_fraud_aml_model() -> str:
         """Get a real-world Fraud & AML data model in JSON format."""
         logger.info("Getting the Fraud & AML data model.")
-        import json
-
         return json.dumps(FRAUD_AML_MODEL, indent=2)
 
     @mcp.resource("resource://examples/health_insurance_fraud_model")
     def example_health_insurance_fraud_model() -> str:
         """Get a real-world Health Insurance Fraud Detection data model in JSON format."""
         logger.info("Getting the Health Insurance Fraud Detection data model.")
-        import json
-
         return json.dumps(HEALTH_INSURANCE_FRAUD_MODEL, indent=2)
 
     @mcp.tool()
@@ -246,14 +233,14 @@ def create_mcp_server() -> FastMCP:
         return data_model.get_cypher_constraints_query()
 
     @mcp.tool()
-    def load_example_data_model(
+    def get_example_data_model(
         example_name: str = Field(
             ...,
             description="Name of the example to load: 'patient_journey', 'supply_chain', 'software_dependency', 'oil_gas_monitoring', 'customer_360', 'fraud_aml', or 'health_insurance_fraud'",
         ),
     ) -> DataModel:
-        """Load an example data model from the available templates. Returns a DataModel object that can be used with validation and export tools."""
-        logger.info(f"Loading example data model: {example_name}")
+        """Get an example data model from the available templates. Returns a DataModel object that can be used with validation and export tools."""
+        logger.info(f"Getting example data model: {example_name}")
 
         example_map = {
             "patient_journey": PATIENT_JOURNEY_MODEL,
@@ -328,7 +315,7 @@ def create_mcp_server() -> FastMCP:
         return {
             "available_examples": examples,
             "total_examples": len(examples),
-            "usage": "Use the load_example_data_model tool with any of the example names above to load a specific data model",
+            "usage": "Use the get_example_data_model tool with any of the example names above to get a specific data model",
         }
 
     return mcp
@@ -354,5 +341,4 @@ async def main(
 
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
