@@ -414,14 +414,6 @@ class DataModel(BaseModel):
     ) -> list[Relationship]:
         "Validate the relationships."
 
-        # check for duplicate relationships
-        counts = Counter([r.pattern for r in relationships])
-        for pattern, count in counts.items():
-            if count > 1:
-                raise ValueError(
-                    f"Relationship with pattern {pattern} appears {count} times in data model"
-                )
-
         # ensure source and target nodes exist
         for relationship in relationships:
             if relationship.start_node_label not in [

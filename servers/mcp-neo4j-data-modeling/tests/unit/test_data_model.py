@@ -262,6 +262,14 @@ def test_data_model_validate_relationships_valid():
 
 def test_data_model_validate_relationships_invalid_dupe_patterns():
     """Test data model validation with duplicate relationship patterns."""
+    nodes = [
+        Node(
+            label="Person",
+            key_property=Property(
+                name="id", type="string", description="Unique identifier"
+            ),
+        ),
+    ]
     relationships = [
         Relationship(
             type="KNOWS",
@@ -276,11 +284,9 @@ def test_data_model_validate_relationships_invalid_dupe_patterns():
             properties=[],
         ),
     ]
-    with pytest.raises(
-        ValidationError,
-        match=r"Relationship with pattern \(:Person\)-\[:KNOWS\]->\(:Person\) appears 2 times in data model",
-    ):
-        DataModel(nodes=[], relationships=relationships)
+    # Since we removed duplicate relationship validation, this should now pass
+    data_model = DataModel(nodes=nodes, relationships=relationships)
+    assert len(data_model.relationships) == 2
 
 
 def test_data_model_validate_relationships_invalid_start_node_does_not_exist():
