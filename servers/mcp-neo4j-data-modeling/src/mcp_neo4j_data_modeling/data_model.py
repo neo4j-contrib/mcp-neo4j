@@ -508,12 +508,14 @@ class DataModel(BaseModel):
         mermaid_nodes = [n.get_mermaid_config_str() for n in self.nodes]
         mermaid_relationships = [r.get_mermaid_config_str() for r in self.relationships]
         mermaid_styling = self._generate_mermaid_config_styling_str()
+        nodes_formatted = "\n".join(mermaid_nodes)
+        relationships_formatted = "\n".join(mermaid_relationships)
         return f"""graph TD
 %% Nodes
-{"\n".join(mermaid_nodes)}
+{nodes_formatted}
 
 %% Relationships
-{"\n".join(mermaid_relationships)}
+{relationships_formatted}
 
 {mermaid_styling}
 """
