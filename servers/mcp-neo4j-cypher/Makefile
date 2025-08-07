@@ -13,4 +13,8 @@ test-http:
 test-all:
 	uv run pytest tests/ -v
 
+docker-build-deploy-local:
+	docker build -t mcp-neo4j-cypher:dev-latest .
+	docker run -p 8000:8000 mcp-neo4j-cypher:dev-latest
+
 all: install-dev test-all 
