@@ -7,6 +7,7 @@
 
 ### Added
 * Update PR workflow to iterate over Python 3.10 to 3.13
+* Add example data model resources and tools to retrieve them
 
 ## v0.2.0
 

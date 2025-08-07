@@ -10,6 +10,8 @@ A Model Context Protocol (MCP) server implementation that provides tools for cre
 
 The server provides these resources:
 
+#### Schema 
+
 - `resource://schema/node`
    - Get the JSON schema for a Node object
    - Returns: JSON schema defining the structure of a Node
@@ -25,7 +27,40 @@ The server provides these resources:
 - `resource://schema/data_model`
    - Get the JSON schema for a DataModel object
    - Returns: JSON schema defining the structure of a DataModel
-  
+
+#### Example Data Models
+
+- `resource://examples/patient_journey_model`
+   - Get a real-world Patient Journey healthcare data model in JSON format
+   - Returns: JSON DataModel for tracking patient encounters, conditions, medications, and care plans
+
+- `resource://examples/supply_chain_model`
+   - Get a real-world Supply Chain data model in JSON format
+   - Returns: JSON DataModel for tracking products, orders, inventory, and locations
+
+- `resource://examples/software_dependency_model`
+   - Get a real-world Software Dependency Graph data model in JSON format
+   - Returns: JSON DataModel for software dependency tracking with security vulnerabilities, commits, and contributor analysis
+
+- `resource://examples/oil_gas_monitoring_model`
+   - Get a real-world Oil and Gas Equipment Monitoring data model in JSON format
+   - Returns: JSON DataModel for industrial monitoring of oil and gas equipment, sensors, alerts, and maintenance
+
+- `resource://examples/customer_360_model`
+   - Get a real-world Customer 360 data model in JSON format
+   - Returns: JSON DataModel for customer relationship management with accounts, contacts, orders, tickets, and surveys
+
+- `resource://examples/fraud_aml_model`
+   - Get a real-world Fraud & AML data model in JSON format
+   - Returns: JSON DataModel for financial fraud detection and anti-money laundering with customers, transactions, alerts, and compliance
+
+- `resource://examples/health_insurance_fraud_model`
+   - Get a real-world Health Insurance Fraud Detection data model in JSON format
+   - Returns: JSON DataModel for healthcare fraud detection tracking investigations, prescriptions, executions, and beneficiary relationships
+
+
+#### Ingest
+
 - `resource://neo4j_data_ingest_process`
    - Get a detailed explanation of the recommended process for ingesting data into Neo4j using the data model
    - Returns: Markdown document explaining the ingest process
@@ -76,6 +111,21 @@ These tools provide integration with **[Arrows](https://arrows.app/)** - a graph
    - Input:
      - `data_model` (DataModel): The data model to export
    - Returns: JSON string compatible with Arrows app
+
+#### 📚 Example Data Model Tools
+
+These tools provide access to pre-built example data models for common use cases and domains.
+
+- `list_example_data_models`
+   - List all available example data models with descriptions
+   - Input: None
+   - Returns: Dictionary with example names, descriptions, node/relationship counts, and usage instructions
+
+- `get_example_data_model`
+   - Get an example graph data model from the available templates
+   - Input:
+     - `example_name` (str): Name of the example to load ('patient_journey', 'supply_chain', 'software_dependency', 'oil_gas_monitoring', 'customer_360', 'fraud_aml', or 'health_insurance_fraud')
+   - Returns: ExampleDataModelResponse containing DataModel object and Mermaid visualization configuration
 
 #### 📝 Cypher Ingest Tools
 
