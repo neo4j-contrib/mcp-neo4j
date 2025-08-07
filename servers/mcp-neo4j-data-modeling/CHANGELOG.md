@@ -7,7 +7,8 @@
 
 ### Added
 * Update PR workflow to iterate over Python 3.10 to 3.13
-* Add example data model resources and tools to retrieve them
+* Add example data model resources 
+* Add tools to list and retrieve example data models and their Mermaid configurations
 
 ## v0.2.0
 
