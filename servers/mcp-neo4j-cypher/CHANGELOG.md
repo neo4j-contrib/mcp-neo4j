@@ -3,6 +3,7 @@
 ### Fixed
 
 ### Changed
+* Update Neo4j Driver syntax to use `driver.execute_query(...)`. This cleans the driver code.
 
 ### Added
 

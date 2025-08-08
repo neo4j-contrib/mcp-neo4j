@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from fastmcp.exceptions import ToolError
 from fastmcp.tools.tool import ToolResult, TextContent
@@ -10,8 +10,6 @@ from mcp.types import ToolAnnotations
 from neo4j import (
     AsyncDriver,
     AsyncGraphDatabase,
-    AsyncResult,
-    AsyncTransaction,
     RoutingControl
 )
 from neo4j.exceptions import ClientError, Neo4jError
