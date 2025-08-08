@@ -12,6 +12,7 @@ from neo4j import (
     AsyncGraphDatabase,
     AsyncResult,
     AsyncTransaction,
+    RoutingControl
 )
 from neo4j.exceptions import ClientError, Neo4jError
 from pydantic import Field
@@ -26,19 +27,6 @@ def _format_namespace(namespace: str) -> str:
             return namespace + "-"
     else:
         return ""
-
-async def _read(tx: AsyncTransaction, query: str, params: dict[str, Any]) -> str:
-    raw_results = await tx.run(query, params)
-    eager_results = await raw_results.to_eager_result()
-
-    return json.dumps([r.data() for r in eager_results.records], default=str)
-
-
-async def _write(
-    tx: AsyncTransaction, query: str, params: dict[str, Any]
-) -> AsyncResult:
-    return await tx.run(query, params)
-
 
 def _is_write_query(query: str) -> bool:
     """Check if the query is a write query."""
@@ -135,18 +123,19 @@ def create_mcp_server(neo4j_driver: AsyncDriver, database: str = "neo4j", namesp
 
 
         try:
-            async with neo4j_driver.session(database=database) as session:
-                results_json_str = await session.execute_read(
-                    _read, get_schema_query, dict()
-                )
 
-                logger.debug(f"Read query returned {len(results_json_str)} rows")
+            results_json_str = await neo4j_driver.execute_query(get_schema_query, 
+                                                                routing_control=RoutingControl.READ, 
+                                                                database_=database,
+                                                                result_transformer_=lambda r: r.data())
+            
+            logger.debug(f"Read query returned {len(results_json_str)} rows")
 
-                schema = json.loads(results_json_str)[0].get('value')
-                schema_clean = clean_schema(schema)
-                schema_clean_str = json.dumps(schema_clean)
+            schema_clean = clean_schema(results_json_str[0].get('value'))
 
-                return ToolResult(content=[TextContent(type="text", text=schema_clean_str)])
+            schema_clean_str = json.dumps(schema_clean, default=str)
+
+            return ToolResult(content=[TextContent(type="text", text=schema_clean_str)])
         
         except ClientError as e:
             if "Neo.ClientError.Procedure.ProcedureNotFound" in str(e):
@@ -180,12 +169,17 @@ def create_mcp_server(neo4j_driver: AsyncDriver, database: str = "neo4j", namesp
             raise ValueError("Only MATCH queries are allowed for read-query")
 
         try:
-            async with neo4j_driver.session(database=database) as session:
-                results_json_str = await session.execute_read(_read, query, params)
+            results = await neo4j_driver.execute_query(query, 
+                                                        parameters_=params, 
+                                                        routing_control=RoutingControl.READ, 
+                                                        database_=database,
+                                                        result_transformer_=lambda r: r.data())
+            
+            results_json_str = json.dumps(results, default=str)
 
-                logger.debug(f"Read query returned {len(results_json_str)} rows")
+            logger.debug(f"Read query returned {len(results_json_str)} rows")
 
-                return ToolResult(content=[TextContent(type="text", text=results_json_str)])
+            return ToolResult(content=[TextContent(type="text", text=results_json_str)])
                     
         except Neo4jError as e:
             logger.error(f"Neo4j Error executing read query: {e}\n{query}\n{params}")
@@ -214,11 +208,13 @@ def create_mcp_server(neo4j_driver: AsyncDriver, database: str = "neo4j", namesp
             raise ValueError("Only write queries are allowed for write-query")
 
         try:
-            async with neo4j_driver.session(database=database) as session:
-                raw_results = await session.execute_write(_write, query, params)
-                counters_json_str = json.dumps(
-                    raw_results._summary.counters.__dict__, default=str
-                )
+            _, summary, _ = await neo4j_driver.execute_query(query, 
+                                                    parameters_=params, 
+                                                    routing_control=RoutingControl.WRITE, 
+                                                    database_=database,
+                                                    )
+            
+            counters_json_str = json.dumps(summary.counters.__dict__, default=str)
 
             logger.debug(f"Write query affected {counters_json_str}")
 
