@@ -1,9 +1,15 @@
 ## Next
 
 ### Fixed
-* Remove back slashes from f-string in Mermaid config generation
 
 ### Changed
+
+### Added
+
+## v0.3.0
+
+### Fixed
+* Remove back slashes from f-string in Mermaid config generation
 
 ### Added
 * Update PR workflow to iterate over Python 3.10 to 3.13
