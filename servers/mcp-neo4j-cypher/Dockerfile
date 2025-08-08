@@ -18,6 +18,8 @@ COPY README.md /app/
 
 RUN pip install --no-cache-dir -e .
 
+# adding comment to trigger Docker hub build
+
 # Environment variables for Neo4j connection
 ENV NEO4J_URI="bolt://host.docker.internal:7687"
 ENV NEO4J_USERNAME="neo4j"
