@@ -230,7 +230,7 @@ docker run --rm -p 8000:8000 \
   -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
   -e NEO4J_MCP_SERVER_PORT="8000" \
   -e NEO4J_MCP_SERVER_PATH="/api/mcp/" \
-  mcp/neo4j-cypher:latest
+  mcp-neo4j-cypher:latest
 ```
 
 ### 🔧 Environment Variables
