@@ -338,7 +338,7 @@ For Claude Desktop integration with a Dockerized server using http transport:
 
 ### 📦 Prerequisites
 
-1. Install `uv` (Universal Virtualenv):
+1. Install [`uv`](https://github.com/astral-sh/uv):
 
 ```bash
 # Using pip
