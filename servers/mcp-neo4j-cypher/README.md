@@ -105,7 +105,7 @@ For custom HTTP configurations beyond the defaults:
 
 ```bash
 # Custom HTTP configuration
-mcp-neo4j-cypher --transport http --host 0.0.0.0 --port 8080 --path /api/mcp/
+mcp-neo4j-cypher --transport http --server-host 0.0.0.0 --server-port 8080 --server-path /api/mcp/
 
 # Or using environment variables
 export NEO4J_TRANSPORT=http
