@@ -8,6 +8,7 @@ dependencies = [
     "fastmcp>=2.0.0",
     "neo4j>=5.26.0",
     "pydantic>=2.10.1",
+    "python-dotenv>=1.0.0",
 ]
 
 [build-system]

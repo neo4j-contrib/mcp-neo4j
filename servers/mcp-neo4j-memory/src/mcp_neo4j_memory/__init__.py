@@ -1,4 +1,3 @@
-from . import server
 import asyncio
 import argparse
 import os
@@ -17,6 +16,10 @@ def main():
     parser.add_argument("--server-path", default=None, help="HTTP path (default: /mcp/)")
     
     args = parser.parse_args()
+    
+    # Import server only when needed
+    from . import server
+    
     asyncio.run(server.main(
         args.db_url or os.getenv("NEO4J_URL") or os.getenv("NEO4J_URI", "bolt://localhost:7687"),
         args.username or os.getenv("NEO4J_USERNAME", "neo4j"),
@@ -30,4 +33,4 @@ def main():
 
 
 # Optionally expose other important items at package level
-__all__ = ["main", "server"]
+__all__ = ["main"]
