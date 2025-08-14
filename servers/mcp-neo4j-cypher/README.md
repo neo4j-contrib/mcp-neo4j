@@ -105,11 +105,11 @@ For custom HTTP configurations beyond the defaults:
 
 ```bash
 # Custom HTTP configuration
-mcp-neo4j-cypher --transport http --server-host 0.0.0.0 --server-port 8080 --server-path /api/mcp/
+mcp-neo4j-cypher --transport http --server-host 127.0.0.1 --server-port 8080 --server-path /api/mcp/
 
 # Or using environment variables
 export NEO4J_TRANSPORT=http
-export NEO4J_MCP_SERVER_HOST=0.0.0.0
+export NEO4J_MCP_SERVER_HOST=127.0.0.1
 export NEO4J_MCP_SERVER_PORT=8080
 export NEO4J_MCP_SERVER_PATH=/api/mcp/
 mcp-neo4j-cypher
@@ -174,7 +174,7 @@ Syntax with `--db-url`, `--username`, `--password` and other command line argume
       "--transport",
       "sse",
       "--server-host",
-      "0.0.0.0",
+      "127.0.0.1",
       "--server-port",
       "8000"
       "--server-path",
