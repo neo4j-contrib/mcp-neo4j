@@ -6,6 +6,7 @@
 * Update Neo4j Driver syntax to use `driver.execute_query(...)`. This cleans the driver code.
 
 ### Added
+* Add clear warnings for config declaration via cli and env variables
 
 ## v0.3.0
 
