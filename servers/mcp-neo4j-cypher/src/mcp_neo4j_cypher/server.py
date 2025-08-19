@@ -4,18 +4,15 @@ import re
 from typing import Any, Literal
 
 from fastmcp.exceptions import ToolError
-from fastmcp.tools.tool import ToolResult, TextContent
 from fastmcp.server import FastMCP
+from fastmcp.tools.tool import TextContent, ToolResult
 from mcp.types import ToolAnnotations
-from neo4j import (
-    AsyncDriver,
-    AsyncGraphDatabase,
-    RoutingControl
-)
+from neo4j import AsyncDriver, AsyncGraphDatabase, RoutingControl
 from neo4j.exceptions import ClientError, Neo4jError
 from pydantic import Field
 
 logger = logging.getLogger("mcp_neo4j_cypher")
+
 
 def _format_namespace(namespace: str) -> str:
     if namespace:
@@ -26,6 +23,7 @@ def _format_namespace(namespace: str) -> str:
     else:
         return ""
 
+
 def _is_write_query(query: str) -> bool:
     """Check if the query is a write query."""
     return (
@@ -34,19 +32,25 @@ def _is_write_query(query: str) -> bool:
     )
 
 
-def create_mcp_server(neo4j_driver: AsyncDriver, database: str = "neo4j", namespace: str = "") -> FastMCP:
-    mcp: FastMCP = FastMCP("mcp-neo4j-cypher", dependencies=["neo4j", "pydantic"], stateless_http=True)
+def create_mcp_server(
+    neo4j_driver: AsyncDriver, database: str = "neo4j", namespace: str = ""
+) -> FastMCP:
+    mcp: FastMCP = FastMCP(
+        "mcp-neo4j-cypher", dependencies=["neo4j", "pydantic"], stateless_http=True
+    )
 
     namespace_prefix = _format_namespace(namespace)
 
-    @mcp.tool(name=namespace_prefix+"get_neo4j_schema", 
-              annotations=ToolAnnotations(title="Get Neo4j Schema", 
-                                          readOnlyHint=True,
-                                          destructiveHint=False,
-                                          idempotentHint=True,
-                                          openWorldHint=True
-                                          )
-            )
+    @mcp.tool(
+        name=namespace_prefix + "get_neo4j_schema",
+        annotations=ToolAnnotations(
+            title="Get Neo4j Schema",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
+        ),
+    )
     async def get_neo4j_schema() -> list[ToolResult]:
         """
         List all nodes, their attributes and their relationships to other nodes in the neo4j database.
@@ -61,10 +65,7 @@ def create_mcp_server(neo4j_driver: AsyncDriver, database: str = "neo4j", namesp
             cleaned = {}
 
             for key, entry in schema.items():
-
-                new_entry = {
-                    "type": entry["type"]
-                }
+                new_entry = {"type": entry["type"]}
                 if "count" in entry:
                     new_entry["count"] = entry["count"]
 
@@ -119,42 +120,47 @@ def create_mcp_server(neo4j_driver: AsyncDriver, database: str = "neo4j", namesp
 
             return cleaned
 
-
         try:
+            results_json_str = await neo4j_driver.execute_query(
+                get_schema_query,
+                routing_control=RoutingControl.READ,
+                database_=database,
+                result_transformer_=lambda r: r.data(),
+            )
 
-            results_json_str = await neo4j_driver.execute_query(get_schema_query, 
-                                                                routing_control=RoutingControl.READ, 
-                                                                database_=database,
-                                                                result_transformer_=lambda r: r.data())
-            
             logger.debug(f"Read query returned {len(results_json_str)} rows")
 
-            schema_clean = clean_schema(results_json_str[0].get('value'))
+            schema_clean = clean_schema(results_json_str[0].get("value"))
 
             schema_clean_str = json.dumps(schema_clean, default=str)
 
             return ToolResult(content=[TextContent(type="text", text=schema_clean_str)])
-        
+
         except ClientError as e:
             if "Neo.ClientError.Procedure.ProcedureNotFound" in str(e):
-                raise ToolError("Neo4j Client Error: This instance of Neo4j does not have the APOC plugin installed. Please install and enable the APOC plugin to use the `get_neo4j_schema` tool.")
+                raise ToolError(
+                    "Neo4j Client Error: This instance of Neo4j does not have the APOC plugin installed. Please install and enable the APOC plugin to use the `get_neo4j_schema` tool."
+                )
             else:
                 raise ToolError(f"Neo4j Client Error: {e}")
-        
+
         except Neo4jError as e:
             raise ToolError(f"Neo4j Error: {e}")
-    
+
         except Exception as e:
             logger.error(f"Error retrieving Neo4j database schema: {e}")
             raise ToolError(f"Unexpected Error: {e}")
 
-    @mcp.tool(name=namespace_prefix+"read_neo4j_cypher", 
-              annotations=ToolAnnotations(title="Read Neo4j Cypher", 
-                                          readOnlyHint=True,
-                                          destructiveHint=False,
-                                          idempotentHint=True,
-                                          openWorldHint=True
-                                          ))
+    @mcp.tool(
+        name=namespace_prefix + "read_neo4j_cypher",
+        annotations=ToolAnnotations(
+            title="Read Neo4j Cypher",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
+        ),
+    )
     async def read_neo4j_cypher(
         query: str = Field(..., description="The Cypher query to execute."),
         params: dict[str, Any] = Field(
@@ -167,33 +173,38 @@ def create_mcp_server(neo4j_driver: AsyncDriver, database: str = "neo4j", namesp
             raise ValueError("Only MATCH queries are allowed for read-query")
 
         try:
-            results = await neo4j_driver.execute_query(query, 
-                                                        parameters_=params, 
-                                                        routing_control=RoutingControl.READ, 
-                                                        database_=database,
-                                                        result_transformer_=lambda r: r.data())
-            
+            results = await neo4j_driver.execute_query(
+                query,
+                parameters_=params,
+                routing_control=RoutingControl.READ,
+                database_=database,
+                result_transformer_=lambda r: r.data(),
+            )
+
             results_json_str = json.dumps(results, default=str)
 
             logger.debug(f"Read query returned {len(results_json_str)} rows")
 
             return ToolResult(content=[TextContent(type="text", text=results_json_str)])
-                    
+
         except Neo4jError as e:
             logger.error(f"Neo4j Error executing read query: {e}\n{query}\n{params}")
             raise ToolError(f"Neo4j Error: {e}\n{query}\n{params}")
-    
+
         except Exception as e:
             logger.error(f"Error executing read query: {e}\n{query}\n{params}")
             raise ToolError(f"Error: {e}\n{query}\n{params}")
 
-    @mcp.tool(name=namespace_prefix+"write_neo4j_cypher", 
-              annotations=ToolAnnotations(title="Write Neo4j Cypher", 
-                                          readOnlyHint=False,
-                                          destructiveHint=True,
-                                          idempotentHint=False,
-                                          openWorldHint=True
-                                          ))
+    @mcp.tool(
+        name=namespace_prefix + "write_neo4j_cypher",
+        annotations=ToolAnnotations(
+            title="Write Neo4j Cypher",
+            readOnlyHint=False,
+            destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
+        ),
+    )
     async def write_neo4j_cypher(
         query: str = Field(..., description="The Cypher query to execute."),
         params: dict[str, Any] = Field(
@@ -206,22 +217,25 @@ def create_mcp_server(neo4j_driver: AsyncDriver, database: str = "neo4j", namesp
             raise ValueError("Only write queries are allowed for write-query")
 
         try:
-            _, summary, _ = await neo4j_driver.execute_query(query, 
-                                                    parameters_=params, 
-                                                    routing_control=RoutingControl.WRITE, 
-                                                    database_=database,
-                                                    )
-            
+            _, summary, _ = await neo4j_driver.execute_query(
+                query,
+                parameters_=params,
+                routing_control=RoutingControl.WRITE,
+                database_=database,
+            )
+
             counters_json_str = json.dumps(summary.counters.__dict__, default=str)
 
             logger.debug(f"Write query affected {counters_json_str}")
 
-            return ToolResult(content=[TextContent(type="text", text=counters_json_str)])
+            return ToolResult(
+                content=[TextContent(type="text", text=counters_json_str)]
+            )
 
         except Neo4jError as e:
             logger.error(f"Neo4j Error executing write query: {e}\n{query}\n{params}")
             raise ToolError(f"Neo4j Error: {e}\n{query}\n{params}")
-    
+
         except Exception as e:
             logger.error(f"Error executing write query: {e}\n{query}\n{params}")
             raise ToolError(f"Error: {e}\n{query}\n{params}")
@@ -255,17 +269,25 @@ async def main(
     # Run the server with the specified transport
     match transport:
         case "http":
-            logger.info(f"Running Neo4j Cypher MCP Server with HTTP transport on {host}:{port}...")
+            logger.info(
+                f"Running Neo4j Cypher MCP Server with HTTP transport on {host}:{port}..."
+            )
             await mcp.run_http_async(host=host, port=port, path=path)
         case "stdio":
             logger.info("Running Neo4j Cypher MCP Server with stdio transport...")
             await mcp.run_stdio_async()
         case "sse":
-            logger.info(f"Running Neo4j Cypher MCP Server with SSE transport on {host}:{port}...")
+            logger.info(
+                f"Running Neo4j Cypher MCP Server with SSE transport on {host}:{port}..."
+            )
             await mcp.run_sse_async(host=host, port=port, path=path)
         case _:
-            logger.error(f"Invalid transport: {transport} | Must be either 'stdio', 'sse', or 'http'")
-            raise ValueError(f"Invalid transport: {transport} | Must be either 'stdio', 'sse', or 'http'")
+            logger.error(
+                f"Invalid transport: {transport} | Must be either 'stdio', 'sse', or 'http'"
+            )
+            raise ValueError(
+                f"Invalid transport: {transport} | Must be either 'stdio', 'sse', or 'http'"
+            )
 
 
 if __name__ == "__main__":

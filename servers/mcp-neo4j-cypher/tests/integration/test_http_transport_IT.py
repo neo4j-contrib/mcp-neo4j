@@ -1,25 +1,21 @@
-import asyncio
 import json
-import os
-import pytest
-import aiohttp
-import subprocess
 import uuid
 
-
+import aiohttp
+import pytest
 
 
 async def parse_sse_response(response: aiohttp.ClientResponse) -> dict:
     """Parse Server-Sent Events response from FastMCP 2.0."""
     content = await response.text()
-    lines = content.strip().split('\n')
-    
+    lines = content.strip().split("\n")
+
     # Find the data line that contains the JSON
     for line in lines:
-        if line.startswith('data: '):
+        if line.startswith("data: "):
             json_str = line[6:]  # Remove 'data: ' prefix
             return json.loads(json_str)
-    
+
     raise ValueError("No data line found in SSE response")
 
 
@@ -30,18 +26,18 @@ async def test_http_tools_list(http_server):
     async with aiohttp.ClientSession() as session:
         async with session.post(
             "http://127.0.0.1:8001/mcp/",
-            json={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "tools/list"
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "mcp-session-id": session_id,
             },
-            headers={"Accept": "application/json, text/event-stream", "Content-Type": "application/json", "mcp-session-id": session_id}
         ) as response:
             print(f"Response status: {response.status}")
             print(f"Response headers: {dict(response.headers)}")
             response_text = await response.text()
             print(f"Response text: {response_text}")
-            
+
             assert response.status == 200
             result = await parse_sse_response(response)
             assert "result" in result
@@ -53,6 +49,7 @@ async def test_http_tools_list(http_server):
             assert "read_neo4j_cypher" in tool_names
             assert "write_neo4j_cypher" in tool_names
 
+
 @pytest.mark.asyncio
 async def test_http_get_schema(http_server):
     """Test that get_neo4j_schema works over HTTP."""
@@ -63,18 +60,20 @@ async def test_http_get_schema(http_server):
                 "jsonrpc": "2.0",
                 "id": 1,
                 "method": "tools/call",
-                "params": {
-                    "name": "get_neo4j_schema",
-                    "arguments": {}
-                }
+                "params": {"name": "get_neo4j_schema", "arguments": {}},
             },
-            headers={"Accept": "application/json, text/event-stream", "Content-Type": "application/json", "mcp-session-id": "test-session"}
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "mcp-session-id": "test-session",
+            },
         ) as response:
             result = await parse_sse_response(response)
             assert response.status == 200
             assert "result" in result
             assert "content" in result["result"]
             assert len(result["result"]["content"]) > 0
+
 
 @pytest.mark.asyncio
 async def test_http_write_query(http_server):
@@ -88,17 +87,20 @@ async def test_http_write_query(http_server):
                 "method": "tools/call",
                 "params": {
                     "name": "write_neo4j_cypher",
-                    "arguments": {
-                        "query": "CREATE (n:Test {name: 'http_test'})"
-                    }
-                }
+                    "arguments": {"query": "CREATE (n:Test {name: 'http_test'})"},
+                },
             },
-            headers={"Accept": "application/json, text/event-stream", "Content-Type": "application/json", "mcp-session-id": "test-session"}
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "mcp-session-id": "test-session",
+            },
         ) as response:
             result = await parse_sse_response(response)
             assert response.status == 200
             assert "result" in result
             assert "content" in result["result"]
+
 
 @pytest.mark.asyncio
 async def test_http_read_query(http_server):
@@ -112,17 +114,20 @@ async def test_http_read_query(http_server):
                 "method": "tools/call",
                 "params": {
                     "name": "read_neo4j_cypher",
-                    "arguments": {
-                        "query": "MATCH (n:Test) RETURN n.name as name"
-                    }
-                }
+                    "arguments": {"query": "MATCH (n:Test) RETURN n.name as name"},
+                },
             },
-            headers={"Accept": "application/json, text/event-stream", "Content-Type": "application/json", "mcp-session-id": "test-session"}
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "mcp-session-id": "test-session",
+            },
         ) as response:
             result = await parse_sse_response(response)
             assert response.status == 200
             assert "result" in result
             assert "content" in result["result"]
+
 
 @pytest.mark.asyncio
 async def test_http_invalid_method(http_server):
@@ -130,17 +135,20 @@ async def test_http_invalid_method(http_server):
     async with aiohttp.ClientSession() as session:
         async with session.post(
             "http://127.0.0.1:8001/mcp/",
-            json={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "invalid_method"
+            json={"jsonrpc": "2.0", "id": 1, "method": "invalid_method"},
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "mcp-session-id": "test-session",
             },
-            headers={"Accept": "application/json, text/event-stream", "Content-Type": "application/json", "mcp-session-id": "test-session"}
         ) as response:
             result = await parse_sse_response(response)
             assert response.status == 200
             # Accept either JSON-RPC error or result with isError
-            assert ("result" in result and result["result"].get("isError", False)) or ("error" in result)
+            assert ("result" in result and result["result"].get("isError", False)) or (
+                "error" in result
+            )
+
 
 @pytest.mark.asyncio
 async def test_http_invalid_tool(http_server):
@@ -152,23 +160,19 @@ async def test_http_invalid_tool(http_server):
                 "jsonrpc": "2.0",
                 "id": 1,
                 "method": "tools/call",
-                "params": {
-                    "name": "invalid_tool",
-                    "arguments": {}
-                }
+                "params": {"name": "invalid_tool", "arguments": {}},
             },
-            headers={"Accept": "application/json, text/event-stream", "Content-Type": "application/json", "mcp-session-id": "test-session"}
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "mcp-session-id": "test-session",
+            },
         ) as response:
             result = await parse_sse_response(response)
             assert response.status == 200
             # FastMCP returns errors in result field with isError: True
             assert "result" in result
             assert result["result"].get("isError", False)
-
-
-    
-
-
 
 
 @pytest.mark.asyncio
@@ -179,12 +183,12 @@ async def test_http_full_workflow(http_server):
         # 1. List tools
         async with session.post(
             "http://127.0.0.1:8001/mcp/",
-            json={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "tools/list"
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "mcp-session-id": "test-session",
             },
-            headers={"Accept": "application/json, text/event-stream", "Content-Type": "application/json", "mcp-session-id": "test-session"}
         ) as response:
             result = await parse_sse_response(response)
             assert response.status == 200
@@ -201,10 +205,14 @@ async def test_http_full_workflow(http_server):
                     "name": "write_neo4j_cypher",
                     "arguments": {
                         "query": "CREATE (n:IntegrationTest {name: 'workflow_test'})"
-                    }
-                }
+                    },
+                },
             },
-            headers={"Accept": "application/json, text/event-stream", "Content-Type": "application/json", "mcp-session-id": "test-session"}
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "mcp-session-id": "test-session",
+            },
         ) as response:
             result = await parse_sse_response(response)
             assert response.status == 200
@@ -221,12 +229,15 @@ async def test_http_full_workflow(http_server):
                     "name": "read_neo4j_cypher",
                     "arguments": {
                         "query": "MATCH (n:IntegrationTest) RETURN n.name as name"
-                    }
-                }
+                    },
+                },
             },
-            headers={"Accept": "application/json, text/event-stream", "Content-Type": "application/json", "mcp-session-id": "test-session"}
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "mcp-session-id": "test-session",
+            },
         ) as response:
             result = await parse_sse_response(response)
             assert response.status == 200
             assert "result" in result
-    
