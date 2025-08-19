@@ -13,6 +13,7 @@
 * Add error handling to catch Neo4j specific errors and improve error responses
 * Implement `ToolError` class from FastMCP
 * Add tool annotations
+* Add clear warnings for config declaration via cli and env variables
 
 ## v0.2.0
 
