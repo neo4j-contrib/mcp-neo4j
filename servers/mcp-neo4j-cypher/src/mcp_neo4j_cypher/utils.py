@@ -1,6 +1,6 @@
 import argparse
-import os
 import logging
+import os
 from typing import Union
 
 logger = logging.getLogger("mcp_neo4j_cypher")

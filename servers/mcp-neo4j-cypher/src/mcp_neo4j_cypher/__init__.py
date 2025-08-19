@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import os
 
 from . import server
 from .utils import process_config

@@ -1,10 +1,8 @@
-import asyncio
 import json
-import os
-import pytest
-import aiohttp
-import subprocess
 import uuid
+
+import aiohttp
+import pytest
 
 
 async def parse_sse_response(response: aiohttp.ClientResponse) -> dict:

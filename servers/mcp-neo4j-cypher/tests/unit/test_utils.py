@@ -1,6 +1,7 @@
 import argparse
 import os
 from unittest.mock import patch
+
 import pytest
 
 from mcp_neo4j_cypher.utils import process_config
@@ -329,7 +330,7 @@ def test_mixed_transport_scenarios(
 def test_info_logging_stdio_transport(clean_env, args_factory, mock_logger):
     """Test that info messages are logged for stdio transport when appropriate."""
     args = args_factory(transport="stdio")
-    config = process_config(args)
+    process_config(args)
 
     # Check for info messages about stdio transport
     info_calls = [call.args[0] for call in mock_logger.info.call_args_list]
