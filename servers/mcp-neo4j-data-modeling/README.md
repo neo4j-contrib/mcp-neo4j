@@ -152,6 +152,17 @@ These tools may be used to create Cypher ingest queries based on the data model.
      - `relationship_end_node_label` (str): The label of the end node
    - Returns: Parameterized Cypher query for bulk relationship ingestion (using `$records`)
 
+### 💡 Prompts
+
+- `create_new_data_model`
+   - Provide a structured parameterized prompt for generating a new graph data model
+   - Input:
+     - `data_context` (str): Description of the data and any specific details to focus on
+     - `use_cases` (str): List of use cases for the data model to address
+     - `desired_nodes` (str, optional): Node labels to include in the data model
+     - `desired_relationships` (str, optional): Relationship types to include in the data model
+   - Returns: Structured prompt that guides the agent through a 3-step process: analysis of sample data and examples, generation of the data model with validation, and presentation of results with visualization 
+
 ## 🔧 Usage with Claude Desktop
 
 ### 💾 Released Package
