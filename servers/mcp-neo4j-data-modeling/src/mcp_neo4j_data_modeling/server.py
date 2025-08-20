@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from fastmcp.server import FastMCP
 from pydantic import Field, ValidationError
@@ -322,6 +322,70 @@ def create_mcp_server() -> FastMCP:
             "total_examples": len(examples),
             "usage": "Use the get_example_data_model tool with any of the example names above to get a specific data model",
         }
+    
+    @mcp.prompt(title="Create New Data Model")
+    def create_new_data_model(data_context: str = Field(..., description="A description of the data and any specific details the agent should focus on."), 
+                              use_cases: str = Field(..., description="A list of use cases for the data model to address."),
+                              desired_nodes: str = "",
+                              desired_relationships: str = ""
+                              ) -> str:
+        """
+        Guide the agent in creating a new graph data model. 
+        You should provide the sample data alongside this prompt.
+        Be as descriptive as possible when providing data context and use cases. These will be used to effectively shape your data model.
+        If you have an idea of what your data model should look like, you may optionally provide desired nodes and relationships.
+
+        Parameters:
+        * data_context: A description of the data and any specific details the agent should focus on.
+        * use_cases: A list of use cases for the data model to address.
+        * desired_nodes (optional): A list of node labels that you would like to be included in the data model.
+        * desired_relationships (optional): A list of relationship types that you would like to be included in the data model.
+        """
+
+        prompt = f"""Please use the following context and the provided sample data to generate a new graph data model.
+
+Here is the data context:
+{data_context}
+
+Here are the use cases:
+{use_cases}
+"""
+
+        if desired_nodes:
+            prompt += f"""
+Here are the desired nodes:
+{desired_nodes}
+"""
+
+        if desired_relationships:
+            prompt += f"""
+Here are the desired relationships:
+{desired_relationships}
+"""
+
+        prompt += """
+Additional Instructions:
+* Ensure that if you know the source information for Properties, you include it in the data model.
+* If you deviate from the user's requests, you must clearly explain why you did so.
+* Only use data from the provided sample data to create the data model (Unless explicitly stated otherwise).
+* If the user requests use cases that are outside the scope of the provided sample data, you should explain why you cannot create a data model for those use cases.
+
+Process:
+1. Analysis
+    1a. Analyze the sample data 
+    1b. Use the `list_example_data_models` tool to check if there are any relevant examples that you can use to guide your data model
+    1c. Use the `get_example_data_model` tool to get any relevant example data models
+2. Generation
+    2a. Generate a new data model based on your analysis, the provided context and any examples
+    2b. Use the `get_mermaid_config_str` tool to validate the data model and get a Mermaid visualization configuration
+    2c. If necessary, correct any validation errors and repeat step 2b
+3. Final Response
+    3a. Show the user the visualization with Mermaid, if possible 
+    3b. Explain the data model and any gaps between the requested use cases
+    3c. Request feedback from the user (remember that data modeling is an iterative process)
+"""
+
+        return prompt
 
     return mcp
 
