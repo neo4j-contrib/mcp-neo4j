@@ -5,6 +5,7 @@
 ### Changed
 
 ### Added
+* Add `create_new_data_model` prompt that provides a structured prompt for generating a graph data model
 
 ## v0.3.0
 
