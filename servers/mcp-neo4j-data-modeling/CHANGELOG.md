@@ -3,6 +3,7 @@
 ### Fixed
 
 ### Changed
+* Update README with link to data modeling demo repo and workflow image
 
 ### Added
 

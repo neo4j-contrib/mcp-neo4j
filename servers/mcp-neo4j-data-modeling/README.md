@@ -4,6 +4,19 @@
 
 A Model Context Protocol (MCP) server implementation that provides tools for creating, visualizing, and managing Neo4j graph data models. This server enables you to define nodes, relationships, and properties to design graph database schemas that can be visualized interactively.
 
+This MCP server facilitates data modeling workflows like the one detailed below.
+
+* Blue steps are handled by the agent
+* Purple by the Data Modeling MCP server
+* Green by the user
+
+![data-modeling-workflow](./assets/images/data-modeling-process-v2.png)
+
+
+## Demo
+
+For an end to end demo using the Data Modeling and Cypher MCP servers to develop a data model, generate an ingest script, and validate use cases please check out [this Github Repo](https://github.com/neo4j-field/data-modeling-assistant-demo).
+
 ## 🧩 Components
 
 ### 📦 Resources
