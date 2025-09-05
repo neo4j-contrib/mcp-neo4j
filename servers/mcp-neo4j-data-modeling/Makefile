@@ -13,8 +13,9 @@ test:
 inspector:
 	npx @modelcontextprotocol/inspector uv --directory src/mcp_neo4j_data_modeling run mcp-neo4j-data-modeling
 
-build_local_docker_image:
-	docker build -t mcp-neo4j-data-modeling .
+docker-build-deploy-local:
+	docker build -t mcp-neo4j-data-modeling:dev-latest .
+	docker run -p 8000:8000 mcp-neo4j-data-modeling:dev-latest
 
 clean:
 	rm -rf .mypy_cache/

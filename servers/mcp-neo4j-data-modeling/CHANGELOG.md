@@ -1,9 +1,11 @@
 ## Next
 
 ### Fixed
+* Fix bug where MCP server could only be deployed with stdio transport
 
 ### Changed
 * Update README with link to data modeling demo repo and workflow image
+* Update Dockerfile for Docker Hub deployment
 
 ### Added
 
