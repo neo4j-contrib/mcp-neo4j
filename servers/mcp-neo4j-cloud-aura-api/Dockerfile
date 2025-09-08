@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir -e .
 # Environment variables for Neo4j Aura API credentials
 ENV NEO4J_AURA_CLIENT_ID=""
 ENV NEO4J_AURA_CLIENT_SECRET=""
-ENV NEO4J_TRANSPORT="http"
+ENV NEO4J_TRANSPORT="stdio"
 ENV NEO4J_MCP_SERVER_HOST="127.0.0.1"
 ENV NEO4J_MCP_SERVER_PORT=8000
 ENV NEO4J_MCP_SERVER_PATH="/mcp/"

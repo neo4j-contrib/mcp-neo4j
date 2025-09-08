@@ -3,6 +3,7 @@
 ### Fixed
 
 ### Changed
+* Change default transport to `stdio` in Dockerfile
 
 ### Added
 
