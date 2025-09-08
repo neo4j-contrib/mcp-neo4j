@@ -1,6 +1,6 @@
 import os
 import pytest
-from typing import Dict, Any
+from typing import Dict
 
 # Skip all tests if credentials are not available
 pytestmark = pytest.mark.skipif(

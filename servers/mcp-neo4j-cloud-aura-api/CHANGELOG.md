@@ -3,8 +3,11 @@
 ### Fixed
 
 ### Changed
+* Split client, service and MCP classes into separate files
+* Create centralized logger config in `utils.py`
 
 ### Added
+* Add tool annotations to tools to better describe their effects
 
 ## v0.3.0
 
