@@ -31,6 +31,51 @@ def _is_write_query(query: str) -> bool:
         is not None
     )
 
+def _value_sanitize(d: Any, list_limit: int = 128) -> Any:
+    """Sanitize the input dictionary or list.
+
+    Sanitizes the input by removing embedding-like values,
+    lists with more than 128 elements, that are mostly irrelevant for
+    generating answers in a LLM context. These properties, if left in
+    results, can occupy significant context space and detract from
+    the LLM's performance by introducing unnecessary noise and cost.
+
+    Args:
+        d (Any): The input dictionary or list to sanitize.
+
+    Returns:
+        Any: The sanitized dictionary or list.
+    """
+    if isinstance(d, dict):
+        new_dict = {}
+        for key, value in d.items():
+            if isinstance(value, dict):
+                sanitized_value = _value_sanitize(value)
+                if (
+                    sanitized_value is not None
+                ):  # Check if the sanitized value is not None
+                    new_dict[key] = sanitized_value
+            elif isinstance(value, list):
+                if len(value) < list_limit:
+                    sanitized_value = _value_sanitize(value)
+                    if (
+                        sanitized_value is not None
+                    ):  # Check if the sanitized value is not None
+                        new_dict[key] = sanitized_value
+                # Do not include the key if the list is oversized
+            else:
+                new_dict[key] = value
+        return new_dict
+    elif isinstance(d, list):
+        if len(d) < list_limit:
+            return [
+                _value_sanitize(item) for item in d if _value_sanitize(item) is not None
+            ]
+        else:
+            return None
+    else:
+        return d
+
 
 def create_mcp_server(
     neo4j_driver: AsyncDriver, database: str = "neo4j", namespace: str = ""
@@ -180,8 +225,8 @@ def create_mcp_server(
                 database_=database,
                 result_transformer_=lambda r: r.data(),
             )
-
-            results_json_str = json.dumps(results, default=str)
+            sanitized_results = [_value_sanitize(el) for el in results]
+            results_json_str = json.dumps(sanitized_results, default=str)
 
             logger.debug(f"Read query returned {len(results_json_str)} rows")
 
