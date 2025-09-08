@@ -10,6 +10,7 @@ from mcp.types import ToolAnnotations
 from neo4j import AsyncDriver, AsyncGraphDatabase, RoutingControl
 from neo4j.exceptions import ClientError, Neo4jError
 from pydantic import Field
+from .utils import _value_sanitize
 
 logger = logging.getLogger("mcp_neo4j_cypher")
 
@@ -30,51 +31,6 @@ def _is_write_query(query: str) -> bool:
         re.search(r"\b(MERGE|CREATE|SET|DELETE|REMOVE|ADD)\b", query, re.IGNORECASE)
         is not None
     )
-
-def _value_sanitize(d: Any, list_limit: int = 128) -> Any:
-    """Sanitize the input dictionary or list.
-
-    Sanitizes the input by removing embedding-like values,
-    lists with more than 128 elements, that are mostly irrelevant for
-    generating answers in a LLM context. These properties, if left in
-    results, can occupy significant context space and detract from
-    the LLM's performance by introducing unnecessary noise and cost.
-
-    Args:
-        d (Any): The input dictionary or list to sanitize.
-
-    Returns:
-        Any: The sanitized dictionary or list.
-    """
-    if isinstance(d, dict):
-        new_dict = {}
-        for key, value in d.items():
-            if isinstance(value, dict):
-                sanitized_value = _value_sanitize(value)
-                if (
-                    sanitized_value is not None
-                ):  # Check if the sanitized value is not None
-                    new_dict[key] = sanitized_value
-            elif isinstance(value, list):
-                if len(value) < list_limit:
-                    sanitized_value = _value_sanitize(value)
-                    if (
-                        sanitized_value is not None
-                    ):  # Check if the sanitized value is not None
-                        new_dict[key] = sanitized_value
-                # Do not include the key if the list is oversized
-            else:
-                new_dict[key] = value
-        return new_dict
-    elif isinstance(d, list):
-        if len(d) < list_limit:
-            return [
-                _value_sanitize(item) for item in d if _value_sanitize(item) is not None
-            ]
-        else:
-            return None
-    else:
-        return d
 
 
 def create_mcp_server(

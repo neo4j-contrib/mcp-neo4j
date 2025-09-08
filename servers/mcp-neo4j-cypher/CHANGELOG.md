@@ -5,6 +5,7 @@
 ### Changed
 
 ### Added
+* Added Cypher result sanitation function from Neo4j GraphRAG that removes embedding values from the result
 
 ## v0.3.1
 

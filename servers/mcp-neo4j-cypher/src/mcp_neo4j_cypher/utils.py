@@ -1,7 +1,7 @@
 import argparse
 import logging
 import os
-from typing import Union
+from typing import Any, Union
 
 logger = logging.getLogger("mcp_neo4j_cypher")
 logger.setLevel(logging.INFO)
@@ -169,3 +169,57 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
             config["path"] = None
 
     return config
+
+def _value_sanitize(d: Any, list_limit: int = 128) -> Any:
+    """
+    Sanitize the input dictionary or list.
+
+    Sanitizes the input by removing embedding-like values,
+    lists with more than 128 elements, that are mostly irrelevant for
+    generating answers in a LLM context. These properties, if left in
+    results, can occupy significant context space and detract from
+    the LLM's performance by introducing unnecessary noise and cost.
+
+    Sourced from: https://github.com/neo4j/neo4j-graphrag-python/blob/main/src/neo4j_graphrag/schema.py#L88
+
+    Parameters
+    ----------
+    d : Any
+        The input dictionary or list to sanitize.
+    list_limit : int
+        The limit for the number of elements in a list.
+
+    Returns
+    -------
+    Any
+        The sanitized dictionary or list.
+    """
+    if isinstance(d, dict):
+        new_dict = {}
+        for key, value in d.items():
+            if isinstance(value, dict):
+                sanitized_value = _value_sanitize(value)
+                if (
+                    sanitized_value is not None
+                ):  # Check if the sanitized value is not None
+                    new_dict[key] = sanitized_value
+            elif isinstance(value, list):
+                if len(value) < list_limit:
+                    sanitized_value = _value_sanitize(value)
+                    if (
+                        sanitized_value is not None
+                    ):  # Check if the sanitized value is not None
+                        new_dict[key] = sanitized_value
+                # Do not include the key if the list is oversized
+            else:
+                new_dict[key] = value
+        return new_dict
+    elif isinstance(d, list):
+        if len(d) < list_limit:
+            return [
+                _value_sanitize(item) for item in d if _value_sanitize(item) is not None
+            ]
+        else:
+            return None
+    else:
+        return d
