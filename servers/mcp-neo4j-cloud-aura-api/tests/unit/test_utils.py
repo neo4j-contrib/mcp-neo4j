@@ -1,4 +1,4 @@
-from mcp_neo4j_aura_manager.server import _validate_region
+from mcp_neo4j_aura_manager.utils import _validate_region
 import pytest
 
 def test_validate_region_aws_valid():

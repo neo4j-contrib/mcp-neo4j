@@ -7,6 +7,7 @@
 * Create centralized logger config in `utils.py`
 
 ### Added
+* Add tool annotations to tools to better describe their effects
 
 ## v0.3.0
 

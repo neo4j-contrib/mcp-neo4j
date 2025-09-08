@@ -1,7 +1,7 @@
 import os
 import pytest
 import logging
-from mcp_neo4j_aura_manager.server import AuraAPIClient
+from mcp_neo4j_aura_manager.aura_api_client import AuraAPIClient
 import uuid
 import time
 
