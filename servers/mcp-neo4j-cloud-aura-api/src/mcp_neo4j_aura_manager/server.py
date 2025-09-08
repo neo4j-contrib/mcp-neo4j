@@ -1,6 +1,7 @@
 from typing import List, Optional, Literal
 
 from fastmcp.server import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .aura_manager import AuraManager
@@ -14,25 +15,49 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
     
     mcp: FastMCP = FastMCP("mcp-neo4j-aura-manager", dependencies=["requests", "pydantic"], stateless_http=True)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(title="List Instances",
+                                          readOnlyHint=True,
+                                          destructiveHint=False,
+                                          idempotentHint=True,
+                                          openWorldHint=True
+        
+    ))
     async def list_instances() -> dict:
         """List all Neo4j Aura database instances."""
         result = await aura_manager.list_instances()
         return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(title="Get Instance Details",
+                                          readOnlyHint=True,
+                                          destructiveHint=False,
+                                          idempotentHint=True,
+                                          openWorldHint=True
+        
+    ))
     async def get_instance_details(instance_ids: List[str]) -> dict:
         """Get details for one or more Neo4j Aura instances by ID."""
         result = await aura_manager.get_instance_details(instance_ids)
         return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(title="Get Instance by Name",
+                                          readOnlyHint=True,
+                                          destructiveHint=False,
+                                          idempotentHint=True,
+                                          openWorldHint=True
+        
+    ))
     async def get_instance_by_name(name: str) -> dict:
         """Find a Neo4j Aura instance by name and returns the details including the id."""
         result = await aura_manager.get_instance_by_name(name)
         return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(title="Create Instance",
+                                          readOnlyHint=False,
+                                          destructiveHint=False,
+                                          idempotentHint=True,
+                                          openWorldHint=True
+        
+    ))
     async def create_instance(
         tenant_id: str = Field(..., description="ID of the tenant/project where the instance will be created"),
         name: str = Field(..., description="Name for the new instance"),
@@ -58,49 +83,97 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
         )
         return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(title="Update Instance Name",
+                                          readOnlyHint=False,
+                                          destructiveHint=True,
+                                          idempotentHint=True,
+                                          openWorldHint=True
+        
+    ))
     async def update_instance_name(instance_id: str, name: str) -> dict:
         """Update the name of a Neo4j Aura instance."""
         result = await aura_manager.update_instance_name(instance_id, name)
         return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(title="Update Instance Memory",
+                                          readOnlyHint=False,
+                                          destructiveHint=True,
+                                          idempotentHint=True,
+                                          openWorldHint=True
+        
+    ))
     async def update_instance_memory(instance_id: str, memory: int) -> dict:
         """Update the memory allocation of a Neo4j Aura instance."""
         result = await aura_manager.update_instance_memory(instance_id, memory)
         return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(title="Update Instance Vector Optimization",
+                                          readOnlyHint=False,
+                                          destructiveHint=True,
+                                          idempotentHint=True,
+                                          openWorldHint=True
+        
+    ))
     async def update_instance_vector_optimization(instance_id: str, vector_optimized: bool) -> dict:
         """Update the vector optimization setting of a Neo4j Aura instance."""
         result = await aura_manager.update_instance_vector_optimization(instance_id, vector_optimized)
         return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(title="Pause Instance",
+                                          readOnlyHint=False,
+                                          destructiveHint=False,
+                                          idempotentHint=True,
+                                          openWorldHint=True
+        
+    ))
     async def pause_instance(instance_id: str) -> dict:
         """Pause a Neo4j Aura database instance."""
         result = await aura_manager.pause_instance(instance_id)
         return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(title="Resume Instance",
+                                          readOnlyHint=False,
+                                          destructiveHint=False,
+                                          idempotentHint=True,
+                                          openWorldHint=True
+        
+    ))
     async def resume_instance(instance_id: str) -> dict:
         """Resume a paused Neo4j Aura database instance."""
         result = await aura_manager.resume_instance(instance_id)
         return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(title="List Tenants",
+                                          readOnlyHint=True,
+                                          destructiveHint=False,
+                                          idempotentHint=True,
+                                          openWorldHint=True
+        
+    ))
     async def list_tenants() -> dict:
         """List all Neo4j Aura tenants/projects."""
         result = await aura_manager.list_tenants()
         return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(title="Get Tenant Details",
+                                          readOnlyHint=True,
+                                          destructiveHint=False,
+                                          idempotentHint=True,
+                                          openWorldHint=True
+        
+    ))
     async def get_tenant_details(tenant_id: str) -> dict:
         """Get details for a specific Neo4j Aura tenant/project."""
         result = await aura_manager.get_tenant_details(tenant_id)
         return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(title="Delete Instance",
+                                          readOnlyHint=False,
+                                          destructiveHint=True,
+                                          idempotentHint=True,
+                                          openWorldHint=True
+        
+    ))
     async def delete_instance(instance_id: str) -> dict:
         """Delete a Neo4j Aura database instance."""
         result = await aura_manager.delete_instance(instance_id)
