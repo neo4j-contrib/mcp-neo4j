@@ -6,6 +6,7 @@
 ### Changed
 * Update README with link to data modeling demo repo and workflow image
 * Update Dockerfile for Docker Hub deployment
+* Change default transport to `stdio` in Dockerfile
 
 ### Added
 
