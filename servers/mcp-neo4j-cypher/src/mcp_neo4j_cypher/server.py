@@ -10,6 +10,7 @@ from mcp.types import ToolAnnotations
 from neo4j import AsyncDriver, AsyncGraphDatabase, RoutingControl
 from neo4j.exceptions import ClientError, Neo4jError
 from pydantic import Field
+from .utils import _value_sanitize
 
 logger = logging.getLogger("mcp_neo4j_cypher")
 
@@ -180,8 +181,8 @@ def create_mcp_server(
                 database_=database,
                 result_transformer_=lambda r: r.data(),
             )
-
-            results_json_str = json.dumps(results, default=str)
+            sanitized_results = [_value_sanitize(el) for el in results]
+            results_json_str = json.dumps(sanitized_results, default=str)
 
             logger.debug(f"Read query returned {len(results_json_str)} rows")
 
