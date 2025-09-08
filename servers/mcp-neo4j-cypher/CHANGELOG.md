@@ -7,6 +7,7 @@
 
 ### Added
 * Added Cypher result sanitation function from Neo4j GraphRAG that removes embedding values from the result
+* Add response token limit for read Cypher responses
 
 ## v0.3.1
 

@@ -173,8 +173,8 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
     if args.token_limit is not None:
         config["token_limit"] = args.token_limit
     else:
-        if os.getenv("RESPONSE_TOKEN_LIMIT") is not None:
-            config["token_limit"] = int(os.getenv("RESPONSE_TOKEN_LIMIT"))
+        if os.getenv("NEO4J_RESPONSE_TOKEN_LIMIT") is not None:
+            config["token_limit"] = int(os.getenv("NEO4J_RESPONSE_TOKEN_LIMIT"))
         else:
             logger.info("Info: No token limit provided. No token limit will be used.")
             config["token_limit"] = None
@@ -243,13 +243,19 @@ def _truncate_string_to_tokens(
     """
     Truncates the input string to fit within the specified token limit.
 
-    Args:
-        text (str): The input text string.
-        token_limit (int): Maximum number of tokens allowed.
-        model (str): Model name (affects tokenization). Defaults to "gpt-4".
+    Parameters
+    ----------
+    text : str
+        The input text string.
+    token_limit : int
+        Maximum number of tokens allowed.
+    model : str
+        Model name (affects tokenization). Defaults to "gpt-4".
 
-    Returns:
-        str: The truncated string that fits within the token limit.
+    Returns
+    -------
+    str
+        The truncated string that fits within the token limit.
     """
     # Load encoding for the chosen model
     encoding = tiktoken.encoding_for_model(model)
