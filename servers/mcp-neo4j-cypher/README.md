@@ -75,14 +75,14 @@ docker run -p 8000:8000 \
 
 The server supports different transport protocols depending on your deployment:
 
-- **STDIO** (default for local development): Standard input/output for Claude Desktop and local tools
-- **HTTP** (default for Docker): RESTful HTTP for web deployments and microservices
+- **STDIO** (for local development): Standard input/output for Claude Desktop and local tools
+- **HTTP** (for remote deployments): RESTful HTTP for web deployments and microservices
 - **SSE**: Server-Sent Events for legacy web-based deployments
 
 Choose your transport based on use case:
 
 - **Local development/Claude Desktop**: Use `stdio`
-- **Docker/Remote deployment**: Use `http`
+- **Remote deployment**: Use `http`
 - **Legacy web clients**: Use `sse`
 
 ## 🔧 Usage with Claude Desktop
@@ -239,7 +239,7 @@ Here we use the Docker Hub hosted Cypher MCP server image with stdio transport f
 
 ## 🐳 Docker Deployment
 
-The Neo4j MCP server can be deployed using Docker for remote deployments. Docker deployment uses HTTP transport by default for web accessibility. In order to integrate this deployment with applications like Claude Desktop, you will have to use a proxy in your MCP configuration such as `mcp-remote`.
+The Neo4j MCP server can be deployed using Docker for remote deployments. Docker deployment should use HTTP transport for web accessibility. In order to integrate this deployment with applications like Claude Desktop, you will have to use a proxy in your MCP configuration such as `mcp-remote`.
 
 ### 📦 Using Your Built Image
 
