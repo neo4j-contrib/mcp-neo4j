@@ -168,7 +168,18 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
             )
             config["path"] = None
 
+    # parse read timeout
+    if args.read_timeout is not None:
+        config["read_timeout"] = args.read_timeout
+    else:
+        if os.getenv("NEO4J_READ_TIMEOUT") is not None:
+            config["read_timeout"] = int(os.getenv("NEO4J_READ_TIMEOUT"))
+        else:
+            logger.info("Info: No read timeout provided. Using default: 30 seconds")
+            config["read_timeout"] = 30
+
     return config
+
 
 def _value_sanitize(d: Any, list_limit: int = 128) -> Any:
     """
