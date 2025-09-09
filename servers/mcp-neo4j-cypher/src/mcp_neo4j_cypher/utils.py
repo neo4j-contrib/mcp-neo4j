@@ -167,19 +167,24 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
                 "Info: No server path provided and transport is `stdio`. `server_path` will be None."
             )
             config["path"] = None
-    
+
     # parse allow origins
     if args.allow_origins is not None:
         config["allow_origins"] = args.allow_origins
     else:
         if os.getenv("NEO4J_MCP_SERVER_ALLOW_ORIGINS") is not None:
             # split comma-separated string into list
-            config["allow_origins"] = os.getenv("NEO4J_MCP_SERVER_ALLOW_ORIGINS", "").split(",")
+            config["allow_origins"] = os.getenv(
+                "NEO4J_MCP_SERVER_ALLOW_ORIGINS", ""
+            ).split(",")
         else:
-            logger.info("Info: No allow origins provided. Defaulting to no allowed origins.")
+            logger.info(
+                "Info: No allow origins provided. Defaulting to no allowed origins."
+            )
             config["allow_origins"] = list()
 
     return config
+
 
 def _value_sanitize(d: Any, list_limit: int = 128) -> Any:
     """

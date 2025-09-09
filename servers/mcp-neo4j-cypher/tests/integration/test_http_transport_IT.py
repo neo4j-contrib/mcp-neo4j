@@ -245,6 +245,7 @@ async def test_http_full_workflow(http_server):
 
 # CORS Middleware Tests
 
+
 @pytest.mark.asyncio
 async def test_cors_preflight_empty_default_origins(http_server):
     """Test CORS preflight request with empty default allowed origins."""
@@ -259,7 +260,7 @@ async def test_cors_preflight_empty_default_origins(http_server):
         ) as response:
             print(f"CORS preflight response status: {response.status}")
             print(f"CORS preflight response headers: {dict(response.headers)}")
-            
+
             # Should return 400 when origin is not in allow_origins (empty list blocks all)
             assert response.status == 400
             # Should NOT allow any origin with empty default
@@ -279,7 +280,7 @@ async def test_cors_preflight_any_origin_blocked(http_server):
                 "Access-Control-Request-Headers": "content-type",
             },
         ) as response:
-            # Should return 400 when origin is blocked by empty allow_origins 
+            # Should return 400 when origin is blocked by empty allow_origins
             assert response.status == 400
             # Should not include CORS allow origin header for any origin
             cors_origin = response.headers.get("Access-Control-Allow-Origin")
@@ -300,7 +301,7 @@ async def test_cors_preflight_malicious_origin_blocked(http_server):
         ) as response:
             print(f"Malicious origin response status: {response.status}")
             print(f"Malicious origin response headers: {dict(response.headers)}")
-            
+
             # Should return 400 when malicious origin is blocked
             assert response.status == 400
             # Should not include CORS headers for any origins (empty default)
@@ -348,7 +349,7 @@ async def test_cors_actual_request_with_origin_blocked(http_server):
             assert response.status == 200
             cors_origin = response.headers.get("Access-Control-Allow-Origin")
             assert cors_origin is None
-            
+
             result = await parse_sse_response(response)
             assert "result" in result
             assert "tools" in result["result"]
@@ -357,7 +358,6 @@ async def test_cors_actual_request_with_origin_blocked(http_server):
 @pytest.mark.asyncio
 async def test_cors_restricted_server_allowed_origin(http_server_restricted_cors):
     """Test CORS with restricted server and allowed origin."""
-    session_id = str(uuid.uuid4())
     async with aiohttp.ClientSession() as session:
         async with session.options(
             "http://127.0.0.1:8003/mcp/",
@@ -367,32 +367,45 @@ async def test_cors_restricted_server_allowed_origin(http_server_restricted_cors
                 "Access-Control-Request-Headers": "content-type",
             },
         ) as response:
-            print(f"Restricted server allowed origin response status: {response.status}")
-            print(f"Restricted server allowed origin response headers: {dict(response.headers)}")
-            
+            print(
+                f"Restricted server allowed origin response status: {response.status}"
+            )
+            print(
+                f"Restricted server allowed origin response headers: {dict(response.headers)}"
+            )
+
             assert response.status == 200
             assert "Access-Control-Allow-Origin" in response.headers
-            assert response.headers["Access-Control-Allow-Origin"] == "http://localhost:3000"
+            assert (
+                response.headers["Access-Control-Allow-Origin"]
+                == "http://localhost:3000"
+            )
 
 
 @pytest.mark.asyncio
 async def test_cors_restricted_server_disallowed_origin(http_server_restricted_cors):
     """Test CORS with restricted server and disallowed origin."""
     async with aiohttp.ClientSession() as session:
-        async with session.options(
-            "http://127.0.0.1:8003/mcp/",
-            headers={
-                "Origin": "http://127.0.0.1:3000",  # This should be disallowed on restricted server
-                "Access-Control-Request-Method": "POST",
-                "Access-Control-Request-Headers": "content-type",
-            },
-        ) as response:
-            print(f"Restricted server disallowed origin response status: {response.status}")
-            print(f"Restricted server disallowed origin response headers: {dict(response.headers)}")
-            
+        async with (
+            session.options(
+                "http://127.0.0.1:8003/mcp/",
+                headers={
+                    "Origin": "http://127.0.0.1:3000",  # This should be disallowed on restricted server
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "content-type",
+                },
+            ) as response
+        ):
+            print(
+                f"Restricted server disallowed origin response status: {response.status}"
+            )
+            print(
+                f"Restricted server disallowed origin response headers: {dict(response.headers)}"
+            )
+
             # Should return 400 when origin is not in restricted allow_origins list
             assert response.status == 400
-            # Should not allow 127.0.0.1 on restricted server  
+            # Should not allow 127.0.0.1 on restricted server
             cors_origin = response.headers.get("Access-Control-Allow-Origin")
             assert cors_origin is None
 
@@ -411,4 +424,7 @@ async def test_cors_restricted_server_trusted_site(http_server_restricted_cors):
         ) as response:
             assert response.status == 200
             assert "Access-Control-Allow-Origin" in response.headers
-            assert response.headers["Access-Control-Allow-Origin"] == "https://trusted-site.com"
+            assert (
+                response.headers["Access-Control-Allow-Origin"]
+                == "https://trusted-site.com"
+            )

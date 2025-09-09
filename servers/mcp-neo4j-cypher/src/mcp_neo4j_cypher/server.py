@@ -285,7 +285,9 @@ async def main(
             logger.info(
                 f"Running Neo4j Cypher MCP Server with HTTP transport on {host}:{port}..."
             )
-            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware)
+            await mcp.run_http_async(
+                host=host, port=port, path=path, middleware=custom_middleware
+            )
         case "stdio":
             logger.info("Running Neo4j Cypher MCP Server with stdio transport...")
             await mcp.run_stdio_async()
