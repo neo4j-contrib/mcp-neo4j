@@ -7,6 +7,7 @@
 
 ### Added
 * Added Cypher result sanitation function from Neo4j GraphRAG that removes embedding values from the result
+* Added read query timeout configuration via `--read-timeout` CLI parameter and `NEO4J_READ_TIMEOUT` environment variable (defaults to 30 seconds)
 
 ## v0.3.1
 

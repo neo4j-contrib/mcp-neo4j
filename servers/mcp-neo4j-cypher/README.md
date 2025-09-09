@@ -30,6 +30,7 @@ The server offers these core tools:
     - `query` (string): The Cypher query to execute
     - `params` (dictionary, optional): Parameters to pass to the Cypher query
   - Returns: Query results as JSON serialized array of objects
+  - **Timeout**: Read queries are subject to a configurable timeout (default: 30 seconds) to prevent long-running queries from disrupting conversational flow
 
 - `write_neo4j_cypher`
   - Execute updating Cypher queries
@@ -37,6 +38,7 @@ The server offers these core tools:
     - `query` (string): The Cypher update query
     - `params` (dictionary, optional): Parameters to pass to the Cypher query
   - Returns: A JSON serialized result summary counter with `{ nodes_updated: number, relationships_created: number, ... }`
+  - **No Timeout**: Write queries are not subject to timeout restrictions to ensure data integrity
 
 #### 🕸️ Schema Tools
 
@@ -44,6 +46,7 @@ The server offers these core tools:
   - Get a list of all nodes types in the graph database, their attributes with name, type and relationships to other node types
   - No input required
   - Returns: JSON serialized list of node labels with two dictionaries: one for attributes and one for relationships
+  - **Timeout**: Schema queries are subject to the same configurable read timeout as other read operations
 
 ### 🏷️ Namespacing
 
@@ -167,7 +170,7 @@ In this setup:
 - The movies database tools will be prefixed with `movies-` (e.g., `movies-read_neo4j_cypher`)
 - The local database tools will be prefixed with `local-` (e.g., `local-get_neo4j_schema`)
 
-Syntax with `--db-url`, `--username`, `--password` and other command line arguments is still supported but environment variables are preferred:
+Syntax with `--db-url`, `--username`, `--password`, `--read-timeout` and other command line arguments is still supported but environment variables are preferred:
 
 <details>
   <summary>Legacy Syntax</summary>
@@ -267,6 +270,7 @@ docker run --rm -p 8000:8000 \
 | `NEO4J_USERNAME`        | `neo4j`                                 | Neo4j username                                 |
 | `NEO4J_PASSWORD`        | `password`                              | Neo4j password                                 |
 | `NEO4J_DATABASE`        | `neo4j`                                 | Neo4j database name                            |
+| `NEO4J_READ_TIMEOUT`    | `30`                                    | Timeout in seconds for read queries           |
 | `NEO4J_TRANSPORT`       | `stdio` (local), `http` (remote)        | Transport protocol (`stdio`, `http`, or `sse`) |
 | `NEO4J_NAMESPACE`       | _(empty)_                               | Tool namespace prefix                          |
 | `NEO4J_MCP_SERVER_HOST` | `127.0.0.1` (local)                     | Host to bind to                                |
