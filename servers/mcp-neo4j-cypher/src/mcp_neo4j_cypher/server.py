@@ -10,6 +10,9 @@ from mcp.types import ToolAnnotations
 from neo4j import AsyncDriver, AsyncGraphDatabase, RoutingControl
 from neo4j.exceptions import ClientError, Neo4jError
 from pydantic import Field
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+
 from .utils import _value_sanitize
 
 logger = logging.getLogger("mcp_neo4j_cypher")
@@ -254,6 +257,7 @@ async def main(
     host: str = "127.0.0.1",
     port: int = 8000,
     path: str = "/mcp/",
+    allow_origins: list[str] = [],
 ) -> None:
     logger.info("Starting MCP neo4j Server")
 
@@ -264,6 +268,14 @@ async def main(
             password,
         ),
     )
+    custom_middleware = [
+        Middleware(
+            CORSMiddleware,
+            allow_origins=allow_origins,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        ),
+    ]
 
     mcp = create_mcp_server(neo4j_driver, database, namespace)
 
@@ -273,7 +285,7 @@ async def main(
             logger.info(
                 f"Running Neo4j Cypher MCP Server with HTTP transport on {host}:{port}..."
             )
-            await mcp.run_http_async(host=host, port=port, path=path)
+            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware)
         case "stdio":
             logger.info("Running Neo4j Cypher MCP Server with stdio transport...")
             await mcp.run_stdio_async()

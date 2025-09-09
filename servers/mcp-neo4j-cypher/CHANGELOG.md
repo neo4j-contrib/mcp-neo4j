@@ -7,6 +7,7 @@
 
 ### Added
 * Added Cypher result sanitation function from Neo4j GraphRAG that removes embedding values from the result
+* Add env variable `NEO4J_MCP_SERVER_ALLOW_ORIGINS` and cli variable `--allow-origins` to configure CORS Middleware for remote deployments
 
 ## v0.3.1
 

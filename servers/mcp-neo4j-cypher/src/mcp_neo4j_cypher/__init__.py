@@ -21,6 +21,7 @@ def main():
     )
     parser.add_argument("--server-host", default=None, help="Server host")
     parser.add_argument("--server-port", default=None, help="Server port")
+    parser.add_argument("--allow-origins", default=None, help="Allow origins for remote servers (comma-separated list)")
 
     args = parser.parse_args()
     config = process_config(args)

@@ -20,6 +20,7 @@ def clean_env():
         "NEO4J_MCP_SERVER_HOST",
         "NEO4J_MCP_SERVER_PORT",
         "NEO4J_MCP_SERVER_PATH",
+        "NEO4J_MCP_SERVER_ALLOW_ORIGINS",
         "NEO4J_NAMESPACE",
     ]
     # Store original values
@@ -51,6 +52,7 @@ def args_factory():
             "server_host": None,
             "server_port": None,
             "server_path": None,
+            "allow_origins": None,
         }
         defaults.update(kwargs)
         return argparse.Namespace(**defaults)
@@ -336,3 +338,76 @@ def test_info_logging_stdio_transport(clean_env, args_factory, mock_logger):
     info_calls = [call.args[0] for call in mock_logger.info.call_args_list]
     stdio_info = [msg for msg in info_calls if "stdio" in msg]
     assert len(stdio_info) == 3  # host, port, path info messages
+
+
+# CORS allow_origins tests
+
+def test_allow_origins_cli_args(clean_env, args_factory):
+    """Test allow_origins configuration from CLI arguments."""
+    origins = ["http://localhost:3000", "https://trusted-site.com"]
+    args = args_factory(allow_origins=origins)
+    config = process_config(args)
+    
+    assert config["allow_origins"] == origins
+
+
+def test_allow_origins_env_var(clean_env, args_factory):
+    """Test allow_origins configuration from environment variable."""
+    origins_str = "http://localhost:3000,https://trusted-site.com"
+    expected_origins = ["http://localhost:3000", "https://trusted-site.com"]
+    os.environ["NEO4J_MCP_SERVER_ALLOW_ORIGINS"] = origins_str
+    
+    args = args_factory()
+    config = process_config(args)
+    
+    assert config["allow_origins"] == expected_origins
+
+
+def test_allow_origins_defaults(clean_env, args_factory, mock_logger):
+    """Test allow_origins uses empty list as default when not provided."""
+    args = args_factory()
+    config = process_config(args)
+    
+    assert config["allow_origins"] == []
+    
+    # Check that info message was logged about using defaults  
+    info_calls = [call.args[0] for call in mock_logger.info.call_args_list]
+    allow_origins_info = [msg for msg in info_calls if "allow origins" in msg and "Defaulting to no" in msg]
+    assert len(allow_origins_info) == 1
+
+
+def test_allow_origins_cli_overrides_env(clean_env, args_factory):
+    """Test that CLI allow_origins takes precedence over environment variable."""
+    os.environ["NEO4J_MCP_SERVER_ALLOW_ORIGINS"] = "http://env-site.com"
+    
+    cli_origins = ["http://cli-site.com", "https://cli-secure.com"]
+    args = args_factory(allow_origins=cli_origins)
+    config = process_config(args)
+    
+    assert config["allow_origins"] == cli_origins
+
+
+def test_allow_origins_empty_list(clean_env, args_factory):
+    """Test allow_origins with empty list from CLI."""
+    args = args_factory(allow_origins=[])
+    config = process_config(args)
+    
+    assert config["allow_origins"] == []
+
+
+def test_allow_origins_single_origin(clean_env, args_factory):
+    """Test allow_origins with single origin."""
+    single_origin = ["https://single-site.com"]
+    args = args_factory(allow_origins=single_origin)
+    config = process_config(args)
+    
+    assert config["allow_origins"] == single_origin
+
+
+def test_allow_origins_wildcard(clean_env, args_factory):
+    """Test allow_origins with wildcard."""
+    wildcard_origins = ["*"]
+    args = args_factory(allow_origins=wildcard_origins)
+    config = process_config(args)
+    
+    assert config["allow_origins"] == wildcard_origins

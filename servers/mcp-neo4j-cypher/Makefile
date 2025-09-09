@@ -8,7 +8,7 @@ test-integration:
 	uv run pytest tests/integration/ -v
 
 test-http:
-	uv run pytest tests/integration/test_http_transport.py -v
+	uv run pytest tests/integration/test_http_transport_IT.py -v
 
 test-all:
 	uv run pytest tests/ -v
