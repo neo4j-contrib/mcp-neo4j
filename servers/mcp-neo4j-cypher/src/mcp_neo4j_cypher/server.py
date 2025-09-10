@@ -12,6 +12,8 @@ from neo4j.exceptions import ClientError, Neo4jError
 from pydantic import Field
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from fastmcp.server.http import create_sse_app
 
 from .utils import _value_sanitize
 
@@ -258,6 +260,7 @@ async def main(
     port: int = 8000,
     path: str = "/mcp/",
     allow_origins: list[str] = [],
+    allowed_hosts: list[str] = [],
 ) -> None:
     logger.info("Starting MCP neo4j Server")
 
@@ -275,8 +278,10 @@ async def main(
             allow_methods=["GET", "POST"],
             allow_headers=["*"],
         ),
+        Middleware(TrustedHostMiddleware, 
+                   allowed_hosts=allowed_hosts)
     ]
-
+    
     mcp = create_mcp_server(neo4j_driver, database, namespace)
 
     # Run the server with the specified transport
@@ -295,7 +300,7 @@ async def main(
             logger.info(
                 f"Running Neo4j Cypher MCP Server with SSE transport on {host}:{port}..."
             )
-            await mcp.run_sse_async(host=host, port=port, path=path)
+            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware, transport="sse")
         case _:
             logger.error(
                 f"Invalid transport: {transport} | Must be either 'stdio', 'sse', or 'http'"

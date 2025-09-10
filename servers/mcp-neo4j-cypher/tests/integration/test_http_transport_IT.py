@@ -428,3 +428,115 @@ async def test_cors_restricted_server_trusted_site(http_server_restricted_cors):
                 response.headers["Access-Control-Allow-Origin"]
                 == "https://trusted-site.com"
             )
+
+
+@pytest.mark.asyncio
+async def test_dns_rebinding_protection_trusted_hosts(http_server):
+    """Test DNS rebinding protection with TrustedHostMiddleware - allowed hosts."""
+    session_id = str(uuid.uuid4())
+    async with aiohttp.ClientSession() as session:
+        # Test with localhost - should be allowed (in default allowed_hosts)
+        async with session.post(
+            "http://127.0.0.1:8001/mcp/",
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            headers={
+                "Accept": "application/json, text/event-stream", 
+                "Content-Type": "application/json",
+                "Host": "localhost:8001",
+                "mcp-session-id": session_id,
+            },
+        ) as response:
+            print(f"Trusted host (localhost) response status: {response.status}")
+            print(f"Trusted host (localhost) response headers: {dict(response.headers)}")
+            
+            # Should work with trusted host
+            assert response.status == 200
+            result = await parse_sse_response(response)
+            assert "result" in result
+            assert "tools" in result["result"]
+
+
+@pytest.mark.asyncio  
+async def test_dns_rebinding_protection_untrusted_hosts(http_server):
+    """Test DNS rebinding protection with TrustedHostMiddleware - untrusted hosts."""
+    session_id = str(uuid.uuid4())
+    async with aiohttp.ClientSession() as session:
+        # Test with malicious host - should be blocked
+        async with session.post(
+            "http://127.0.0.1:8001/mcp/",
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json", 
+                "Host": "malicious-site.evil",
+                "mcp-session-id": session_id,
+            },
+        ) as response:
+            print(f"Untrusted host response status: {response.status}")
+            print(f"Untrusted host response headers: {dict(response.headers)}")
+            
+            # Should block untrusted host (DNS rebinding protection)
+            assert response.status == 400
+
+
+@pytest.mark.asyncio
+async def test_dns_rebinding_custom_allowed_hosts(http_server_custom_hosts):
+    """Test DNS rebinding protection with custom allowed hosts configuration."""
+    session_id = str(uuid.uuid4())
+    async with aiohttp.ClientSession() as session:
+        # Test with custom allowed host - should work
+        async with session.post(
+            "http://127.0.0.1:8004/mcp/",
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "Host": "example.com",
+                "mcp-session-id": session_id,
+            },
+        ) as response:
+            print(f"Custom allowed host (example.com) response status: {response.status}")
+            print(f"Custom allowed host response headers: {dict(response.headers)}")
+            
+            # Should work with custom allowed host
+            assert response.status == 200
+            result = await parse_sse_response(response)
+            assert "result" in result
+            assert "tools" in result["result"]
+        
+        # Test with another custom allowed host with port - should work 
+        async with session.post(
+            "http://127.0.0.1:8004/mcp/",
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "Host": "test.local:8004",
+                "mcp-session-id": session_id,
+            },
+        ) as response:
+            print(f"Custom allowed host (test.local:8004) response status: {response.status}")
+            print(f"Custom allowed host response headers: {dict(response.headers)}")
+            
+            # Should work with custom allowed host 
+            assert response.status == 200
+            result = await parse_sse_response(response)
+            assert "result" in result
+            assert "tools" in result["result"]
+
+        # Test with localhost (not in custom allowed list) - should be blocked
+        async with session.post(
+            "http://127.0.0.1:8004/mcp/",
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "Host": "localhost:8004",
+                "mcp-session-id": session_id,
+            },
+        ) as response:
+            print(f"Localhost (not in custom allowed) response status: {response.status}")
+            print(f"Localhost response headers: {dict(response.headers)}")
+            
+            # Should block localhost when not in custom allowed hosts
+            assert response.status == 400

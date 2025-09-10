@@ -85,45 +85,60 @@ Choose your transport based on use case:
 - **Remote deployment**: Use `http`
 - **Legacy web clients**: Use `sse`
 
-## 🔒 CORS Security Protection
+## 🔒 Security Protection
 
-The server includes Cross-Origin Resource Sharing (CORS) protection that **blocks browser-based requests by default** while preserving full MCP functionality.
+The server includes comprehensive security protection with **secure defaults** that protect against common web-based attacks while preserving full MCP functionality when using HTTP transport.
 
-### 🛡️ How It Works
+### 🛡️ DNS Rebinding Protection
+
+**TrustedHost Middleware** validates Host headers to prevent DNS rebinding attacks:
 
 **Secure by Default:**
-- Browser requests from websites are blocked unless explicitly allowed
-- MCP connections (Claude Desktop, local tools) continue working normally
-- Only affects browsers - API clients and server-to-server calls work unchanged
-
-### ⚙️ Allowing Browser Access
-
-When you need to allow specific websites to access your server:
-
-**Command Line:**
-```bash
-mcp-neo4j-cypher --allow-origins "http://localhost:3000,https://myapp.com"
-```
+- Only `localhost` and `127.0.0.1` hosts are allowed by default
+- Malicious websites cannot trick browsers into accessing your local server
 
 **Environment Variable:**
 ```bash
-export NEO4J_MCP_SERVER_ALLOW_ORIGINS="http://localhost:3000,https://myapp.com"
+export NEO4J_MCP_SERVER_ALLOWED_HOSTS="yourdomain.com,www.yourdomain.com"
 ```
 
-**Docker:**
+### 🌐 CORS Protection
+
+**Cross-Origin Resource Sharing (CORS)** protection blocks browser-based requests by default:
+
+**Environment Variable:**
 ```bash
-docker run -e NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://myapp.com" mcp-neo4j-cypher:latest
+export NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://yourfrontend.com,https://youradmin.com"
 ```
 
-### 🔍 Testing Your Setup
+### 🔧 Complete Security Configuration
 
+**Development Setup:**
 ```bash
-# Should work (if localhost:3000 is allowed)
-curl -H "Origin: http://localhost:3000" -X OPTIONS http://localhost:8000/mcp/
-
-# Should be blocked (returns 400)
-curl -H "Origin: http://malicious-site.com" -X OPTIONS http://localhost:8000/mcp/
+mcp-neo4j-cypher --transport http \
+  --allowed-hosts "localhost,127.0.0.1" \
+  --allow-origins "http://localhost:3000"
 ```
+
+**Production Setup:**
+```bash
+mcp-neo4j-cypher --transport http \
+  --allowed-hosts "yourdomain.com,www.yourdomain.com" \
+  --allow-origins "https://yourfrontend.com,https://youradmin.com"
+```
+
+
+### 🚨 Security Best Practices
+
+**For `allow_origins`:**
+- Be specific: `["https://yourfrontend.com", "https://youradmin.com"]`
+- Never use `"*"` in production with credentials
+- Use HTTPS origins in production
+
+**For `allowed_hosts`:**
+- Include your actual domain: `["yourdomain.com", "www.yourdomain.com"]`
+- Include localhost only for development
+- Never use `"*"` unless you understand the risks
 
 ## 🔧 Usage with Claude Desktop
 
@@ -135,7 +150,7 @@ Download the latest `.dxt` file from the [releases page](https://github.com/neo4
 
 Can be found on PyPi https://pypi.org/project/mcp-neo4j-cypher/
 
-Add the server to your `claude_desktop_config.json` with the database connection configuration through environment variables. You may also specify the transport method and namespace with cli arguments or environment variables.
+Add the server to your `claude_desktop_config.json` with the database connection configuration through environment variables. You may also specify the transport method, namespace and other config variables with cli arguments or environment variables.
 
 ```json
 {
@@ -156,17 +171,24 @@ Add the server to your `claude_desktop_config.json` with the database connection
 
 ### 🌐 HTTP Transport Configuration
 
-For custom HTTP configurations beyond the defaults:
+For custom HTTP configurations with security middleware:
 
 ```bash
-# Custom HTTP configuration
-mcp-neo4j-cypher --transport http --server-host 127.0.0.1 --server-port 8080 --server-path /api/mcp/
+# Complete HTTP configuration with security
+mcp-neo4j-cypher --transport http \
+  --server-host 127.0.0.1 \
+  --server-port 8080 \
+  --server-path /api/mcp/ \
+  --allowed-hosts "localhost,127.0.0.1,yourdomain.com" \
+  --allow-origins "https://yourapp.com"
 
-# Or using environment variables
+# Using environment variables
 export NEO4J_TRANSPORT=http
 export NEO4J_MCP_SERVER_HOST=127.0.0.1
 export NEO4J_MCP_SERVER_PORT=8080
 export NEO4J_MCP_SERVER_PATH=/api/mcp/
+export NEO4J_MCP_SERVER_ALLOWED_HOSTS="localhost,127.0.0.1,yourdomain.com"
+export NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://yourapp.com"
 mcp-neo4j-cypher
 ```
 
@@ -297,22 +319,37 @@ docker run --rm -p 8000:8000 \
   -e NEO4J_MCP_SERVER_PORT="8000" \
   -e NEO4J_MCP_SERVER_PATH="/mcp/" \
   mcp/neo4j-cypher:latest
+
+# Run with security middleware for production
+docker run --rm -p 8000:8000 \
+  -e NEO4J_URI="bolt://host.docker.internal:7687" \
+  -e NEO4J_USERNAME="neo4j" \
+  -e NEO4J_PASSWORD="password" \
+  -e NEO4J_DATABASE="neo4j" \
+  -e NEO4J_TRANSPORT="http" \
+  -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
+  -e NEO4J_MCP_SERVER_PORT="8000" \
+  -e NEO4J_MCP_SERVER_PATH="/mcp/" \
+  -e NEO4J_MCP_SERVER_ALLOWED_HOSTS="yourdomain.com,www.yourdomain.com" \
+  -e NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://yourfrontend.com" \
+  mcp/neo4j-cypher:latest
 ```
 
 ### 🔧 Environment Variables
 
-| Variable                      | Default                                 | Description                                    |
-| ----------------------------- | --------------------------------------- | ---------------------------------------------- |
-| `NEO4J_URI`                   | `bolt://localhost:7687`                 | Neo4j connection URI                           |
-| `NEO4J_USERNAME`              | `neo4j`                                 | Neo4j username                                 |
-| `NEO4J_PASSWORD`              | `password`                              | Neo4j password                                 |
-| `NEO4J_DATABASE`              | `neo4j`                                 | Neo4j database name                            |
-| `NEO4J_TRANSPORT`             | `stdio` (local), `http` (remote)        | Transport protocol (`stdio`, `http`, or `sse`) |
-| `NEO4J_NAMESPACE`             | _(empty)_                               | Tool namespace prefix                          |
-| `NEO4J_MCP_SERVER_HOST`       | `127.0.0.1` (local)                     | Host to bind to                                |
-| `NEO4J_MCP_SERVER_PORT`       | `8000`                                  | Port for HTTP/SSE transport                    |
-| `NEO4J_MCP_SERVER_PATH`       | `/api/mcp/`                             | Path for accessing MCP server                  |
-| `NEO4J_MCP_SERVER_ALLOW_ORIGINS` | _(empty - secure by default)_        | Comma-separated list of allowed CORS origins  |
+| Variable                           | Default                                 | Description                                        |
+| ---------------------------------- | --------------------------------------- | -------------------------------------------------- |
+| `NEO4J_URI`                        | `bolt://localhost:7687`                 | Neo4j connection URI                               |
+| `NEO4J_USERNAME`                   | `neo4j`                                 | Neo4j username                                     |
+| `NEO4J_PASSWORD`                   | `password`                              | Neo4j password                                     |
+| `NEO4J_DATABASE`                   | `neo4j`                                 | Neo4j database name                                |
+| `NEO4J_TRANSPORT`                  | `stdio` (local), `http` (remote)        | Transport protocol (`stdio`, `http`, or `sse`)     |
+| `NEO4J_NAMESPACE`                  | _(empty)_                               | Tool namespace prefix                              |
+| `NEO4J_MCP_SERVER_HOST`            | `127.0.0.1` (local)                     | Host to bind to                                    |
+| `NEO4J_MCP_SERVER_PORT`            | `8000`                                  | Port for HTTP/SSE transport                        |
+| `NEO4J_MCP_SERVER_PATH`            | `/api/mcp/`                             | Path for accessing MCP server                      |
+| `NEO4J_MCP_SERVER_ALLOW_ORIGINS`   | _(empty - secure by default)_          | Comma-separated list of allowed CORS origins      |
+| `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                  | Comma-separated list of allowed hosts (DNS rebinding protection) |
 
 ### 🌐 SSE Transport for Legacy Web Access
 
