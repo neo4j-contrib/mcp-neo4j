@@ -31,7 +31,8 @@
         "NEO4J_NAMESPACE": "${user_config.neo4j_namespace}",
         "NEO4J_MCP_SERVER_HOST": "${user_config.mcp_server_host}",
         "NEO4J_MCP_SERVER_PORT": "${user_config.mcp_server_port}",
-        "NEO4J_MCP_SERVER_PATH": "${user_config.mcp_server_path}"
+        "NEO4J_MCP_SERVER_PATH": "${user_config.mcp_server_path}",
+        "NEO4J_MCP_SERVER_ALLOW_ORIGINS": "${user_config.mcp_server_allow_origins}"
       }
     }
   },
@@ -122,6 +123,14 @@
       "title": "MCP Server Path",
       "description": "The path for the MCP server, if not using stdio. Defaults to /mcp/",
       "default": "/mcp/",
+      "required": false,
+      "sensitive": false
+    },
+    "mcp_server_allow_origins": {
+      "type": "string",
+      "title": "MCP Server Allow Origins",
+      "description": "The allowed origins for the MCP server, if not using stdio. Defaults to empty list",
+      "default": "",
       "required": false,
       "sensitive": false
     }
