@@ -272,7 +272,7 @@ async def main(
         Middleware(
             CORSMiddleware,
             allow_origins=allow_origins,
-            allow_methods=["*"],
+            allow_methods=["GET", "POST"],
             allow_headers=["*"],
         ),
     ]
