@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from fastmcp.exceptions import ToolError
 from fastmcp.server import FastMCP
@@ -10,7 +10,7 @@ from mcp.types import ToolAnnotations
 from neo4j import AsyncDriver, AsyncGraphDatabase, RoutingControl, Query
 from neo4j.exceptions import ClientError, Neo4jError
 from pydantic import Field
-from .utils import _value_sanitize
+from .utils import _value_sanitize, _truncate_string_to_tokens
 
 logger = logging.getLogger("mcp_neo4j_cypher")
 
@@ -38,6 +38,7 @@ def create_mcp_server(
     database: str = "neo4j", 
     namespace: str = "",
     read_timeout: int = 30,
+    token_limit: Optional[int] = None,
 ) -> FastMCP:
     mcp: FastMCP = FastMCP(
         "mcp-neo4j-cypher", dependencies=["neo4j", "pydantic"], stateless_http=True
@@ -188,6 +189,10 @@ def create_mcp_server(
             )
             sanitized_results = [_value_sanitize(el) for el in results]
             results_json_str = json.dumps(sanitized_results, default=str)
+            if token_limit:
+                results_json_str = _truncate_string_to_tokens(
+                    results_json_str, token_limit
+                )
 
             logger.debug(f"Read query returned {len(results_json_str)} rows")
 
@@ -260,6 +265,7 @@ async def main(
     port: int = 8000,
     path: str = "/mcp/",
     read_timeout: int = 30,
+    token_limit: Optional[int] = None,
 ) -> None:
     logger.info("Starting MCP neo4j Server")
 
@@ -271,7 +277,7 @@ async def main(
         ),
     )
 
-    mcp = create_mcp_server(neo4j_driver, database, namespace, read_timeout)
+    mcp = create_mcp_server(neo4j_driver, database, namespace, read_timeout, token_limit)
 
     # Run the server with the specified transport
     match transport:

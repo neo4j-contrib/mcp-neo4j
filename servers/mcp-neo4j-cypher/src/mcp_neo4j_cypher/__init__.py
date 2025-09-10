@@ -27,6 +27,7 @@ def main():
         default=None, 
         help="Timeout in seconds for read queries (default: 30)"
     )
+    parser.add_argument("--token-limit", default=None, help="Response token limit")
 
     args = parser.parse_args()
     config = process_config(args)

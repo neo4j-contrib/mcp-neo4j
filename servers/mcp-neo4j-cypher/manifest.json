@@ -31,7 +31,8 @@
         "NEO4J_NAMESPACE": "${user_config.neo4j_namespace}",
         "NEO4J_MCP_SERVER_HOST": "${user_config.mcp_server_host}",
         "NEO4J_MCP_SERVER_PORT": "${user_config.mcp_server_port}",
-        "NEO4J_MCP_SERVER_PATH": "${user_config.mcp_server_path}"
+        "NEO4J_MCP_SERVER_PATH": "${user_config.mcp_server_path}",
+        "NEO4J_RESPONSE_TOKEN_LIMIT": "${user_config.token_limit}"
       }
     }
   },
@@ -122,6 +123,14 @@
       "title": "MCP Server Path",
       "description": "The path for the MCP server, if not using stdio. Defaults to /mcp/",
       "default": "/mcp/",
+      "required": false,
+      "sensitive": false
+    },
+    "token_limit": {
+      "type": "int",
+      "title": "Response token limit",
+      "description": "Optional response token limit for the read tool.",
+      "default": "",
       "required": false,
       "sensitive": false
     }
