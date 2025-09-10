@@ -3,8 +3,9 @@ import os
 from unittest.mock import patch
 
 import pytest
+import tiktoken
 
-from mcp_neo4j_cypher.utils import process_config
+from mcp_neo4j_cypher.utils import process_config, _truncate_string_to_tokens
 
 
 @pytest.fixture
@@ -21,6 +22,7 @@ def clean_env():
         "NEO4J_MCP_SERVER_PORT",
         "NEO4J_MCP_SERVER_PATH",
         "NEO4J_NAMESPACE",
+        "NEO4J_RESPONSE_TOKEN_LIMIT",
     ]
     # Store original values
     original_values = {}
@@ -51,6 +53,7 @@ def args_factory():
             "server_host": None,
             "server_port": None,
             "server_path": None,
+            "token_limit": None,
         }
         defaults.update(kwargs)
         return argparse.Namespace(**defaults)
@@ -336,3 +339,159 @@ def test_info_logging_stdio_transport(clean_env, args_factory, mock_logger):
     info_calls = [call.args[0] for call in mock_logger.info.call_args_list]
     stdio_info = [msg for msg in info_calls if "stdio" in msg]
     assert len(stdio_info) == 3  # host, port, path info messages
+
+
+def test_token_limit_cli_arg(clean_env, args_factory):
+    """Test that token_limit CLI argument is processed correctly."""
+    args = args_factory(token_limit=5000)
+    config = process_config(args)
+    
+    assert config["token_limit"] == 5000
+
+
+def test_token_limit_env_var(clean_env, args_factory):
+    """Test that token_limit environment variable is processed correctly."""
+    os.environ["NEO4J_RESPONSE_TOKEN_LIMIT"] = "3000"
+    
+    args = args_factory()
+    config = process_config(args)
+    
+    assert config["token_limit"] == 3000
+
+
+def test_token_limit_default_none(clean_env, args_factory, mock_logger):
+    """Test that token_limit defaults to None when not provided."""
+    args = args_factory()
+    config = process_config(args)
+    
+    assert config["token_limit"] is None
+    
+    # Check info message
+    info_calls = [call.args[0] for call in mock_logger.info.call_args_list]
+    token_limit_info = [msg for msg in info_calls if "token limit" in msg]
+    assert len(token_limit_info) == 1
+
+
+def test_token_limit_cli_overrides_env(clean_env, args_factory):
+    """Test that CLI token_limit takes precedence over environment variable."""
+    os.environ["NEO4J_RESPONSE_TOKEN_LIMIT"] = "2000"
+    
+    args = args_factory(token_limit=4000)
+    config = process_config(args)
+    
+    assert config["token_limit"] == 4000
+
+
+# Token truncation tests
+
+class TestTruncateStringToTokens:
+    """Test cases for _truncate_string_to_tokens function."""
+    
+    def test_short_string_not_truncated(self):
+        """Test that strings below token limit are not truncated."""
+        text = "Hello, world!"
+        token_limit = 100
+        
+        result = _truncate_string_to_tokens(text, token_limit)
+        
+        assert result == text
+    
+    def test_string_exactly_at_limit_not_truncated(self):
+        """Test that strings exactly at token limit are not truncated."""
+        text = "This is a test string."
+        encoding = tiktoken.encoding_for_model("gpt-4")
+        tokens = encoding.encode(text)
+        token_limit = len(tokens)
+        
+        result = _truncate_string_to_tokens(text, token_limit)
+        
+        assert result == text
+    
+    def test_long_string_truncated(self):
+        """Test that strings exceeding token limit are truncated."""
+        text = "This is a very long string that should definitely exceed the token limit. " * 10
+        token_limit = 20
+        
+        result = _truncate_string_to_tokens(text, token_limit)
+        
+        # Verify it's shorter than original
+        assert len(result) < len(text)
+        
+        # Verify it's within token limit
+        encoding = tiktoken.encoding_for_model("gpt-4")
+        result_tokens = encoding.encode(result)
+        assert len(result_tokens) <= token_limit
+    
+    def test_empty_string_handling(self):
+        """Test handling of empty strings."""
+        text = ""
+        token_limit = 10
+        
+        result = _truncate_string_to_tokens(text, token_limit)
+        
+        assert result == ""
+    
+    def test_single_character_handling(self):
+        """Test handling of single characters."""
+        text = "A"
+        token_limit = 10
+        
+        result = _truncate_string_to_tokens(text, token_limit)
+        
+        assert result == "A"
+    
+    def test_zero_token_limit(self):
+        """Test behavior with zero token limit."""
+        text = "Hello, world!"
+        token_limit = 0
+        
+        result = _truncate_string_to_tokens(text, token_limit)
+        
+        # Should return empty string when limit is 0
+        assert result == ""
+    
+    def test_json_data_truncation(self):
+        """Test truncation of JSON-like data typical of Neo4j responses."""
+        json_data = """[
+            {"name": "Alice", "age": 30, "city": "New York", "occupation": "Engineer"},
+            {"name": "Bob", "age": 25, "city": "San Francisco", "occupation": "Designer"},
+            {"name": "Charlie", "age": 35, "city": "Chicago", "occupation": "Manager"},
+            {"name": "Diana", "age": 28, "city": "Seattle", "occupation": "Developer"}
+        ]"""
+        token_limit = 30
+        
+        result = _truncate_string_to_tokens(json_data, token_limit)
+        
+        # Verify truncation occurred
+        assert len(result) < len(json_data)
+        
+        # Verify token limit respected
+        encoding = tiktoken.encoding_for_model("gpt-4")
+        result_tokens = encoding.encode(result)
+        assert len(result_tokens) <= token_limit
+    
+    def test_unicode_handling(self):
+        """Test handling of unicode characters."""
+        text = "Hello 🌍! This has unicode: café, naïve, 北京"
+        token_limit = 10
+        
+        result = _truncate_string_to_tokens(text, token_limit)
+        
+        # Should handle unicode properly
+        encoding = tiktoken.encoding_for_model("gpt-4")
+        result_tokens = encoding.encode(result)
+        assert len(result_tokens) <= token_limit
+        
+        # Result should be valid unicode
+        assert isinstance(result, str)
+    
+    def test_large_token_limit_no_truncation(self):
+        """Test with token limit much larger than text."""
+        text = "Short text."
+        token_limit = 10000  # Very large limit
+        
+        result = _truncate_string_to_tokens(text, token_limit)
+        
+        assert result == text
+    
+    

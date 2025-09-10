@@ -51,6 +51,37 @@ The server supports namespacing to allow multiple Neo4j MCP servers to be used s
 
 This is useful when you need to connect to multiple Neo4j databases or instances from the same session.
 
+### ⚙️ Query Configuration
+
+The server provides configuration options to optimize query performance and manage response sizes:
+
+#### 📏 Token Limits
+
+Control the maximum size of query responses to prevent overwhelming the AI model:
+
+**Command Line:**
+```bash
+mcp-neo4j-cypher --token-limit 4000
+```
+
+**Environment Variable:**
+```bash
+export NEO4J_RESPONSE_TOKEN_LIMIT=4000
+```
+
+**Docker:**
+```bash
+docker run -e NEO4J_RESPONSE_TOKEN_LIMIT=4000 mcp-neo4j-cypher:latest
+```
+
+When a response exceeds the token limit, it will be automatically truncated to fit within the specified limit using `tiktoken`. This ensures:
+
+- **Consistent Performance**: Responses stay within model context limits
+- **Cost Control**: Prevents excessive token usage in AI interactions  
+- **Reliability**: Large datasets don't break the conversation flow
+
+**Note**: Token limits only apply to `read_neo4j_cypher` responses. Schema queries and write operations return summary information and are not affected.
+
 ## 🏗️ Local Development & Deployment
 
 ### 🐳 Local Docker Development
@@ -261,17 +292,18 @@ docker run --rm -p 8000:8000 \
 
 ### 🔧 Environment Variables
 
-| Variable                | Default                                 | Description                                    |
-| ----------------------- | --------------------------------------- | ---------------------------------------------- |
-| `NEO4J_URI`             | `bolt://localhost:7687`                 | Neo4j connection URI                           |
-| `NEO4J_USERNAME`        | `neo4j`                                 | Neo4j username                                 |
-| `NEO4J_PASSWORD`        | `password`                              | Neo4j password                                 |
-| `NEO4J_DATABASE`        | `neo4j`                                 | Neo4j database name                            |
-| `NEO4J_TRANSPORT`       | `stdio` (local), `http` (remote)        | Transport protocol (`stdio`, `http`, or `sse`) |
-| `NEO4J_NAMESPACE`       | _(empty)_                               | Tool namespace prefix                          |
-| `NEO4J_MCP_SERVER_HOST` | `127.0.0.1` (local)                     | Host to bind to                                |
-| `NEO4J_MCP_SERVER_PORT` | `8000`                                  | Port for HTTP/SSE transport                    |
-| `NEO4J_MCP_SERVER_PATH` | `/api/mcp/`                             | Path for accessing MCP server                  |
+| Variable                      | Default                                 | Description                                    |
+| ----------------------------- | --------------------------------------- | ---------------------------------------------- |
+| `NEO4J_URI`                   | `bolt://localhost:7687`                 | Neo4j connection URI                           |
+| `NEO4J_USERNAME`              | `neo4j`                                 | Neo4j username                                 |
+| `NEO4J_PASSWORD`              | `password`                              | Neo4j password                                 |
+| `NEO4J_DATABASE`              | `neo4j`                                 | Neo4j database name                            |
+| `NEO4J_TRANSPORT`             | `stdio` (local), `http` (remote)        | Transport protocol (`stdio`, `http`, or `sse`) |
+| `NEO4J_NAMESPACE`             | _(empty)_                               | Tool namespace prefix                          |
+| `NEO4J_MCP_SERVER_HOST`       | `127.0.0.1` (local)                     | Host to bind to                                |
+| `NEO4J_MCP_SERVER_PORT`       | `8000`                                  | Port for HTTP/SSE transport                    |
+| `NEO4J_MCP_SERVER_PATH`       | `/api/mcp/`                             | Path for accessing MCP server                  |
+| `NEO4J_RESPONSE_TOKEN_LIMIT`  | _(none)_                                | Maximum tokens for read query responses        |
 
 ### 🌐 SSE Transport for Legacy Web Access
 
