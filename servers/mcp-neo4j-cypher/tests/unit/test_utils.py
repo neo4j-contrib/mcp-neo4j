@@ -392,6 +392,20 @@ def test_read_timeout_cli_overrides_env(clean_env, args_factory):
     
     assert config["read_timeout"] == 120
 
+def test_read_timeout_invalid_env_var(clean_env, args_factory, mock_logger):
+    """Test that invalid read_timeout environment variable is handled."""
+    os.environ["NEO4J_READ_TIMEOUT"] = "a"
+    
+    args = args_factory()
+    config = process_config(args)
+    
+    assert config["read_timeout"] == 30
+    
+    # Check that warning message was logged about invalid value
+    warning_calls = [call.args[0] for call in mock_logger.warning.call_args_list]
+    invalid_timeout_warning = [msg for msg in warning_calls if "Invalid read timeout" in msg]
+    assert len(invalid_timeout_warning) == 1
+
 
 def test_read_timeout_default_value(clean_env, args_factory, mock_logger):
     """Test that default read_timeout is used when not specified."""
