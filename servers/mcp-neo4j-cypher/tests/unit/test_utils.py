@@ -22,6 +22,7 @@ def clean_env():
         "NEO4J_MCP_SERVER_PORT",
         "NEO4J_MCP_SERVER_PATH",
         "NEO4J_MCP_SERVER_ALLOW_ORIGINS",
+        "NEO4J_MCP_SERVER_ALLOWED_HOSTS",
         "NEO4J_NAMESPACE",
         "NEO4J_READ_TIMEOUT",
         "NEO4J_RESPONSE_TOKEN_LIMIT",
@@ -56,6 +57,7 @@ def args_factory():
             "server_port": None,
             "server_path": None,
             "allow_origins": None,
+            "allowed_hosts": None,
             "read_timeout": None,
             "token_limit": None,
         }
@@ -355,11 +357,12 @@ def test_info_logging_stdio_transport(clean_env, args_factory, mock_logger):
 
 def test_allow_origins_cli_args(clean_env, args_factory):
     """Test allow_origins configuration from CLI arguments."""
-    origins = ["http://localhost:3000", "https://trusted-site.com"]
+    origins = "http://localhost:3000,https://trusted-site.com"
+    expected_origins = ["http://localhost:3000", "https://trusted-site.com"]
     args = args_factory(allow_origins=origins)
     config = process_config(args)
 
-    assert config["allow_origins"] == origins
+    assert config["allow_origins"] == expected_origins
 
 
 def test_allow_origins_env_var(clean_env, args_factory):
@@ -395,16 +398,17 @@ def test_allow_origins_cli_overrides_env(clean_env, args_factory):
     """Test that CLI allow_origins takes precedence over environment variable."""
     os.environ["NEO4J_MCP_SERVER_ALLOW_ORIGINS"] = "http://env-site.com"
 
-    cli_origins = ["http://cli-site.com", "https://cli-secure.com"]
+    cli_origins = "http://cli-site.com,https://cli-secure.com"
+    expected_origins = ["http://cli-site.com", "https://cli-secure.com"]
     args = args_factory(allow_origins=cli_origins)
     config = process_config(args)
 
-    assert config["allow_origins"] == cli_origins
+    assert config["allow_origins"] == expected_origins
 
 
 def test_allow_origins_empty_list(clean_env, args_factory):
     """Test allow_origins with empty list from CLI."""
-    args = args_factory(allow_origins=[])
+    args = args_factory(allow_origins="")
     config = process_config(args)
 
     assert config["allow_origins"] == []
@@ -412,20 +416,21 @@ def test_allow_origins_empty_list(clean_env, args_factory):
 
 def test_allow_origins_single_origin(clean_env, args_factory):
     """Test allow_origins with single origin."""
-    single_origin = ["https://single-site.com"]
+    single_origin = "https://single-site.com"
     args = args_factory(allow_origins=single_origin)
     config = process_config(args)
 
-    assert config["allow_origins"] == single_origin
+    assert config["allow_origins"] == [single_origin]
 
 
 def test_allow_origins_wildcard(clean_env, args_factory):
     """Test allow_origins with wildcard."""
-    wildcard_origins = ["*"]
+    wildcard_origins = "*"
     args = args_factory(allow_origins=wildcard_origins)
     config = process_config(args)
 
-    assert config["allow_origins"] == wildcard_origins
+    assert config["allow_origins"] == [wildcard_origins]
+
 def test_read_timeout_cli_arg(clean_env, args_factory):
     """Test that read_timeout CLI argument is properly processed."""
     args = args_factory(read_timeout=60)

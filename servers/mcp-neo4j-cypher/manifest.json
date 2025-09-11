@@ -133,6 +133,10 @@
       "type": "string",
       "title": "MCP Server Allow Origins",
       "description": "The allowed origins for the MCP server as a comma-separated list, if not using stdio. Defaults to no allowed origins",
+      "default": "",
+      "required": false,
+      "sensitive": false
+    },
     "token_limit": {
       "type": "number",
       "title": "Response token limit",
@@ -146,6 +150,9 @@
       "title": "MCP Server Allowed Hosts",
       "description": "The allowed hosts for the MCP server as a comma-separated list, if not using stdio. Defaults to localhost and 127.0.0.1",
       "default": "localhost,127.0.0.1",
+      "required": false,
+      "sensitive": false
+    },
     "read_timeout": {
       "type": "number",
       "title": "Read timeout",
