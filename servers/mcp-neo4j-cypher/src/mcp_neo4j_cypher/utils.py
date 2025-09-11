@@ -1,3 +1,5 @@
+import tiktoken
+
 import argparse
 import logging
 import os
@@ -204,6 +206,37 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
                 "Info: No allowed hosts provided. Defaulting to secure mode - only localhost and 127.0.0.1 allowed."
             )
             config["allowed_hosts"] = ["localhost", "127.0.0.1"]
+            
+    # parse token limit
+    if args.token_limit is not None:
+        config["token_limit"] = args.token_limit
+    else:
+        if os.getenv("NEO4J_RESPONSE_TOKEN_LIMIT") is not None:
+            config["token_limit"] = int(os.getenv("NEO4J_RESPONSE_TOKEN_LIMIT"))
+            logger.info(
+                f"Info: Cypher read query token limit provided. Using provided value: {config['token_limit']} tokens"
+            )
+        else:
+            logger.info("Info: No token limit provided. No token limit will be used.")
+            config["token_limit"] = None
+
+    # parse read timeout
+    if args.read_timeout is not None:
+        config["read_timeout"] = args.read_timeout
+    else:
+        if os.getenv("NEO4J_READ_TIMEOUT") is not None:
+            try:
+                config["read_timeout"] = int(os.getenv("NEO4J_READ_TIMEOUT"))
+                logger.info(
+                    f"Info: Cypher read query timeout provided. Using provided value: {config['read_timeout']} seconds"
+                )
+                config["read_timeout"] = config["read_timeout"]
+            except ValueError:
+                logger.warning("Warning: Invalid read timeout provided. Using default: 30 seconds")
+                config["read_timeout"] = 30
+        else:
+            logger.info("Info: No read timeout provided. Using default: 30 seconds")
+            config["read_timeout"] = 30
 
     return config
 
@@ -261,3 +294,37 @@ def _value_sanitize(d: Any, list_limit: int = 128) -> Any:
             return None
     else:
         return d
+
+def _truncate_string_to_tokens(
+    text: str, token_limit: int, model: str = "gpt-4"
+) -> str:
+    """
+    Truncates the input string to fit within the specified token limit.
+
+    Parameters
+    ----------
+    text : str
+        The input text string.
+    token_limit : int
+        Maximum number of tokens allowed.
+    model : str
+        Model name (affects tokenization). Defaults to "gpt-4".
+
+    Returns
+    -------
+    str
+        The truncated string that fits within the token limit.
+    """
+    # Load encoding for the chosen model
+    encoding = tiktoken.encoding_for_model(model)
+
+    # Encode text into tokens
+    tokens = encoding.encode(text)
+
+    # Truncate tokens if they exceed the limit
+    if len(tokens) > token_limit:
+        tokens = tokens[:token_limit]
+
+    # Decode back into text
+    truncated_text = encoding.decode(tokens)
+    return truncated_text

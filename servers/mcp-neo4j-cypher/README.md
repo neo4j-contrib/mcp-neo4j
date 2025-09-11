@@ -30,6 +30,7 @@ The server offers these core tools:
     - `query` (string): The Cypher query to execute
     - `params` (dictionary, optional): Parameters to pass to the Cypher query
   - Returns: Query results as JSON serialized array of objects
+  - **Timeout**: Read queries are subject to a configurable timeout (default: 30 seconds) to prevent long-running queries from disrupting conversational flow
 
 - `write_neo4j_cypher`
   - Execute updating Cypher queries
@@ -50,6 +51,58 @@ The server offers these core tools:
 The server supports namespacing to allow multiple Neo4j MCP servers to be used simultaneously. When a namespace is provided, all tool names are prefixed with the namespace followed by a hyphen (e.g., `mydb-read_neo4j_cypher`).
 
 This is useful when you need to connect to multiple Neo4j databases or instances from the same session.
+
+### ⚙️ Query Configuration
+
+The server provides configuration options to optimize query performance and manage response sizes:
+
+#### ⏱️ Query Timeouts
+
+Configure timeouts for read queries to prevent long-running queries from disrupting conversational flow:
+
+**Command Line:**
+```bash
+mcp-neo4j-cypher --read-timeout 60  # 60 seconds
+```
+
+**Environment Variable:**
+```bash
+export NEO4J_READ_TIMEOUT=60
+```
+
+**Docker:**
+```bash
+docker run -e NEO4J_READ_TIMEOUT=60 mcp-neo4j-cypher:latest
+```
+
+**Default**: 30 seconds. Read queries that exceed this timeout will be automatically cancelled to maintain responsive interactions with AI models.
+
+#### 📏 Token Limits
+
+Control the maximum size of query responses to prevent overwhelming the AI model:
+
+**Command Line:**
+```bash
+mcp-neo4j-cypher --token-limit 4000
+```
+
+**Environment Variable:**
+```bash
+export NEO4J_RESPONSE_TOKEN_LIMIT=4000
+```
+
+**Docker:**
+```bash
+docker run -e NEO4J_RESPONSE_TOKEN_LIMIT=4000 mcp-neo4j-cypher:latest
+```
+
+When a response exceeds the token limit, it will be automatically truncated to fit within the specified limit using `tiktoken`. This ensures:
+
+- **Consistent Performance**: Responses stay within model context limits
+- **Cost Control**: Prevents excessive token usage in AI interactions  
+- **Reliability**: Large datasets don't break the conversation flow
+
+**Note**: Token limits only apply to `read_neo4j_cypher` responses. Schema queries and write operations return summary information and are not affected.
 
 ## 🏗️ Local Development & Deployment
 
@@ -229,7 +282,7 @@ In this setup:
 - The movies database tools will be prefixed with `movies-` (e.g., `movies-read_neo4j_cypher`)
 - The local database tools will be prefixed with `local-` (e.g., `local-get_neo4j_schema`)
 
-Syntax with `--db-url`, `--username`, `--password` and other command line arguments is still supported but environment variables are preferred:
+Syntax with `--db-url`, `--username`, `--password`, `--read-timeout` and other command line arguments is still supported but environment variables are preferred:
 
 <details>
   <summary>Legacy Syntax</summary>
@@ -348,8 +401,10 @@ docker run --rm -p 8000:8000 \
 | `NEO4J_MCP_SERVER_HOST`            | `127.0.0.1` (local)                     | Host to bind to                                    |
 | `NEO4J_MCP_SERVER_PORT`            | `8000`                                  | Port for HTTP/SSE transport                        |
 | `NEO4J_MCP_SERVER_PATH`            | `/api/mcp/`                             | Path for accessing MCP server                      |
-| `NEO4J_MCP_SERVER_ALLOW_ORIGINS`   | _(empty - secure by default)_          | Comma-separated list of allowed CORS origins      |
-| `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                  | Comma-separated list of allowed hosts (DNS rebinding protection) |
+| `NEO4J_MCP_SERVER_ALLOW_ORIGINS`   | _(empty - secure by default)_           | Comma-separated list of allowed CORS origins       |
+| `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
+| `NEO4J_RESPONSE_TOKEN_LIMIT`       | _(none)_                                | Maximum tokens for read query responses            |
+| `NEO4J_READ_TIMEOUT`               | `30`                                    | Timeout in seconds for read queries                |
 
 ### 🌐 SSE Transport for Legacy Web Access
 

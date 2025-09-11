@@ -10,6 +10,8 @@
 * Add env variable `NEO4J_MCP_SERVER_ALLOW_ORIGINS` and cli variable `--allow-origins` to configure CORS Middleware for remote deployments
 * Add env variable `NEO4J_MCP_SERVER_ALLOWED_HOSTS` and cli variable `--allowed-hosts` to configure Trusted Hosts Middleware for remote deployments
 * Update HTTP and SSE transports to use security middleware
+* Added `read_neo4j_cypher` query timeout configuration via `--read-timeout` CLI parameter and `NEO4J_READ_TIMEOUT` environment variable (defaults to 30 seconds)
+* Add response token limit for read Cypher responses
 
 ## v0.3.1
 
