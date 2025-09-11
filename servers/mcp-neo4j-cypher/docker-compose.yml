@@ -27,6 +27,7 @@ services:
       - NEO4J_NAMESPACE=local
       - NEO4J_MCP_SERVER_ALLOWED_HOSTS=localhost,127.0.0.1
       - NEO4J_MCP_SERVER_ALLOW_ORIGINS=""
+      - NEO4J_READ_TIMEOUT="30"
     depends_on:
       - neo4j
 
