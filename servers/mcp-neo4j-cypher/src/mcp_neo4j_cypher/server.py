@@ -10,6 +10,11 @@ from mcp.types import ToolAnnotations
 from neo4j import AsyncDriver, AsyncGraphDatabase, RoutingControl, Query
 from neo4j.exceptions import ClientError, Neo4jError
 from pydantic import Field
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+from .utils import _value_sanitize
 from .utils import _value_sanitize, _truncate_string_to_tokens
 
 logger = logging.getLogger("mcp_neo4j_cypher")
@@ -263,6 +268,8 @@ async def main(
     host: str = "127.0.0.1",
     port: int = 8000,
     path: str = "/mcp/",
+    allow_origins: list[str] = [],
+    allowed_hosts: list[str] = [],
     read_timeout: int = 30,
     token_limit: Optional[int] = None,
 ) -> None:
@@ -275,7 +282,17 @@ async def main(
             password,
         ),
     )
-
+    custom_middleware = [
+        Middleware(
+            CORSMiddleware,
+            allow_origins=allow_origins,
+            allow_methods=["GET", "POST"],
+            allow_headers=["*"],
+        ),
+        Middleware(TrustedHostMiddleware, 
+                   allowed_hosts=allowed_hosts)
+    ]
+    
     mcp = create_mcp_server(neo4j_driver, database, namespace, read_timeout, token_limit)
 
     # Run the server with the specified transport
@@ -284,7 +301,9 @@ async def main(
             logger.info(
                 f"Running Neo4j Cypher MCP Server with HTTP transport on {host}:{port}..."
             )
-            await mcp.run_http_async(host=host, port=port, path=path)
+            await mcp.run_http_async(
+                host=host, port=port, path=path, middleware=custom_middleware
+            )
         case "stdio":
             logger.info("Running Neo4j Cypher MCP Server with stdio transport...")
             await mcp.run_stdio_async()
@@ -292,7 +311,7 @@ async def main(
             logger.info(
                 f"Running Neo4j Cypher MCP Server with SSE transport on {host}:{port}..."
             )
-            await mcp.run_sse_async(host=host, port=port, path=path)
+            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware, transport="sse")
         case _:
             logger.error(
                 f"Invalid transport: {transport} | Must be either 'stdio', 'sse', or 'http'"

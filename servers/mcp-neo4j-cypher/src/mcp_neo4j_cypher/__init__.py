@@ -22,6 +22,16 @@ def main():
     parser.add_argument("--server-host", default=None, help="Server host")
     parser.add_argument("--server-port", default=None, help="Server port")
     parser.add_argument(
+        "--allow-origins",
+        default=None,
+        help="Allow origins for remote servers (comma-separated list)",
+    )
+    parser.add_argument(
+        "--allowed-hosts",
+        default=None,
+        help="Allowed hosts for DNS rebinding protection on remote servers(comma-separated list)",
+    )
+    parser.add_argument(
         "--read-timeout", 
         type=int, 
         default=None, 

@@ -32,6 +32,8 @@
         "NEO4J_MCP_SERVER_HOST": "${user_config.mcp_server_host}",
         "NEO4J_MCP_SERVER_PORT": "${user_config.mcp_server_port}",
         "NEO4J_MCP_SERVER_PATH": "${user_config.mcp_server_path}",
+        "NEO4J_MCP_SERVER_ALLOW_ORIGINS": "${user_config.mcp_server_allow_origins}",
+        "NEO4J_MCP_SERVER_ALLOWED_HOSTS": "${user_config.mcp_server_allowed_hosts}",
         "NEO4J_RESPONSE_TOKEN_LIMIT": "${user_config.token_limit}",
         "NEO4J_READ_TIMEOUT": "${user_config.read_timeout}"
       }
@@ -127,11 +129,27 @@
       "required": false,
       "sensitive": false
     },
+    "mcp_server_allow_origins": {
+      "type": "string",
+      "title": "MCP Server Allow Origins",
+      "description": "The allowed origins for the MCP server as a comma-separated list, if not using stdio. Defaults to no allowed origins",
+      "default": "",
+      "required": false,
+      "sensitive": false
+    },
     "token_limit": {
       "type": "number",
       "title": "Response token limit",
       "description": "Optional response token limit for the read tool.",
       "default": "",
+      "required": false,
+      "sensitive": false
+    },
+    "mcp_server_allowed_hosts": {
+      "type": "string",
+      "title": "MCP Server Allowed Hosts",
+      "description": "The allowed hosts for the MCP server as a comma-separated list, if not using stdio. Defaults to localhost and 127.0.0.1",
+      "default": "localhost,127.0.0.1",
       "required": false,
       "sensitive": false
     },

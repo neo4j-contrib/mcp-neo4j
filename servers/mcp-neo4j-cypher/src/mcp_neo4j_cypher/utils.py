@@ -170,6 +170,43 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
             )
             config["path"] = None
 
+    # parse allow origins
+    if args.allow_origins is not None:
+        # Handle comma-separated string from CLI
+     
+        config["allow_origins"] = [origin.strip() for origin in args.allow_origins.split(",") if origin.strip()]
+
+    else:
+        if os.getenv("NEO4J_MCP_SERVER_ALLOW_ORIGINS") is not None:
+            # split comma-separated string into list
+            config["allow_origins"] = [
+                origin.strip() for origin in os.getenv("NEO4J_MCP_SERVER_ALLOW_ORIGINS", "").split(",") 
+                if origin.strip()
+            ]
+        else:
+            logger.info(
+                "Info: No allow origins provided. Defaulting to no allowed origins."
+            )
+            config["allow_origins"] = list()
+
+    # parse allowed hosts for DNS rebinding protection
+    if args.allowed_hosts is not None:
+        # Handle comma-separated string from CLI
+        config["allowed_hosts"] = [host.strip() for host in args.allowed_hosts.split(",") if host.strip()]
+      
+    else:
+        if os.getenv("NEO4J_MCP_SERVER_ALLOWED_HOSTS") is not None:
+            # split comma-separated string into list
+            config["allowed_hosts"] = [
+                host.strip() for host in os.getenv("NEO4J_MCP_SERVER_ALLOWED_HOSTS", "").split(",") 
+                if host.strip()
+            ]
+        else:
+            logger.info(
+                "Info: No allowed hosts provided. Defaulting to secure mode - only localhost and 127.0.0.1 allowed."
+            )
+            config["allowed_hosts"] = ["localhost", "127.0.0.1"]
+            
     # parse token limit
     if args.token_limit is not None:
         config["token_limit"] = args.token_limit
@@ -257,7 +294,6 @@ def _value_sanitize(d: Any, list_limit: int = 128) -> Any:
             return None
     else:
         return d
-
 
 def _truncate_string_to_tokens(
     text: str, token_limit: int, model: str = "gpt-4"
