@@ -22,6 +22,7 @@ def clean_env():
         "NEO4J_MCP_SERVER_PORT",
         "NEO4J_MCP_SERVER_PATH",
         "NEO4J_NAMESPACE",
+        "NEO4J_READ_TIMEOUT",
         "NEO4J_RESPONSE_TOKEN_LIMIT",
     ]
     # Store original values
@@ -53,6 +54,7 @@ def args_factory():
             "server_host": None,
             "server_port": None,
             "server_path": None,
+            "read_timeout": None,
             "token_limit": None,
         }
         defaults.update(kwargs)
@@ -81,6 +83,7 @@ def sample_cli_args(args_factory):
         server_port=9000,
         server_path="/test/",
         namespace="testnamespace",
+        read_timeout=120,
     )
 
 
@@ -97,6 +100,7 @@ def sample_env_vars():
         "NEO4J_MCP_SERVER_PORT": "8080",
         "NEO4J_MCP_SERVER_PATH": "/env/",
         "NEO4J_NAMESPACE": "envnamespace",
+        "NEO4J_READ_TIMEOUT": "45",
     }
 
 
@@ -122,6 +126,7 @@ def expected_defaults():
         "port": None,
         "path": None,
         "namespace": "",
+        "read_timeout": 30,
     }
 
 
@@ -138,6 +143,7 @@ def test_all_cli_args_provided(clean_env, sample_cli_args):
     assert config["port"] == 9000
     assert config["path"] == "/test/"
     assert config["namespace"] == "testnamespace"
+    assert config["read_timeout"] == 120
 
 
 def test_all_env_vars_provided(clean_env, set_env_vars, args_factory):
@@ -154,6 +160,7 @@ def test_all_env_vars_provided(clean_env, set_env_vars, args_factory):
     assert config["port"] == 8080
     assert config["path"] == "/env/"
     assert config["namespace"] == "envnamespace"
+    assert config["read_timeout"] == 45
 
 
 def test_cli_args_override_env_vars(clean_env, args_factory):
@@ -341,6 +348,23 @@ def test_info_logging_stdio_transport(clean_env, args_factory, mock_logger):
     assert len(stdio_info) == 3  # host, port, path info messages
 
 
+def test_read_timeout_cli_arg(clean_env, args_factory):
+    """Test that read_timeout CLI argument is properly processed."""
+    args = args_factory(read_timeout=60)
+    config = process_config(args)
+    
+    assert config["read_timeout"] == 60
+
+
+def test_read_timeout_env_var(clean_env, args_factory):
+    """Test that NEO4J_READ_TIMEOUT environment variable is properly processed."""
+    os.environ["NEO4J_READ_TIMEOUT"] = "90"
+
+    args = args_factory()
+    config = process_config(args)
+    
+    assert config["read_timeout"] == 90
+
 def test_token_limit_cli_arg(clean_env, args_factory):
     """Test that token_limit CLI argument is processed correctly."""
     args = args_factory(token_limit=5000)
@@ -357,6 +381,44 @@ def test_token_limit_env_var(clean_env, args_factory):
     config = process_config(args)
     
     assert config["token_limit"] == 3000
+
+
+def test_read_timeout_cli_overrides_env(clean_env, args_factory):
+    """Test that CLI read_timeout argument overrides environment variable."""
+    os.environ["NEO4J_READ_TIMEOUT"] = "90"
+    
+    args = args_factory(read_timeout=120)
+    config = process_config(args)
+    
+    assert config["read_timeout"] == 120
+
+def test_read_timeout_invalid_env_var(clean_env, args_factory, mock_logger):
+    """Test that invalid read_timeout environment variable is handled."""
+    os.environ["NEO4J_READ_TIMEOUT"] = "a"
+    
+    args = args_factory()
+    config = process_config(args)
+    
+    assert config["read_timeout"] == 30
+    
+    # Check that warning message was logged about invalid value
+    warning_calls = [call.args[0] for call in mock_logger.warning.call_args_list]
+    invalid_timeout_warning = [msg for msg in warning_calls if "Invalid read timeout" in msg]
+    assert len(invalid_timeout_warning) == 1
+
+
+def test_read_timeout_default_value(clean_env, args_factory, mock_logger):
+    """Test that default read_timeout is used when not specified."""
+    args = args_factory()
+    config = process_config(args)
+    
+    assert config["read_timeout"] == 30
+    
+    # Check that info message was logged about default
+    info_calls = [call.args[0] for call in mock_logger.info.call_args_list]
+    timeout_info = [msg for msg in info_calls if "read timeout" in msg and "default" in msg]
+    assert len(timeout_info) == 1
+    assert config["read_timeout"] == 30
 
 
 def test_token_limit_default_none(clean_env, args_factory, mock_logger):

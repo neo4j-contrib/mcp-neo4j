@@ -21,6 +21,12 @@ def main():
     )
     parser.add_argument("--server-host", default=None, help="Server host")
     parser.add_argument("--server-port", default=None, help="Server port")
+    parser.add_argument(
+        "--read-timeout", 
+        type=int, 
+        default=None, 
+        help="Timeout in seconds for read queries (default: 30)"
+    )
     parser.add_argument("--token-limit", default=None, help="Response token limit")
 
     args = parser.parse_args()

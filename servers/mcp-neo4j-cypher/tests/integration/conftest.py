@@ -53,6 +53,14 @@ async def mcp_server(async_neo4j_driver):
     return mcp
 
 
+@pytest_asyncio.fixture(scope="function")
+async def mcp_server_short_timeout(async_neo4j_driver):
+    """MCP server with a very short timeout for testing timeout behavior."""
+    mcp = create_mcp_server(async_neo4j_driver, "neo4j", read_timeout=0.01)
+
+    return mcp
+
+
 @pytest.fixture(scope="function")
 def init_data(setup: Neo4jContainer, clear_data: Any):
     with setup.get_driver().session(database="neo4j") as session:

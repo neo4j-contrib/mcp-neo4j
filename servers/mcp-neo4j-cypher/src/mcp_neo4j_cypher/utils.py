@@ -169,15 +169,37 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
                 "Info: No server path provided and transport is `stdio`. `server_path` will be None."
             )
             config["path"] = None
+
     # parse token limit
     if args.token_limit is not None:
         config["token_limit"] = args.token_limit
     else:
         if os.getenv("NEO4J_RESPONSE_TOKEN_LIMIT") is not None:
             config["token_limit"] = int(os.getenv("NEO4J_RESPONSE_TOKEN_LIMIT"))
+            logger.info(
+                f"Info: Cypher read query token limit provided. Using provided value: {config['token_limit']} tokens"
+            )
         else:
             logger.info("Info: No token limit provided. No token limit will be used.")
             config["token_limit"] = None
+
+    # parse read timeout
+    if args.read_timeout is not None:
+        config["read_timeout"] = args.read_timeout
+    else:
+        if os.getenv("NEO4J_READ_TIMEOUT") is not None:
+            try:
+                config["read_timeout"] = int(os.getenv("NEO4J_READ_TIMEOUT"))
+                logger.info(
+                    f"Info: Cypher read query timeout provided. Using provided value: {config['read_timeout']} seconds"
+                )
+                config["read_timeout"] = config["read_timeout"]
+            except ValueError:
+                logger.warning("Warning: Invalid read timeout provided. Using default: 30 seconds")
+                config["read_timeout"] = 30
+        else:
+            logger.info("Info: No read timeout provided. Using default: 30 seconds")
+            config["read_timeout"] = 30
 
     return config
 

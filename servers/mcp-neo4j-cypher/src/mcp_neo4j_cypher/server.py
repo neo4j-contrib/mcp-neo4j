@@ -7,7 +7,7 @@ from fastmcp.exceptions import ToolError
 from fastmcp.server import FastMCP
 from fastmcp.tools.tool import TextContent, ToolResult
 from mcp.types import ToolAnnotations
-from neo4j import AsyncDriver, AsyncGraphDatabase, RoutingControl
+from neo4j import AsyncDriver, AsyncGraphDatabase, RoutingControl, Query
 from neo4j.exceptions import ClientError, Neo4jError
 from pydantic import Field
 from .utils import _value_sanitize, _truncate_string_to_tokens
@@ -34,9 +34,10 @@ def _is_write_query(query: str) -> bool:
 
 
 def create_mcp_server(
-    neo4j_driver: AsyncDriver,
-    database: str = "neo4j",
+    neo4j_driver: AsyncDriver, 
+    database: str = "neo4j", 
     namespace: str = "",
+    read_timeout: int = 30,
     token_limit: Optional[int] = None,
 ) -> FastMCP:
     mcp: FastMCP = FastMCP(
@@ -177,8 +178,9 @@ def create_mcp_server(
             raise ValueError("Only MATCH queries are allowed for read-query")
 
         try:
+            query_obj = Query(query, timeout=float(read_timeout))
             results = await neo4j_driver.execute_query(
-                query,
+                query_obj,
                 parameters_=params,
                 routing_control=RoutingControl.READ,
                 database_=database,
@@ -261,6 +263,7 @@ async def main(
     host: str = "127.0.0.1",
     port: int = 8000,
     path: str = "/mcp/",
+    read_timeout: int = 30,
     token_limit: Optional[int] = None,
 ) -> None:
     logger.info("Starting MCP neo4j Server")
@@ -273,7 +276,7 @@ async def main(
         ),
     )
 
-    mcp = create_mcp_server(neo4j_driver, database, namespace, token_limit)
+    mcp = create_mcp_server(neo4j_driver, database, namespace, read_timeout, token_limit)
 
     # Run the server with the specified transport
     match transport:
