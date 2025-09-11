@@ -99,7 +99,7 @@ The server includes comprehensive security protection with **secure defaults** t
 
 **Environment Variable:**
 ```bash
-export NEO4J_MCP_SERVER_ALLOWED_HOSTS="yourdomain.com,www.yourdomain.com"
+export NEO4J_MCP_SERVER_ALLOWED_HOSTS="example.com,www.example.com"
 ```
 
 ### 🌐 CORS Protection
@@ -108,7 +108,7 @@ export NEO4J_MCP_SERVER_ALLOWED_HOSTS="yourdomain.com,www.yourdomain.com"
 
 **Environment Variable:**
 ```bash
-export NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://yourfrontend.com,https://youradmin.com"
+export NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://example.com,https://example.com"
 ```
 
 ### 🔧 Complete Security Configuration
@@ -123,20 +123,20 @@ mcp-neo4j-cypher --transport http \
 **Production Setup:**
 ```bash
 mcp-neo4j-cypher --transport http \
-  --allowed-hosts "yourdomain.com,www.yourdomain.com" \
-  --allow-origins "https://yourfrontend.com,https://youradmin.com"
+  --allowed-hosts "example.com,www.example.com" \
+  --allow-origins "https://example.com,https://example.com"
 ```
 
 
 ### 🚨 Security Best Practices
 
 **For `allow_origins`:**
-- Be specific: `["https://yourfrontend.com", "https://youradmin.com"]`
+- Be specific: `["https://example.com", "https://example.com"]`
 - Never use `"*"` in production with credentials
 - Use HTTPS origins in production
 
 **For `allowed_hosts`:**
-- Include your actual domain: `["yourdomain.com", "www.yourdomain.com"]`
+- Include your actual domain: `["example.com", "www.example.com"]`
 - Include localhost only for development
 - Never use `"*"` unless you understand the risks
 
@@ -179,7 +179,7 @@ mcp-neo4j-cypher --transport http \
   --server-host 127.0.0.1 \
   --server-port 8080 \
   --server-path /api/mcp/ \
-  --allowed-hosts "localhost,127.0.0.1,yourdomain.com" \
+  --allowed-hosts "localhost,127.0.0.1,example.com" \
   --allow-origins "https://yourapp.com"
 
 # Using environment variables
@@ -187,7 +187,7 @@ export NEO4J_TRANSPORT=http
 export NEO4J_MCP_SERVER_HOST=127.0.0.1
 export NEO4J_MCP_SERVER_PORT=8080
 export NEO4J_MCP_SERVER_PATH=/api/mcp/
-export NEO4J_MCP_SERVER_ALLOWED_HOSTS="localhost,127.0.0.1,yourdomain.com"
+export NEO4J_MCP_SERVER_ALLOWED_HOSTS="localhost,127.0.0.1,example.com"
 export NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://yourapp.com"
 mcp-neo4j-cypher
 ```
@@ -330,8 +330,8 @@ docker run --rm -p 8000:8000 \
   -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
   -e NEO4J_MCP_SERVER_PORT="8000" \
   -e NEO4J_MCP_SERVER_PATH="/mcp/" \
-  -e NEO4J_MCP_SERVER_ALLOWED_HOSTS="yourdomain.com,www.yourdomain.com" \
-  -e NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://yourfrontend.com" \
+  -e NEO4J_MCP_SERVER_ALLOWED_HOSTS="example.com,www.example.com" \
+  -e NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://example.com" \
   mcp/neo4j-cypher:latest
 ```
 
