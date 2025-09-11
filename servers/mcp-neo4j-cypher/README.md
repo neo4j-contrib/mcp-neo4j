@@ -38,7 +38,6 @@ The server offers these core tools:
     - `query` (string): The Cypher update query
     - `params` (dictionary, optional): Parameters to pass to the Cypher query
   - Returns: A JSON serialized result summary counter with `{ nodes_updated: number, relationships_created: number, ... }`
-  - **No Timeout**: Write queries are not subject to timeout restrictions to ensure data integrity
 
 #### 🕸️ Schema Tools
 
@@ -46,7 +45,6 @@ The server offers these core tools:
   - Get a list of all nodes types in the graph database, their attributes with name, type and relationships to other node types
   - No input required
   - Returns: JSON serialized list of node labels with two dictionaries: one for attributes and one for relationships
-  - **Timeout**: Schema queries are subject to the same configurable read timeout as other read operations
 
 ### 🏷️ Namespacing
 
@@ -57,6 +55,27 @@ This is useful when you need to connect to multiple Neo4j databases or instances
 ### ⚙️ Query Configuration
 
 The server provides configuration options to optimize query performance and manage response sizes:
+
+#### ⏱️ Query Timeouts
+
+Configure timeouts for read queries to prevent long-running queries from disrupting conversational flow:
+
+**Command Line:**
+```bash
+mcp-neo4j-cypher --read-timeout 60  # 60 seconds
+```
+
+**Environment Variable:**
+```bash
+export NEO4J_READ_TIMEOUT=60
+```
+
+**Docker:**
+```bash
+docker run -e NEO4J_READ_TIMEOUT=60 mcp-neo4j-cypher:latest
+```
+
+**Default**: 30 seconds. Read queries that exceed this timeout will be automatically cancelled to maintain responsive interactions with AI models.
 
 #### 📏 Token Limits
 

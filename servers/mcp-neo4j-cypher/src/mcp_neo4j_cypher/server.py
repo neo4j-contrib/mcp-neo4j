@@ -126,9 +126,8 @@ def create_mcp_server(
             return cleaned
 
         try:
-            query_obj = Query(get_schema_query, timeout=float(read_timeout))
             results_json_str = await neo4j_driver.execute_query(
-                query_obj,
+                get_schema_query,
                 routing_control=RoutingControl.READ,
                 database_=database,
                 result_transformer_=lambda r: r.data(),
