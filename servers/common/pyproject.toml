@@ -1,0 +1,13 @@
+[project]
+name = "common"
+version = "0.1.0"
+description = "Common utilities and middleware for MCP Neo4j servers"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "starlette>=0.40.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
