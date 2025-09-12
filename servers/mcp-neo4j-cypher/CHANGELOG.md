@@ -3,6 +3,8 @@
 ### Fixed
 
 ### Changed
+* Move middleware and config processing code to shared common package
+* Update Cypher MCP server to use common package provided middleware and argument / environment variable processing
 
 ### Added
 
