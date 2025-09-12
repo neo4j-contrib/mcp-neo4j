@@ -9,12 +9,12 @@ from starlette.middleware.cors import CORSMiddleware
 def create_cors_middleware(allow_origins: list[str]) -> Middleware:
     """
     Create CORS middleware with specified allowed origins.
-    
+
     Parameters
     ----------
     allow_origins : list[str]
         List of allowed origins for CORS requests
-        
+
     Returns
     -------
     Middleware
