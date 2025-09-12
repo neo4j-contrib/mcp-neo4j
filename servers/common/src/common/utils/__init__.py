@@ -17,6 +17,7 @@ from .arg_processing import (
     process_transport,
     process_username,
 )
+from .namespace import format_namespace
 
 __all__ = [
     "process_db_url",
@@ -32,4 +33,5 @@ __all__ = [
     "process_allowed_hosts",
     "process_token_limit",
     "process_read_timeout",
+    "format_namespace",
 ]

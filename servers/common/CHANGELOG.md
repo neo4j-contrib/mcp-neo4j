@@ -4,5 +4,6 @@
 
 ### Changed
 * Move middleware and config processing code from Cypher MCP into Common package
+* Move namespace function from Cypher MCP server into Common package
 
 ### Added

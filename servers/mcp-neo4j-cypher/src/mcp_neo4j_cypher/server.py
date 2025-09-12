@@ -11,20 +11,11 @@ from neo4j import AsyncDriver, AsyncGraphDatabase, RoutingControl, Query
 from neo4j.exceptions import ClientError, Neo4jError
 from pydantic import Field
 from common.middleware import create_cors_middleware, create_trusted_host_middleware
+from common.utils import format_namespace
 
 from .utils import _value_sanitize, _truncate_string_to_tokens
 
 logger = logging.getLogger("mcp_neo4j_cypher")
-
-
-def _format_namespace(namespace: str) -> str:
-    if namespace:
-        if namespace.endswith("-"):
-            return namespace
-        else:
-            return namespace + "-"
-    else:
-        return ""
 
 
 def _is_write_query(query: str) -> bool:
@@ -46,7 +37,7 @@ def create_mcp_server(
         "mcp-neo4j-cypher", dependencies=["neo4j", "pydantic"], stateless_http=True
     )
 
-    namespace_prefix = _format_namespace(namespace)
+    namespace_prefix = format_namespace(namespace)
 
     @mcp.tool(
         name=namespace_prefix + "get_neo4j_schema",
