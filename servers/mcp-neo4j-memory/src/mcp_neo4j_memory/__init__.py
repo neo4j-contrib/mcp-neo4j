@@ -19,6 +19,8 @@ def main():
     parser.add_argument("--server-host", default=None, help="HTTP host (default: 127.0.0.1)")
     parser.add_argument("--server-port", type=int, default=None, help="HTTP port (default: 8000)")
     parser.add_argument("--server-path", default=None, help="HTTP path (default: /mcp/)")
+    parser.add_argument("--allow-origins", default=None, help="Comma-separated list of allowed CORS origins")
+    parser.add_argument("--allowed-hosts", default=None, help="Comma-separated list of allowed hosts for DNS rebinding protection")
     
     args = parser.parse_args()
     config = process_config(args)

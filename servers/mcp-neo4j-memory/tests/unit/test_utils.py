@@ -10,9 +10,10 @@ from mcp_neo4j_memory.utils import process_config
 def clean_env():
     """Fixture to clean environment variables before each test."""
     env_vars = [
-        "NEO4J_URL", "NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD", 
-        "NEO4J_DATABASE", "NEO4J_TRANSPORT", "NEO4J_MCP_SERVER_HOST", 
-        "NEO4J_MCP_SERVER_PORT", "NEO4J_MCP_SERVER_PATH"
+        "NEO4J_URL", "NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD",
+        "NEO4J_DATABASE", "NEO4J_TRANSPORT", "NEO4J_MCP_SERVER_HOST",
+        "NEO4J_MCP_SERVER_PORT", "NEO4J_MCP_SERVER_PATH",
+        "NEO4J_MCP_SERVER_ALLOW_ORIGINS", "NEO4J_MCP_SERVER_ALLOWED_HOSTS"
     ]
     # Store original values
     original_values = {}
@@ -41,6 +42,8 @@ def args_factory():
             "server_host": None,
             "server_port": None,
             "server_path": None,
+            "allow_origins": None,
+            "allowed_hosts": None,
         }
         defaults.update(kwargs)
         return argparse.Namespace(**defaults)
@@ -65,7 +68,9 @@ def sample_cli_args(args_factory):
         transport="http",
         server_host="localhost",
         server_port=9000,
-        server_path="/test/"
+        server_path="/test/",
+        allow_origins="http://localhost:3000,https://trusted-site.com",
+        allowed_hosts="localhost,127.0.0.1,example.com"
     )
 
 
@@ -80,7 +85,9 @@ def sample_env_vars():
         "NEO4J_TRANSPORT": "sse",
         "NEO4J_MCP_SERVER_HOST": "envhost",
         "NEO4J_MCP_SERVER_PORT": "8080",
-        "NEO4J_MCP_SERVER_PATH": "/env/"
+        "NEO4J_MCP_SERVER_PATH": "/env/",
+        "NEO4J_MCP_SERVER_ALLOW_ORIGINS": "http://env-site.com,https://env-secure.com",
+        "NEO4J_MCP_SERVER_ALLOWED_HOSTS": "envhost.com,api.envhost.com"
     }
 
 
@@ -105,13 +112,15 @@ def expected_defaults():
         "host": None,
         "port": None,
         "path": None,
+        "allow_origins": [],
+        "allowed_hosts": ["localhost", "127.0.0.1"],
     }
 
 
 def test_all_cli_args_provided(clean_env, sample_cli_args):
     """Test when all CLI arguments are provided."""
     config = process_config(sample_cli_args)
-    
+
     assert config["neo4j_uri"] == "bolt://test:7687"
     assert config["neo4j_user"] == "testuser"
     assert config["neo4j_password"] == "testpass"
@@ -120,13 +129,15 @@ def test_all_cli_args_provided(clean_env, sample_cli_args):
     assert config["host"] == "localhost"
     assert config["port"] == 9000
     assert config["path"] == "/test/"
+    assert config["allow_origins"] == ["http://localhost:3000", "https://trusted-site.com"]
+    assert config["allowed_hosts"] == ["localhost", "127.0.0.1", "example.com"]
 
 
 def test_all_env_vars_provided(clean_env, set_env_vars, args_factory):
     """Test when all environment variables are provided."""
     args = args_factory()
     config = process_config(args)
-    
+
     assert config["neo4j_uri"] == "bolt://env:7687"
     assert config["neo4j_user"] == "envuser"
     assert config["neo4j_password"] == "envpass"
@@ -135,6 +146,8 @@ def test_all_env_vars_provided(clean_env, set_env_vars, args_factory):
     assert config["host"] == "envhost"
     assert config["port"] == 8080
     assert config["path"] == "/env/"
+    assert config["allow_origins"] == ["http://env-site.com", "https://env-secure.com"]
+    assert config["allowed_hosts"] == ["envhost.com", "api.envhost.com"]
 
 
 def test_cli_args_override_env_vars(clean_env, args_factory):
@@ -295,8 +308,147 @@ def test_info_logging_stdio_transport(clean_env, args_factory, mock_logger):
     """Test that info messages are logged for stdio transport when appropriate."""
     args = args_factory(transport="stdio")
     config = process_config(args)
-    
+
     # Check for info messages about stdio transport
     info_calls = [call.args[0] for call in mock_logger.info.call_args_list]
     stdio_info = [msg for msg in info_calls if "stdio" in msg]
     assert len(stdio_info) == 3  # host, port, path info messages
+
+
+# Security middleware tests
+
+
+def test_allow_origins_cli_args(clean_env, args_factory):
+    """Test allow_origins configuration from CLI arguments."""
+    origins = "http://localhost:3000,https://trusted-site.com"
+    expected_origins = ["http://localhost:3000", "https://trusted-site.com"]
+    args = args_factory(allow_origins=origins)
+    config = process_config(args)
+
+    assert config["allow_origins"] == expected_origins
+
+
+def test_allow_origins_env_var(clean_env, args_factory):
+    """Test allow_origins configuration from environment variable."""
+    origins_str = "http://localhost:3000,https://trusted-site.com"
+    expected_origins = ["http://localhost:3000", "https://trusted-site.com"]
+    os.environ["NEO4J_MCP_SERVER_ALLOW_ORIGINS"] = origins_str
+
+    args = args_factory()
+    config = process_config(args)
+
+    assert config["allow_origins"] == expected_origins
+
+
+def test_allow_origins_defaults(clean_env, args_factory, mock_logger):
+    """Test allow_origins uses empty list as default when not provided."""
+    args = args_factory()
+    config = process_config(args)
+
+    assert config["allow_origins"] == []
+
+    # Check that info message was logged about using defaults
+    info_calls = [call.args[0] for call in mock_logger.info.call_args_list]
+    allow_origins_info = [
+        msg
+        for msg in info_calls
+        if "allow origins" in msg and "Defaulting to no" in msg
+    ]
+    assert len(allow_origins_info) == 1
+
+
+def test_allow_origins_cli_overrides_env(clean_env, args_factory):
+    """Test that CLI allow_origins takes precedence over environment variable."""
+    os.environ["NEO4J_MCP_SERVER_ALLOW_ORIGINS"] = "http://env-site.com"
+
+    cli_origins = "http://cli-site.com,https://cli-secure.com"
+    expected_origins = ["http://cli-site.com", "https://cli-secure.com"]
+    args = args_factory(allow_origins=cli_origins)
+    config = process_config(args)
+
+    assert config["allow_origins"] == expected_origins
+
+
+def test_allow_origins_empty_list(clean_env, args_factory):
+    """Test allow_origins with empty list from CLI."""
+    args = args_factory(allow_origins="")
+    config = process_config(args)
+
+    assert config["allow_origins"] == []
+
+
+def test_allow_origins_single_origin(clean_env, args_factory):
+    """Test allow_origins with single origin."""
+    single_origin = "https://single-site.com"
+    args = args_factory(allow_origins=single_origin)
+    config = process_config(args)
+
+    assert config["allow_origins"] == [single_origin]
+
+
+def test_allowed_hosts_cli_args(clean_env, args_factory):
+    """Test allowed_hosts configuration from CLI arguments."""
+    hosts = "example.com,www.example.com,api.example.com"
+    expected_hosts = ["example.com", "www.example.com", "api.example.com"]
+    args = args_factory(allowed_hosts=hosts)
+    config = process_config(args)
+
+    assert config["allowed_hosts"] == expected_hosts
+
+
+def test_allowed_hosts_env_var(clean_env, args_factory):
+    """Test allowed_hosts configuration from environment variable."""
+    hosts_str = "example.com,www.example.com"
+    expected_hosts = ["example.com", "www.example.com"]
+    os.environ["NEO4J_MCP_SERVER_ALLOWED_HOSTS"] = hosts_str
+
+    args = args_factory()
+    config = process_config(args)
+
+    assert config["allowed_hosts"] == expected_hosts
+
+
+def test_allowed_hosts_defaults(clean_env, args_factory, mock_logger):
+    """Test allowed_hosts uses secure defaults when not provided."""
+    args = args_factory()
+    config = process_config(args)
+
+    assert config["allowed_hosts"] == ["localhost", "127.0.0.1"]
+
+    # Check that info message was logged about secure defaults
+    info_calls = [call.args[0] for call in mock_logger.info.call_args_list]
+    allowed_hosts_info = [
+        msg
+        for msg in info_calls
+        if "allowed hosts" in msg and "secure mode" in msg
+    ]
+    assert len(allowed_hosts_info) == 1
+
+
+def test_allowed_hosts_cli_overrides_env(clean_env, args_factory):
+    """Test that CLI allowed_hosts takes precedence over environment variable."""
+    os.environ["NEO4J_MCP_SERVER_ALLOWED_HOSTS"] = "env-host.com"
+
+    cli_hosts = "cli-host.com,api.cli-host.com"
+    expected_hosts = ["cli-host.com", "api.cli-host.com"]
+    args = args_factory(allowed_hosts=cli_hosts)
+    config = process_config(args)
+
+    assert config["allowed_hosts"] == expected_hosts
+
+
+def test_allowed_hosts_empty_list(clean_env, args_factory):
+    """Test allowed_hosts with empty list from CLI."""
+    args = args_factory(allowed_hosts="")
+    config = process_config(args)
+
+    assert config["allowed_hosts"] == []
+
+
+def test_allowed_hosts_single_host(clean_env, args_factory):
+    """Test allowed_hosts with single host."""
+    single_host = "single-host.com"
+    args = args_factory(allowed_hosts=single_host)
+    config = process_config(args)
+
+    assert config["allowed_hosts"] == [single_host]
