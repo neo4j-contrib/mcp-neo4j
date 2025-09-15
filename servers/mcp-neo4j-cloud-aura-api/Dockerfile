@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir hatchling
 COPY pyproject.toml /app/
 
 # Install runtime dependencies
-RUN pip install --no-cache-dir fastmcp>=2.0.0 requests>=2.31.0
+RUN pip install --no-cache-dir fastmcp>=2.0.0 requests>=2.31.0 starlette>=0.40.0
 
 # Copy the source code
 COPY src/ /app/src/
