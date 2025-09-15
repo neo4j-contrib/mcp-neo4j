@@ -9,6 +9,9 @@
 
 ### Added
 * Add tool annotations to tools to better describe their effects
+* Add security middleware (CORS and TrustedHost protection) for HTTP transport
+* Add `--allow-origins` and `--allowed-hosts` command line arguments
+* Add security environment variables: `NEO4J_MCP_SERVER_ALLOW_ORIGINS` and `NEO4J_MCP_SERVER_ALLOWED_HOSTS`
 
 ## v0.3.0
 
