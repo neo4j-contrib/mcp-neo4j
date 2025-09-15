@@ -195,6 +195,134 @@ The server supports three transport modes:
 }
 ```
 
+## 🔒 Security Protection
+
+The server includes comprehensive security protection with **secure defaults** that protect against common web-based attacks while preserving full MCP functionality when using HTTP transport.
+
+### 🛡️ DNS Rebinding Protection
+
+**TrustedHost Middleware** validates Host headers to prevent DNS rebinding attacks:
+
+**Secure by Default:**
+- Only `localhost` and `127.0.0.1` hosts are allowed by default
+
+**Environment Variable:**
+```bash
+export NEO4J_MCP_SERVER_ALLOWED_HOSTS="example.com,www.example.com"
+```
+
+### 🌐 CORS Protection
+
+**Cross-Origin Resource Sharing (CORS)** protection blocks browser-based requests by default:
+
+**Environment Variable:**
+```bash
+export NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://example.com,https://app.example.com"
+```
+
+### 🔧 Complete Security Configuration
+
+**Development Setup:**
+```bash
+mcp-neo4j-memory --transport http \
+  --allowed-hosts "localhost,127.0.0.1" \
+  --allow-origins "http://localhost:3000"
+```
+
+**Production Setup:**
+```bash
+mcp-neo4j-memory --transport http \
+  --allowed-hosts "example.com,www.example.com" \
+  --allow-origins "https://example.com,https://app.example.com"
+```
+
+### 🚨 Security Best Practices
+
+**For `allow_origins`:**
+- Be specific: `["https://example.com", "https://example.com"]`
+- Never use `"*"` in production with credentials
+- Use HTTPS origins in production
+
+**For `allowed_hosts`:**
+- Include your actual domain: `["example.com", "www.example.com"]`
+- Include localhost only for development
+- Never use `"*"` unless you understand the risks
+
+## 🐳 Docker Deployment
+
+The Neo4j Memory MCP server can be deployed using Docker for remote deployments. Docker deployment should use HTTP transport for web accessibility. In order to integrate this deployment with applications like Claude Desktop, you will have to use a proxy in your MCP configuration such as `mcp-remote`.
+
+### 📦 Using Your Built Image
+
+After building locally with `docker build -t mcp-neo4j-memory:latest .`:
+
+```bash
+# Run with http transport (default for Docker)
+docker run --rm -p 8000:8000 \
+  -e NEO4J_URI="bolt://host.docker.internal:7687" \
+  -e NEO4J_USERNAME="neo4j" \
+  -e NEO4J_PASSWORD="password" \
+  -e NEO4J_DATABASE="neo4j" \
+  -e NEO4J_TRANSPORT="http" \
+  -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
+  -e NEO4J_MCP_SERVER_PORT="8000" \
+  -e NEO4J_MCP_SERVER_PATH="/mcp/" \
+  mcp/neo4j-memory:latest
+
+# Run with security middleware for production
+docker run --rm -p 8000:8000 \
+  -e NEO4J_URI="bolt://host.docker.internal:7687" \
+  -e NEO4J_USERNAME="neo4j" \
+  -e NEO4J_PASSWORD="password" \
+  -e NEO4J_DATABASE="neo4j" \
+  -e NEO4J_TRANSPORT="http" \
+  -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
+  -e NEO4J_MCP_SERVER_PORT="8000" \
+  -e NEO4J_MCP_SERVER_PATH="/mcp/" \
+  -e NEO4J_MCP_SERVER_ALLOWED_HOSTS="example.com,www.example.com" \
+  -e NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://example.com" \
+  mcp/neo4j-memory:latest
+```
+
+### 🔧 Environment Variables
+
+| Variable                           | Default                                 | Description                                        |
+| ---------------------------------- | --------------------------------------- | -------------------------------------------------- |
+| `NEO4J_URI`                        | `bolt://localhost:7687`                 | Neo4j connection URI                               |
+| `NEO4J_USERNAME`                   | `neo4j`                                 | Neo4j username                                     |
+| `NEO4J_PASSWORD`                   | `password`                              | Neo4j password                                     |
+| `NEO4J_DATABASE`                   | `neo4j`                                 | Neo4j database name                                |
+| `NEO4J_TRANSPORT`                  | `stdio` (local), `http` (remote)        | Transport protocol (`stdio`, `http`, or `sse`)     |
+| `NEO4J_MCP_SERVER_HOST`            | `127.0.0.1` (local)                     | Host to bind to                                    |
+| `NEO4J_MCP_SERVER_PORT`            | `8000`                                  | Port for HTTP/SSE transport                        |
+| `NEO4J_MCP_SERVER_PATH`            | `/mcp/`                                 | Path for accessing MCP server                      |
+| `NEO4J_MCP_SERVER_ALLOW_ORIGINS`   | _(empty - secure by default)_           | Comma-separated list of allowed CORS origins       |
+| `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
+
+### 🌐 SSE Transport for Legacy Web Access
+
+When using SSE transport (for legacy web clients), the server exposes an HTTP endpoint:
+
+```bash
+# Start the server with SSE transport
+docker run -d -p 8000:8000 \
+  -e NEO4J_URI="neo4j+s://demo.neo4jlabs.com" \
+  -e NEO4J_USERNAME="recommendations" \
+  -e NEO4J_PASSWORD="recommendations" \
+  -e NEO4J_DATABASE="neo4j" \
+  -e NEO4J_TRANSPORT="sse" \
+  -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
+  -e NEO4J_MCP_SERVER_PORT="8000" \
+  --name neo4j-memory-mcp-server \
+  mcp-neo4j-memory:latest
+
+# Test the SSE endpoint
+curl http://localhost:8000/sse
+
+# Use with MCP Inspector
+npx @modelcontextprotocol/inspector http://localhost:8000/sse
+```
+
 ## 🚀 Development
 
 ### 📦 Prerequisites

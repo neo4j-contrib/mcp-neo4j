@@ -58,11 +58,11 @@ def mcp_server(neo4j_driver, memory):
 async def sse_server(setup: Neo4jContainer):
     """Start the MCP server in SSE mode."""
 
-    
+
     process = await asyncio.create_subprocess_exec(
-        "uv", "run", "mcp-neo4j-memory", 
-        "--transport", "sse", 
-        "--server-host", "127.0.0.1", 
+        "uv", "run", "mcp-neo4j-memory",
+        "--transport", "sse",
+        "--server-host", "127.0.0.1",
         "--server-port", "8002",
         "--db-url", setup.get_connection_url(),
         "--username", setup.username,
@@ -72,15 +72,166 @@ async def sse_server(setup: Neo4jContainer):
         stderr=subprocess.PIPE,
         cwd=os.getcwd()
     )
-    
+
     await asyncio.sleep(3)
-    
+
     if process.returncode is not None:
         stdout, stderr = await process.communicate()
         raise RuntimeError(f"Server failed to start. stdout: {stdout.decode()}, stderr: {stderr.decode()}")
-    
+
     yield process
-    
+
+    try:
+        process.terminate()
+        await asyncio.wait_for(process.wait(), timeout=5.0)
+    except asyncio.TimeoutError:
+        process.kill()
+        await process.wait()
+
+
+@pytest_asyncio.fixture
+async def http_server(setup: Neo4jContainer):
+    """Start the MCP server in HTTP mode."""
+
+    # Start server process in HTTP mode using the installed binary
+    process = await asyncio.create_subprocess_exec(
+        "uv",
+        "run",
+        "mcp-neo4j-memory",
+        "--transport",
+        "http",
+        "--server-host",
+        "127.0.0.1",
+        "--server-port",
+        "8001",
+        "--db-url",
+        setup.get_connection_url(),
+        "--username",
+        setup.username,
+        "--password",
+        setup.password,
+        "--database",
+        "neo4j",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=os.getcwd(),
+    )
+
+    # Wait for server to start
+    await asyncio.sleep(3)
+
+    # Check if process is still running
+    if process.returncode is not None:
+        stdout, stderr = await process.communicate()
+        raise RuntimeError(
+            f"Server failed to start. stdout: {stdout.decode()}, stderr: {stderr.decode()}"
+        )
+
+    yield process
+
+    # Cleanup
+    try:
+        process.terminate()
+        await asyncio.wait_for(process.wait(), timeout=5.0)
+    except asyncio.TimeoutError:
+        process.kill()
+        await process.wait()
+
+
+@pytest_asyncio.fixture
+async def http_server_restricted_cors(setup: Neo4jContainer):
+    """Start the MCP server in HTTP mode with restricted CORS origins."""
+
+    # Start server process in HTTP mode with restricted CORS
+    process = await asyncio.create_subprocess_exec(
+        "uv",
+        "run",
+        "mcp-neo4j-memory",
+        "--transport",
+        "http",
+        "--server-host",
+        "127.0.0.1",
+        "--server-port",
+        "8003",
+        "--allow-origins",
+        "http://localhost:3000,https://trusted-site.com",
+        "--db-url",
+        setup.get_connection_url(),
+        "--username",
+        setup.username,
+        "--password",
+        setup.password,
+        "--database",
+        "neo4j",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=os.getcwd(),
+    )
+
+    # Wait for server to start
+    await asyncio.sleep(3)
+
+    # Check if process is still running
+    if process.returncode is not None:
+        stdout, stderr = await process.communicate()
+        raise RuntimeError(
+            f"Restricted CORS server failed to start. stdout: {stdout.decode()}, stderr: {stderr.decode()}"
+        )
+
+    yield process
+
+    # Cleanup
+    try:
+        process.terminate()
+        await asyncio.wait_for(process.wait(), timeout=5.0)
+    except asyncio.TimeoutError:
+        process.kill()
+        await process.wait()
+
+
+@pytest_asyncio.fixture
+async def http_server_custom_hosts(setup: Neo4jContainer):
+    """Start the MCP server in HTTP mode with custom allowed hosts."""
+
+    # Start server process in HTTP mode with custom allowed hosts
+    process = await asyncio.create_subprocess_exec(
+        "uv",
+        "run",
+        "mcp-neo4j-memory",
+        "--transport",
+        "http",
+        "--server-host",
+        "127.0.0.1",
+        "--server-port",
+        "8004",
+        "--allowed-hosts",
+        "example.com,test.local",
+        "--db-url",
+        setup.get_connection_url(),
+        "--username",
+        setup.username,
+        "--password",
+        setup.password,
+        "--database",
+        "neo4j",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=os.getcwd(),
+    )
+
+    # Wait for server to start
+    await asyncio.sleep(3)
+
+    # Check if process is still running
+    if process.returncode is not None:
+        stdout, stderr = await process.communicate()
+        raise RuntimeError(
+            f"Custom hosts server failed to start. stdout: {stdout.decode()}, stderr: {stderr.decode()}"
+        )
+
+    yield process
+
+    # Cleanup
     try:
         process.terminate()
         await asyncio.wait_for(process.wait(), timeout=5.0)

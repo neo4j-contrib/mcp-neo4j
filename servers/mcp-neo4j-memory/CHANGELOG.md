@@ -6,6 +6,10 @@
 * Change default transport to `stdio` in Dockerfile
 
 ### Added
+* Add env variable `NEO4J_MCP_SERVER_ALLOW_ORIGINS` and cli variable `--allow-origins` to configure CORS Middleware for remote deployments
+* Add env variable `NEO4J_MCP_SERVER_ALLOWED_HOSTS` and cli variable `--allowed-hosts` to configure Trusted Hosts Middleware for remote deployments
+* Update HTTP and SSE transports to use security middleware
+* Add comprehensive HTTP transport integration tests with security middleware testing
 
 ## v0.3.0
 
