@@ -3,6 +3,9 @@ from typing import List, Optional, Literal
 from fastmcp.server import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .aura_manager import AuraManager
 from .utils import get_logger
@@ -13,7 +16,7 @@ logger = get_logger(__name__)
 def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
     """Create an MCP server instance for Aura management."""
     
-    mcp: FastMCP = FastMCP("mcp-neo4j-aura-manager", dependencies=["requests", "pydantic"], stateless_http=True)
+    mcp: FastMCP = FastMCP("mcp-neo4j-aura-manager", dependencies=["requests", "pydantic", "starlette"])
 
     @mcp.tool(annotations=ToolAnnotations(title="List Instances",
                                           readOnlyHint=True,
@@ -183,31 +186,57 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
 
 
 async def main(
-    client_id: str, 
+    client_id: str,
     client_secret: str,
     transport: Literal["stdio", "sse", "http"] = "stdio",
     host: str = "127.0.0.1",
     port: int = 8000,
     path: str = "/mcp/",
+    allow_origins: list[str] = [],
+    allowed_hosts: list[str] = [],
 ) -> None:
     """Start the MCP server."""
     logger.info("Starting MCP Neo4j Aura Manager Server")
     
     aura_manager = AuraManager(client_id, client_secret)
-    
+    custom_middleware = [
+        Middleware(
+            CORSMiddleware,
+            allow_origins=allow_origins,
+            allow_methods=["GET", "POST"],
+            allow_headers=["*"],
+        ),
+        Middleware(TrustedHostMiddleware,
+                   allowed_hosts=allowed_hosts)
+    ]
+
     # Create MCP server
     mcp = create_mcp_server(aura_manager)
 
     # Run the server with the specified transport
     match transport:
         case "http":
-            await mcp.run_http_async(host=host, port=port, path=path)
+            logger.info(
+                f"Running Neo4j Aura Manager MCP Server with HTTP transport on {host}:{port}..."
+            )
+            await mcp.run_http_async(
+                host=host, port=port, path=path, middleware=custom_middleware, stateless_http=True
+            )
         case "stdio":
+            logger.info("Running Neo4j Aura Manager MCP Server with stdio transport...")
             await mcp.run_stdio_async()
         case "sse":
-            await mcp.run_sse_async(host=host, port=port, path=path)
+            logger.info(
+                f"Running Neo4j Aura Manager MCP Server with SSE transport on {host}:{port}..."
+            )
+            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware, transport="sse", stateless_http=True)
         case _:
-            raise ValueError(f"Unsupported transport: {transport}")
+            logger.error(
+                f"Invalid transport: {transport} | Must be either 'stdio', 'sse', or 'http'"
+            )
+            raise ValueError(
+                f"Invalid transport: {transport} | Must be either 'stdio', 'sse', or 'http'"
+            )
 
 
 if __name__ == "__main__":

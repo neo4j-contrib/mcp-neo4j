@@ -183,6 +183,8 @@ export NEO4J_TRANSPORT=http
 export NEO4J_MCP_SERVER_HOST=127.0.0.1
 export NEO4J_MCP_SERVER_PORT=8080
 export NEO4J_MCP_SERVER_PATH=/api/mcp/
+export NEO4J_MCP_SERVER_ALLOWED_HOSTS="localhost,127.0.0.1"
+export NEO4J_MCP_SERVER_ALLOW_ORIGINS="http://localhost:3000"
 mcp-neo4j-aura-manager
 ```
 
@@ -191,8 +193,182 @@ mcp-neo4j-aura-manager
 The server supports three transport modes:
 
 - **STDIO** (default): Standard input/output for local tools and Claude Desktop
-- **SSE**: Server-Sent Events for web-based deployments  
+- **SSE**: Server-Sent Events for web-based deployments
 - **HTTP**: Streamable HTTP for modern web deployments and microservices
+
+## 🔒 Security Protection
+
+The server includes comprehensive security protection with **secure defaults** that protect against common web-based attacks while preserving full MCP functionality when using HTTP transport.
+
+### 🛡️ DNS Rebinding Protection
+
+**TrustedHost Middleware** validates Host headers to prevent DNS rebinding attacks:
+
+**Secure by Default:**
+- Only `localhost` and `127.0.0.1` hosts are allowed by default
+- Malicious websites cannot trick browsers into accessing your local server
+
+**Environment Variable:**
+```bash
+export NEO4J_MCP_SERVER_ALLOWED_HOSTS="example.com,www.example.com"
+```
+
+### 🌐 CORS Protection
+
+**Cross-Origin Resource Sharing (CORS)** protection blocks browser-based requests by default:
+
+**Environment Variable:**
+```bash
+export NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://example.com,https://example.com"
+```
+
+### 🔧 Complete Security Configuration
+
+**Development Setup:**
+```bash
+mcp-neo4j-aura-manager --transport http \
+  --allowed-hosts "localhost,127.0.0.1" \
+  --allow-origins "http://localhost:3000"
+```
+
+**Production Setup:**
+```bash
+mcp-neo4j-aura-manager --transport http \
+  --allowed-hosts "example.com,www.example.com" \
+  --allow-origins "https://example.com,https://example.com"
+```
+
+### 🚨 Security Best Practices
+
+**For `allow_origins`:**
+- Be specific: `["https://example.com", "https://example.com"]`
+- Never use `"*"` in production with credentials
+- Use HTTPS origins in production
+
+**For `allowed_hosts`:**
+- Include your actual domain: `["example.com", "www.example.com"]`
+- Include localhost only for development
+- Never use `"*"` unless you understand the risks
+
+
+## 🐳 Docker Deployment
+
+The Neo4j Aura Manager MCP server can be deployed using Docker for remote deployments. Docker deployment should use HTTP transport for web accessibility. In order to integrate this deployment with applications like Claude Desktop, you will have to use a proxy in your MCP configuration such as `mcp-remote`.
+
+### 🐳 Using with Docker for Claude Desktop
+
+Here we use the Docker Hub hosted Aura Manager MCP server image with stdio transport for use with Claude Desktop.
+
+**Config details:**
+* `-i`: Interactive mode - keeps STDIN open for stdio transport communication
+* `--rm`: Automatically remove container when it exits (cleanup)
+* `-p 8000:8000`: Port mapping - maps host port 8000 to container port 8000
+* `NEO4J_TRANSPORT=stdio`: Uses stdio transport for Claude Desktop compatibility
+* `NEO4J_AURA_CLIENT_ID` and `NEO4J_AURA_CLIENT_SECRET`: Your Aura API credentials
+
+```json
+{
+  "mcpServers": {
+    "neo4j-aura": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-p",
+        "8000:8000",
+        "-e", "NEO4J_AURA_CLIENT_ID=your-client-id",
+        "-e", "NEO4J_AURA_CLIENT_SECRET=your-client-secret",
+        "-e", "NEO4J_TRANSPORT=stdio",
+        "mcp/neo4j-aura-manager:latest"
+      ]
+    }
+  }
+}
+```
+
+### 📦 Using Your Built Image
+
+After building locally with `docker build -t mcp-neo4j-aura-manager:latest .`:
+
+```bash
+# Build the image
+docker build -t mcp-neo4j-aura-manager:<version> .
+
+# Run with http transport (default for Docker)
+docker run --rm -p 8000:8000 \
+  -e NEO4J_AURA_CLIENT_ID="your-client-id" \
+  -e NEO4J_AURA_CLIENT_SECRET="your-client-secret" \
+  -e NEO4J_TRANSPORT="http" \
+  -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
+  -e NEO4J_MCP_SERVER_PORT="8000" \
+  -e NEO4J_MCP_SERVER_PATH="/mcp/" \
+  mcp-neo4j-aura-manager:<version>
+
+# Run with security middleware for production
+docker run --rm -p 8000:8000 \
+  -e NEO4J_AURA_CLIENT_ID="your-client-id" \
+  -e NEO4J_AURA_CLIENT_SECRET="your-client-secret" \
+  -e NEO4J_TRANSPORT="http" \
+  -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
+  -e NEO4J_MCP_SERVER_PORT="8000" \
+  -e NEO4J_MCP_SERVER_PATH="/mcp/" \
+  -e NEO4J_MCP_SERVER_ALLOWED_HOSTS="example.com,www.example.com" \
+  -e NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://example.com" \
+  mcp-neo4j-aura-manager:<version>
+```
+
+### 🔧 Environment Variables
+
+| Variable                           | Default                                 | Description                                        |
+| ---------------------------------- | --------------------------------------- | -------------------------------------------------- |
+| `NEO4J_AURA_CLIENT_ID`             | _(none)_                                | Neo4j Aura API Client ID                          |
+| `NEO4J_AURA_CLIENT_SECRET`         | _(none)_                                | Neo4j Aura API Client Secret                      |
+| `NEO4J_TRANSPORT`                  | `stdio` (local), `http` (remote)        | Transport protocol (`stdio`, `http`, or `sse`)     |
+| `NEO4J_MCP_SERVER_HOST`            | `127.0.0.1` (local)                     | Host to bind to                                    |
+| `NEO4J_MCP_SERVER_PORT`            | `8000`                                  | Port for HTTP/SSE transport                        |
+| `NEO4J_MCP_SERVER_PATH`            | `/mcp/`                                 | Path for accessing MCP server                      |
+| `NEO4J_MCP_SERVER_ALLOW_ORIGINS`   | _(empty - secure by default)_           | Comma-separated list of allowed CORS origins       |
+| `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
+
+### 🌐 SSE Transport for Legacy Web Access
+
+When using SSE transport (for legacy web clients), the server exposes an HTTP endpoint:
+
+```bash
+# Start the server with SSE transport
+docker run -d -p 8000:8000 \
+  -e NEO4J_AURA_CLIENT_ID="your-client-id" \
+  -e NEO4J_AURA_CLIENT_SECRET="your-client-secret" \
+  -e NEO4J_TRANSPORT="sse" \
+  -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
+  -e NEO4J_MCP_SERVER_PORT="8000" \
+  --name neo4j-aura-mcp-server \
+  mcp-neo4j-aura-manager:latest
+
+# Test the SSE endpoint
+curl http://localhost:8000/sse
+
+# Use with MCP Inspector
+npx @modelcontextprotocol/inspector http://localhost:8000/sse
+```
+
+### 🔗 Claude Desktop Integration with Docker
+
+For Claude Desktop integration with a Dockerized server using http transport:
+
+```json
+{
+  "mcpServers": {
+    "neo4j-aura-docker": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote@latest", "http://localhost:8000/mcp/"]
+    }
+  }
+}
+```
+
+**Note**: First start your Docker container with HTTP transport, then Claude Desktop can connect to it via the HTTP endpoint and proxy server like `mcp-remote`.
 
 ## 📝 Usage Examples
 
@@ -243,20 +419,6 @@ source .venv/bin/activate  # On Unix/macOS
 
 # Install dependencies including dev dependencies
 uv pip install -e ".[dev]"
-```
-
-### 🐳 Docker
-
-Build and run the Docker container:
-
-```bash
-# Build the image
-docker build -t mcp-neo4j-aura-manager:<version> .
-
-# Run the container
-docker run -e NEO4J_AURA_CLIENT_ID="your-client-id" \
-          -e NEO4J_AURA_CLIENT_SECRET="your-client-secret" \
-          mcp-neo4j-aura-manager:<version>
 ```
 
 ## 📄 License

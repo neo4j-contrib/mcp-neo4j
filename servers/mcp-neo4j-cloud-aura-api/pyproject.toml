@@ -7,6 +7,7 @@ requires-python = ">=3.10"
 dependencies = [
     "fastmcp>=2.0.0",
     "requests>=2.31.0",
+    "starlette>=0.40.0",
 ]
 
 [build-system]
@@ -27,4 +28,9 @@ mcp-neo4j-aura-manager = "mcp_neo4j_aura_manager:main"
 [tool.pytest.ini_options]
 pythonpath = [
   "src"
+]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "session"
+markers = [
+    "middleware: marks tests as middleware security tests that don't require Aura credentials"
 ]

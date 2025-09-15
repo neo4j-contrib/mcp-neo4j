@@ -23,19 +23,10 @@ async def parse_sse_response(response: aiohttp.ClientResponse) -> dict:
     
     raise ValueError("No data line found in SSE response")
     
-# Skip all tests if credentials are not available
-pytestmark = pytest.mark.skipif(
-    not os.environ.get("NEO4J_AURA_CLIENT_ID") or not os.environ.get("NEO4J_AURA_CLIENT_SECRET"),
-    reason="NEO4J_AURA_CLIENT_ID and NEO4J_AURA_CLIENT_SECRET environment variables are required for integration tests"
-)
+# No global skip - individual test classes handle their own credential requirements
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+# Removed custom event_loop fixture - using pytest-asyncio default with session scope from pyproject.toml
 
 
 @pytest.fixture(scope="session")
@@ -71,7 +62,9 @@ async def aura_manager_server() -> AsyncGenerator[Dict[str, Any], None]:
                 transport="http",
                 host="127.0.0.1",
                 port=8001,
-                path="/mcp/"
+                path="/mcp/",
+                allow_origins=["http://localhost:3000"],
+                allowed_hosts=["localhost", "127.0.0.1"]
             ))
         
         server_thread = threading.Thread(target=run_server, daemon=True)
@@ -102,6 +95,10 @@ async def aura_manager_server() -> AsyncGenerator[Dict[str, Any], None]:
             server_process.wait()
 
 
+@pytest.mark.skipif(
+    not os.environ.get("NEO4J_AURA_CLIENT_ID") or not os.environ.get("NEO4J_AURA_CLIENT_SECRET"),
+    reason="NEO4J_AURA_CLIENT_ID and NEO4J_AURA_CLIENT_SECRET environment variables are required for HTTP transport tests"
+)
 class TestAuraManagerHTTPTransport:
     """Test Aura Manager MCP server over HTTP transport."""
     
@@ -195,6 +192,10 @@ class TestAuraManagerHTTPTransport:
                 assert "result" in result
 
 
+@pytest.mark.skipif(
+    not os.environ.get("NEO4J_AURA_CLIENT_ID") or not os.environ.get("NEO4J_AURA_CLIENT_SECRET"),
+    reason="NEO4J_AURA_CLIENT_ID and NEO4J_AURA_CLIENT_SECRET environment variables are required for real API tests"
+)
 class TestAuraManagerRealAPI:
     """Test Aura Manager with real API calls (requires credentials)."""
     
@@ -247,5 +248,174 @@ class TestAuraManagerRealAPI:
         assert details[0]["id"] == instance_id
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"]) 
+# CORS Middleware Tests (independent of Aura credentials)
+# These tests use dummy credentials and should always run
+
+@pytest.mark.middleware
+class TestMiddlewareSecurity:
+    """Test security middleware functionality without requiring Aura credentials."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.middleware
+    async def test_cors_preflight_empty_default_origins(self, middleware_test_server):
+        """Test CORS preflight request with empty default allowed origins."""
+        async with aiohttp.ClientSession() as session:
+            async with session.options(
+                "http://127.0.0.1:8005/mcp/",
+                headers={
+                    "Origin": "http://localhost:3000",
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "content-type",
+                },
+            ) as response:
+                print(f"CORS preflight response status: {response.status}")
+                print(f"CORS preflight response headers: {dict(response.headers)}")
+
+                # Should return 400 when origin is not in allow_origins (empty list blocks all)
+                assert response.status == 400
+                # Should NOT allow any origin with empty default
+                cors_origin = response.headers.get("Access-Control-Allow-Origin")
+                assert cors_origin is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.middleware
+    async def test_cors_preflight_malicious_origin_blocked(self, middleware_test_server):
+        """Test CORS preflight request with malicious origin (should be blocked)."""
+        async with aiohttp.ClientSession() as session:
+            async with session.options(
+                "http://127.0.0.1:8005/mcp/",
+                headers={
+                    "Origin": "http://malicious-site.com",
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "content-type",
+                },
+            ) as response:
+                print(f"Malicious origin response status: {response.status}")
+                print(f"Malicious origin response headers: {dict(response.headers)}")
+
+                # Should return 400 when malicious origin is blocked
+                assert response.status == 400
+                # Should not include CORS headers for any origins (empty default)
+                cors_origin = response.headers.get("Access-Control-Allow-Origin")
+                assert cors_origin is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.middleware
+    async def test_cors_actual_request_no_cors_headers(self, middleware_test_server):
+        """Test actual request without Origin header (should work - not CORS)."""
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "http://127.0.0.1:8005/mcp/",
+                json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                headers={
+                    "Accept": "application/json, text/event-stream",
+                    "Content-Type": "application/json",
+                },
+            ) as response:
+                # The server will fail to authenticate with dummy credentials, but that's ok
+                # We just want to test that the middleware allows the request through
+                assert response.status in [200, 401, 500]  # Any non-CORS error is fine
+
+    @pytest.mark.asyncio
+    @pytest.mark.middleware
+    async def test_cors_actual_request_with_origin_blocked(self, middleware_test_server):
+        """Test actual CORS request with origin header (should work but no CORS headers)."""
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "http://127.0.0.1:8005/mcp/",
+                json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                headers={
+                    "Accept": "application/json, text/event-stream",
+                    "Content-Type": "application/json",
+                    "Origin": "http://localhost:3000",
+                },
+            ) as response:
+                # Request should still work (server processes it) but no CORS headers
+                assert response.status in [200, 401, 500]  # Any non-CORS error is fine
+                cors_origin = response.headers.get("Access-Control-Allow-Origin")
+                assert cors_origin is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.middleware
+    async def test_dns_rebinding_protection_trusted_hosts(self, middleware_test_server):
+        """Test DNS rebinding protection with TrustedHostMiddleware - allowed hosts."""
+        async with aiohttp.ClientSession() as session:
+            # Test with localhost - should be allowed (in default allowed_hosts)
+            async with session.post(
+                "http://127.0.0.1:8005/mcp/",
+                json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                headers={
+                    "Accept": "application/json, text/event-stream",
+                    "Content-Type": "application/json",
+                    "Host": "localhost:8005",
+                },
+            ) as response:
+                print(f"Trusted host (localhost) response status: {response.status}")
+                print(f"Trusted host (localhost) response headers: {dict(response.headers)}")
+
+                # Should work with trusted host (may fail with auth error, but not 400)
+                assert response.status in [200, 401, 500]  # Should not be blocked by middleware
+
+    @pytest.mark.asyncio
+    @pytest.mark.middleware
+    async def test_dns_rebinding_protection_untrusted_hosts(self, middleware_test_server):
+        """Test DNS rebinding protection with TrustedHostMiddleware - untrusted hosts."""
+        async with aiohttp.ClientSession() as session:
+            # Test with malicious host - should be blocked
+            async with session.post(
+                "http://127.0.0.1:8005/mcp/",
+                json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                headers={
+                    "Accept": "application/json, text/event-stream",
+                    "Content-Type": "application/json",
+                    "Host": "malicious-site.evil",
+                },
+            ) as response:
+                print(f"Untrusted host response status: {response.status}")
+                print(f"Untrusted host response headers: {dict(response.headers)}")
+
+                # Should block untrusted host (DNS rebinding protection)
+                assert response.status == 400
+
+    @pytest.mark.asyncio
+    @pytest.mark.middleware
+    async def test_cors_restricted_server_allowed_origin(self, middleware_test_server_restricted_cors):
+        """Test CORS with restricted server and allowed origin."""
+        async with aiohttp.ClientSession() as session:
+            async with session.options(
+                "http://127.0.0.1:8006/mcp/",
+                headers={
+                    "Origin": "http://localhost:3000",
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "content-type",
+                },
+            ) as response:
+                print(f"Restricted server allowed origin response status: {response.status}")
+                print(f"Restricted server allowed origin response headers: {dict(response.headers)}")
+
+                assert response.status == 200
+                assert "Access-Control-Allow-Origin" in response.headers
+                assert response.headers["Access-Control-Allow-Origin"] == "http://localhost:3000"
+
+    @pytest.mark.asyncio
+    @pytest.mark.middleware
+    async def test_cors_restricted_server_disallowed_origin(self, middleware_test_server_restricted_cors):
+        """Test CORS with restricted server and disallowed origin."""
+        async with aiohttp.ClientSession() as session:
+            async with session.options(
+                "http://127.0.0.1:8006/mcp/",
+                headers={
+                    "Origin": "http://127.0.0.1:3000",  # This should be disallowed on restricted server
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "content-type",
+                },
+            ) as response:
+                print(f"Restricted server disallowed origin response status: {response.status}")
+                print(f"Restricted server disallowed origin response headers: {dict(response.headers)}")
+
+                # Should return 400 when origin is not in restricted allow_origins list
+                assert response.status == 400
+                # Should not allow 127.0.0.1 on restricted server
+                cors_origin = response.headers.get("Access-Control-Allow-Origin")
+                assert cors_origin is None
+

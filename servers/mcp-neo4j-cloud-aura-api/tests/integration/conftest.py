@@ -1,12 +1,21 @@
 import os
 import pytest
-from typing import Dict
+import asyncio
+import threading
+import time
+from typing import Dict, AsyncGenerator
 
-# Skip all tests if credentials are not available
-pytestmark = pytest.mark.skipif(
-    not os.environ.get("NEO4J_AURA_CLIENT_ID") or not os.environ.get("NEO4J_AURA_CLIENT_SECRET"),
-    reason="NEO4J_AURA_CLIENT_ID and NEO4J_AURA_CLIENT_SECRET environment variables are required for integration tests"
-)
+# Skip only tests that require real Aura credentials
+def pytest_collection_modifyitems(config, items):
+    skip_marker = pytest.mark.skip(reason="NEO4J_AURA_CLIENT_ID and NEO4J_AURA_CLIENT_SECRET environment variables are required for integration tests")
+
+    for item in items:
+        # Skip only TestAuraManagerRealAPI class tests if credentials are missing
+        if (not os.environ.get("NEO4J_AURA_CLIENT_ID") or not os.environ.get("NEO4J_AURA_CLIENT_SECRET")):
+            # Check if this test is in the TestAuraManagerRealAPI class
+            if hasattr(item, 'parent') and hasattr(item.parent, 'name'):
+                if "TestAuraManagerRealAPI" in item.parent.name:
+                    item.add_marker(skip_marker)
 
 
 @pytest.fixture(scope="session")
@@ -61,4 +70,78 @@ def test_instance_id(aura_credentials) -> str:
             return instance["id"]
     
     # Return the first instance if no test instance found
-    return instances[0]["id"] 
+    return instances[0]["id"]
+
+
+# Middleware test fixtures (independent of Aura credentials)
+
+@pytest.fixture(scope="session")
+def middleware_test_server() -> Dict[str, str]:
+    """Start the Aura Manager MCP server for middleware testing with dummy credentials."""
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
+
+    from mcp_neo4j_aura_manager.server import main
+
+    server_url = "http://127.0.0.1:8005/mcp/"
+
+    try:
+        def run_server():
+            asyncio.run(main(
+                client_id="test-client-id",  # Dummy credentials for middleware testing
+                client_secret="test-client-secret",
+                transport="http",
+                host="127.0.0.1",
+                port=8005,
+                path="/mcp/",
+                allow_origins=[],  # Empty by default for security testing
+                allowed_hosts=["localhost", "127.0.0.1"]
+            ))
+
+        server_thread = threading.Thread(target=run_server, daemon=True)
+        server_thread.start()
+
+        # Wait for server to start
+        time.sleep(3)
+
+        return {"url": server_url}
+
+    finally:
+        # Thread will be cleaned up automatically as it's a daemon thread
+        pass
+
+
+@pytest.fixture(scope="session")
+def middleware_test_server_restricted_cors() -> Dict[str, str]:
+    """Start the Aura Manager MCP server with restricted CORS for testing."""
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
+
+    from mcp_neo4j_aura_manager.server import main
+
+    server_url = "http://127.0.0.1:8006/mcp/"
+
+    try:
+        def run_server():
+            asyncio.run(main(
+                client_id="test-client-id",  # Dummy credentials
+                client_secret="test-client-secret",
+                transport="http",
+                host="127.0.0.1",
+                port=8006,
+                path="/mcp/",
+                allow_origins=["http://localhost:3000", "https://trusted-site.com"],
+                allowed_hosts=["localhost", "127.0.0.1"]
+            ))
+
+        server_thread = threading.Thread(target=run_server, daemon=True)
+        server_thread.start()
+
+        # Wait for server to start
+        time.sleep(3)
+
+        return {"url": server_url}
+
+    finally:
+        # Thread will be cleaned up automatically as it's a daemon thread
+        pass 

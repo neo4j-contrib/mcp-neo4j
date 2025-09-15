@@ -22,6 +22,16 @@ def main():
     parser.add_argument("--server-host", default=None, help="Server host")
     parser.add_argument("--server-port", default=None, help="Server port")
     parser.add_argument("--server-path", default=None, help="Server path")
+    parser.add_argument(
+        "--allow-origins",
+        default=None,
+        help="Allow origins for remote servers (comma-separated list)",
+    )
+    parser.add_argument(
+        "--allowed-hosts",
+        default=None,
+        help="Allowed hosts for DNS rebinding protection on remote servers(comma-separated list)",
+    )
     
     args = parser.parse_args()
     
@@ -29,14 +39,23 @@ def main():
         logger.error("Client ID and Client Secret are required. Provide them as arguments or environment variables.")
         sys.exit(1)
     
+    # Parse security arguments
+    allow_origins_str = args.allow_origins or os.getenv("NEO4J_MCP_SERVER_ALLOW_ORIGINS", "")
+    allow_origins = [origin.strip() for origin in allow_origins_str.split(",") if origin.strip()] if allow_origins_str else []
+
+    allowed_hosts_str = args.allowed_hosts or os.getenv("NEO4J_MCP_SERVER_ALLOWED_HOSTS", "localhost,127.0.0.1")
+    allowed_hosts = [host.strip() for host in allowed_hosts_str.split(",") if host.strip()] if allowed_hosts_str else []
+
     try:
         asyncio.run(server.main(
-            args.client_id, 
+            args.client_id,
             args.client_secret,
             args.transport or os.getenv("NEO4J_TRANSPORT", "stdio"),
             args.server_host or os.getenv("NEO4J_MCP_SERVER_HOST", "127.0.0.1"),
-            args.server_port or os.getenv("NEO4J_MCP_SERVER_PORT", 8000),
+            int(args.server_port or os.getenv("NEO4J_MCP_SERVER_PORT", 8000)),
             args.server_path or os.getenv("NEO4J_MCP_SERVER_PATH", "/mcp/"),
+            allow_origins,
+            allowed_hosts,
         ))
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
