@@ -3,6 +3,12 @@
 ### Fixed
 
 ### Changed
+
+### Added
+
+## v0.4.0
+
+### Changed
 * Change default transport in Dockerfile to `stdio`
 * Split client, service and MCP classes into separate files
 * Create centralized logger config in `utils.py`
