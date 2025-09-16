@@ -24,12 +24,12 @@ async def parse_sse_response(response: aiohttp.ClientResponse) -> dict:
 
 
 
-    @pytest.mark.asyncio
-    async def test_http_transport_creation(self, mcp_server):
-        """Test that HTTP transport can be created."""
-        # Test that the server can be created
-        tools = await mcp_server.get_tools()
-        assert len(tools) > 0
+@pytest.mark.asyncio
+async def test_http_transport_creation(mcp_server):
+    """Test that HTTP transport can be created."""
+    # Test that the server can be created
+    tools = await mcp_server.get_tools()
+    assert len(tools) > 0
 
 
 class TestHTTPEndpoints:

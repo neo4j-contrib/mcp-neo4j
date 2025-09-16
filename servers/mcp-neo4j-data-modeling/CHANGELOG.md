@@ -12,6 +12,7 @@
 * Add security middleware (CORS and TrustedHost) for HTTP and SSE transports
 * Add CLI  support for `--allow-origins` and `--allowed-hosts` configuration
 * Add environment variable for `NEO4J_MCP_SERVER_ALLOW_ORIGINS` and `NEO4J_MCP_SERVER_ALLOWED_HOSTS` configuration
+* Add detailed logging for configuration parameter parsing
 
 ## v0.4.0
 
