@@ -1,12 +1,18 @@
 ## Next
 
 ### Fixed
-* f-string bug in utils.py patched for earlier Python versions
+
+### Changed
+
+### Added
+
+## v0.4.2
+
+### Fixed
+* fix bug where config logging wasn't being used
 
 ### Changed
 * Use `stateless_http=False` when using `http` or `sse` transport to be consistent with previous configuration
-
-### Added
 
 ## v0.4.1
 
