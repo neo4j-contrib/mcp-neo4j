@@ -147,60 +147,14 @@ Alternatively, you can set environment variables:
 }
 ```
 
-### 🏷️ Namespacing for Multi-tenant Deployments
-
-The server supports namespacing to prefix tool names for multi-tenant deployments:
-
+#### Namespacing
+For multi-tenant deployments, add `--namespace` to prefix tool names:
 ```json
-"mcpServers": {
-  "neo4j-memory-app1": {
-    "command": "uvx",
-    "args": [
-      "mcp-neo4j-memory@0.4.0",
-      "--db-url", "neo4j+s://xxxx.databases.neo4j.io",
-      "--username", "<your-username>",
-      "--password", "<your-password>",
-      "--namespace", "app1"
-    ]
-  },
-  "neo4j-memory-app2": {
-    "command": "uvx",
-    "args": [
-      "mcp-neo4j-memory@0.4.0",
-      "--db-url", "neo4j+s://xxxx.databases.neo4j.io",
-      "--username", "<your-username>",
-      "--password", "<your-password>",
-      "--namespace", "app2"
-    ]
-  }
-}
+"args": [ "mcp-neo4j-memory@0.4.0", "--namespace", "myapp", "--db-url", "..." ]
 ```
+Tools become: `myapp-read_graph`, `myapp-create_entities`, etc.
 
-#### CLI Usage
-```bash
-# With namespace
-mcp-neo4j-memory --namespace myapp --db-url neo4j://localhost:7687
-
-# Tools become: myapp-read_graph, myapp-create_entities, etc.
-```
-
-#### Environment Variables
-```bash
-export NEO4J_URL=neo4j://localhost:7687
-export NEO4J_USERNAME=neo4j
-export NEO4J_PASSWORD=password
-export NEO4J_NAMESPACE=myapp
-mcp-neo4j-memory
-```
-
-#### Docker with Namespacing
-```bash
-docker run -e NEO4J_URL=neo4j://localhost:7687 \
-           -e NEO4J_USERNAME=neo4j \
-           -e NEO4J_PASSWORD=password \
-           -e NEO4J_NAMESPACE=myapp \
-           mcp-neo4j-memory
-```
+Can also use `NEO4J_NAMESPACE` environment variable.
 
 ### 🌐 HTTP Transport Mode
 
