@@ -1,6 +1,7 @@
 ## Next
 
 ### Fixed
+* f-string bug in utils.py patched for earlier Python versions
 
 ### Changed
 
