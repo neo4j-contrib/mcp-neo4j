@@ -7,6 +7,11 @@
 
 ### Added
 
+## v0.4.1
+
+### Fixed
+* f-string bug in utils.py patched for earlier Python versions
+
 ## v0.4.0
 
 ### Changed
