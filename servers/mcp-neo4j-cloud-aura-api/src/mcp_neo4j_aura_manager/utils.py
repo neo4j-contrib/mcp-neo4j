@@ -323,9 +323,9 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
 
     # server configuration
     config["transport"] = parse_transport(args)
-    config["server_host"] = parse_server_host(args, config["transport"])
-    config["server_port"] = parse_server_port(args, config["transport"])
-    config["server_path"] = parse_server_path(args, config["transport"])
+    config["host"] = parse_server_host(args, config["transport"])
+    config["port"] = parse_server_port(args, config["transport"])
+    config["path"] = parse_server_path(args, config["transport"])
 
     # middleware configuration
     config["allow_origins"] = parse_allow_origins(args)
