@@ -552,9 +552,9 @@ class TestProcessConfig:
         assert config["client_id"] == "test-client-id"
         assert config["client_secret"] == "test-client-secret"
         assert config["transport"] == "http"
-        assert config["server_host"] == "test-host"
-        assert config["server_port"] == 9000
-        assert config["server_path"] == "/test/"
+        assert config["host"] == "test-host"
+        assert config["port"] == 9000
+        assert config["path"] == "/test/"
         assert config["allow_origins"] == ["http://localhost:3000"]
         assert config["allowed_hosts"] == ["example.com", "www.example.com"]
 
@@ -575,9 +575,9 @@ class TestProcessConfig:
         assert config["client_id"] == "env-client-id"
         assert config["client_secret"] == "env-client-secret"
         assert config["transport"] == "sse"
-        assert config["server_host"] == "env-host"
-        assert config["server_port"] == 8080
-        assert config["server_path"] == "/env/"
+        assert config["host"] == "env-host"
+        assert config["port"] == 8080
+        assert config["path"] == "/env/"
         assert config["allow_origins"] == ["http://env.com", "https://env.com"]
         assert config["allowed_hosts"] == ["env.com", "www.env.com"]
 
@@ -593,9 +593,9 @@ class TestProcessConfig:
         assert config["client_id"] == "test-client-id"
         assert config["client_secret"] == "test-client-secret"
         assert config["transport"] == "stdio"  # default
-        assert config["server_host"] is None  # None for stdio
-        assert config["server_port"] is None  # None for stdio
-        assert config["server_path"] is None  # None for stdio
+        assert config["host"] is None  # None for stdio
+        assert config["port"] is None  # None for stdio
+        assert config["path"] is None  # None for stdio
         assert config["allow_origins"] == []  # default empty
         assert config["allowed_hosts"] == ["localhost", "127.0.0.1"]  # default secure
 
@@ -627,6 +627,6 @@ class TestProcessConfig:
         config = process_config(args)
 
         assert config["transport"] == transport
-        assert config["server_host"] == expected_host
-        assert config["server_port"] == expected_port
-        assert config["server_path"] == expected_path
+        assert config["host"] == expected_host
+        assert config["port"] == expected_port
+        assert config["path"] == expected_path

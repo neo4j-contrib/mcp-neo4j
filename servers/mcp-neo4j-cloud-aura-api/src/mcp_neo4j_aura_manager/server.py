@@ -220,7 +220,7 @@ async def main(
                 f"Running Neo4j Aura Manager MCP Server with HTTP transport on {host}:{port}..."
             )
             await mcp.run_http_async(
-                host=host, port=port, path=path, middleware=custom_middleware, stateless_http=True
+                host=host, port=port, path=path, middleware=custom_middleware, stateless_http=False
             )
         case "stdio":
             logger.info("Running Neo4j Aura Manager MCP Server with stdio transport...")
@@ -229,7 +229,7 @@ async def main(
             logger.info(
                 f"Running Neo4j Aura Manager MCP Server with SSE transport on {host}:{port}..."
             )
-            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware, transport="sse", stateless_http=True)
+            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware, transport="sse", stateless_http=False)
         case _:
             logger.error(
                 f"Invalid transport: {transport} | Must be either 'stdio', 'sse', or 'http'"

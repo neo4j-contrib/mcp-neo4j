@@ -5,6 +5,7 @@ import os
 import logging
 import sys 
 
+from .utils import process_config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -35,28 +36,10 @@ def main():
     
     args = parser.parse_args()
     
-    if not args.client_id or not args.client_secret:
-        logger.error("Client ID and Client Secret are required. Provide them as arguments or environment variables.")
-        sys.exit(1)
-    
-    # Parse security arguments
-    allow_origins_str = args.allow_origins or os.getenv("NEO4J_MCP_SERVER_ALLOW_ORIGINS", "")
-    allow_origins = [origin.strip() for origin in allow_origins_str.split(",") if origin.strip()] if allow_origins_str else []
-
-    allowed_hosts_str = args.allowed_hosts or os.getenv("NEO4J_MCP_SERVER_ALLOWED_HOSTS", "localhost,127.0.0.1")
-    allowed_hosts = [host.strip() for host in allowed_hosts_str.split(",") if host.strip()] if allowed_hosts_str else []
+    config = process_config(args)
 
     try:
-        asyncio.run(server.main(
-            args.client_id,
-            args.client_secret,
-            args.transport or os.getenv("NEO4J_TRANSPORT", "stdio"),
-            args.server_host or os.getenv("NEO4J_MCP_SERVER_HOST", "127.0.0.1"),
-            int(args.server_port or os.getenv("NEO4J_MCP_SERVER_PORT", 8000)),
-            args.server_path or os.getenv("NEO4J_MCP_SERVER_PATH", "/mcp/"),
-            allow_origins,
-            allowed_hosts,
-        ))
+        asyncio.run(server.main(**config))
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
     except Exception as e:

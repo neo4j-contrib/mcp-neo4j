@@ -4,6 +4,7 @@
 * f-string bug in utils.py patched for earlier Python versions
 
 ### Changed
+* Use `stateless_http=False` when using `http` or `sse` transport to be consistent with previous configuration
 
 ### Added
 
