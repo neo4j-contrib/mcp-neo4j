@@ -304,13 +304,30 @@ class TestMiddlewareSecurity:
     async def test_cors_actual_request_no_cors_headers(self, middleware_test_server):
         """Test actual request without Origin header (should work - not CORS)."""
         async with aiohttp.ClientSession() as session:
+            # First, initiate session with the MCP server
             async with session.post(
                 "http://127.0.0.1:8005/mcp/",
-                json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}}},
                 headers={
                     "Accept": "application/json, text/event-stream",
                     "Content-Type": "application/json",
                 },
+            ) as init_response:
+                # Get session ID from response headers
+                session_id = init_response.headers.get("mcp-session-id")
+
+            # Now make the actual test request with session ID
+            headers = {
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+            }
+            if session_id:
+                headers["mcp-session-id"] = session_id
+
+            async with session.post(
+                "http://127.0.0.1:8005/mcp/",
+                json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                headers=headers,
             ) as response:
                 # The server will fail to authenticate with dummy credentials, but that's ok
                 # We just want to test that the middleware allows the request through
@@ -321,14 +338,30 @@ class TestMiddlewareSecurity:
     async def test_cors_actual_request_with_origin_blocked(self, middleware_test_server):
         """Test actual CORS request with origin header (should work but no CORS headers)."""
         async with aiohttp.ClientSession() as session:
+            # First, initiate session with the MCP server
             async with session.post(
                 "http://127.0.0.1:8005/mcp/",
-                json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}}},
                 headers={
                     "Accept": "application/json, text/event-stream",
                     "Content-Type": "application/json",
-                    "Origin": "http://localhost:3000",
                 },
+            ) as init_response:
+                session_id = init_response.headers.get("mcp-session-id")
+
+            # Now make the actual test request with session ID and Origin header
+            headers = {
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "Origin": "http://localhost:3000",
+            }
+            if session_id:
+                headers["mcp-session-id"] = session_id
+
+            async with session.post(
+                "http://127.0.0.1:8005/mcp/",
+                json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                headers=headers,
             ) as response:
                 # Request should still work (server processes it) but no CORS headers
                 assert response.status in [200, 401, 500]  # Any non-CORS error is fine
@@ -340,15 +373,30 @@ class TestMiddlewareSecurity:
     async def test_dns_rebinding_protection_trusted_hosts(self, middleware_test_server):
         """Test DNS rebinding protection with TrustedHostMiddleware - allowed hosts."""
         async with aiohttp.ClientSession() as session:
-            # Test with localhost - should be allowed (in default allowed_hosts)
+            # First, initiate session with the MCP server
             async with session.post(
                 "http://127.0.0.1:8005/mcp/",
-                json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}}},
                 headers={
                     "Accept": "application/json, text/event-stream",
                     "Content-Type": "application/json",
-                    "Host": "localhost:8005",
                 },
+            ) as init_response:
+                session_id = init_response.headers.get("mcp-session-id")
+
+            # Test with localhost - should be allowed (in default allowed_hosts)
+            headers = {
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "Host": "localhost:8005",
+            }
+            if session_id:
+                headers["mcp-session-id"] = session_id
+
+            async with session.post(
+                "http://127.0.0.1:8005/mcp/",
+                json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                headers=headers,
             ) as response:
                 print(f"Trusted host (localhost) response status: {response.status}")
                 print(f"Trusted host (localhost) response headers: {dict(response.headers)}")
