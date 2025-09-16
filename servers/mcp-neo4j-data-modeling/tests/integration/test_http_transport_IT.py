@@ -486,3 +486,88 @@ class TestHTTPTransportIntegration:
         finally:
             process.terminate()
             await process.wait()
+
+
+class TestMiddleware:
+    """Test middleware functionality in HTTP transport."""
+
+    @pytest_asyncio.fixture
+    async def http_server_with_middleware(self):
+        """Start the server in HTTP mode with middleware configuration."""
+        import os
+
+        server_dir = os.getcwd()
+
+        process = await asyncio.create_subprocess_exec(
+            "uv",
+            "run",
+            "mcp-neo4j-data-modeling",
+            "--transport",
+            "http",
+            "--server-host",
+            "127.0.0.1",
+            "--server-port",
+            "8010",
+            "--allow-origins",
+            "https://example.com,https://test.com",
+            "--allowed-hosts",
+            "localhost,127.0.0.1,example.com",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=server_dir,
+        )
+
+        await asyncio.sleep(3)
+        yield process
+        process.terminate()
+        await process.wait()
+
+    @pytest.mark.asyncio
+    async def test_cors_headers(self, http_server_with_middleware):
+        """Test CORS middleware is working."""
+        async with aiohttp.ClientSession() as session:
+            async with session.options(
+                "http://127.0.0.1:8010/mcp/",
+                headers={
+                    "Origin": "https://example.com",
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "Content-Type",
+                },
+            ) as response:
+                # CORS preflight should return 200 with appropriate headers
+                assert response.status == 200
+                assert "access-control-allow-origin" in response.headers
+                assert "access-control-allow-methods" in response.headers
+
+    @pytest.mark.asyncio
+    async def test_trusted_host_security(self, http_server_with_middleware):
+        """Test TrustedHost middleware blocks invalid hosts."""
+        async with aiohttp.ClientSession() as session:
+            # This should work with valid host
+            async with session.post(
+                "http://127.0.0.1:8010/mcp/",
+                json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                headers={
+                    "Accept": "application/json, text/event-stream",
+                    "Content-Type": "application/json",
+                    "Host": "127.0.0.1:8010",
+                },
+            ) as response:
+                assert response.status == 200
+
+            # This should be blocked by TrustedHost middleware
+            try:
+                async with session.post(
+                    "http://127.0.0.1:8010/mcp/",
+                    json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                    headers={
+                        "Accept": "application/json, text/event-stream",
+                        "Content-Type": "application/json",
+                        "Host": "malicious.com",
+                    },
+                ) as response:
+                    # Should return 400 status for invalid host
+                    assert response.status == 400
+            except aiohttp.ClientConnectorError:
+                # Connection might be dropped entirely, which is also valid
+                pass

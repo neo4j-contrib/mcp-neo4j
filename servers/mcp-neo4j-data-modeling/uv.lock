@@ -870,6 +870,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
     { name = "pydantic" },
+    { name = "starlette" },
 ]
 
 [package.dev-dependencies]
@@ -887,6 +888,7 @@ dev = [
 requires-dist = [
     { name = "fastmcp", specifier = ">=2.0.0" },
     { name = "pydantic", specifier = ">=2.10.1" },
+    { name = "starlette", specifier = ">=0.47.0" },
 ]
 
 [package.metadata.requires-dev]

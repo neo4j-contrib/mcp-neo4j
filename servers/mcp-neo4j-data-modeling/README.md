@@ -225,17 +225,91 @@ The server supports three transport modes:
 
 ### 🐳 Using with Docker
 
+Here we use the Docker Hub hosted Data Modeling MCP server image with stdio transport for use with Claude Desktop.
+
+**Config details:**
+* `-i`: Interactive mode - keeps STDIN open for stdio transport communication
+* `--rm`: Automatically remove container when it exits (cleanup)
+* `-p 8000:8000`: Port mapping - maps host port 8000 to container port 8000
+* `NEO4J_TRANSPORT=stdio`: Uses stdio transport for Claude Desktop compatibility
+
 ```json
-"mcpServers": {
-  "neo4j-data-modeling": {
-    "command": "docker",
-    "args": [
-      "run",
-      "--rm",
-      "mcp/neo4j-data-modeling:latest"
-    ]
+{
+  "mcpServers": {
+    "neo4j-data-modeling": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-p",
+        "8000:8000",
+        "-e", "NEO4J_TRANSPORT=stdio",
+        "mcp/neo4j-data-modeling:latest"
+      ]
+    }
   }
 }
+```
+
+
+## 🐳 Docker Deployment
+
+The Neo4j Data Modeling MCP server can be deployed using Docker for remote deployments. Docker deployment should use HTTP transport for web accessibility. In order to integrate this deployment with applications like Claude Desktop, you will have to use a proxy in your MCP configuration such as `mcp-remote`.
+
+### 📦 Using Your Built Image
+
+After building locally with `docker build -t mcp-neo4j-data-modeling:latest .`:
+
+```bash
+# Run with http transport (default for Docker)
+docker run --rm -p 8000:8000 \
+  -e NEO4J_TRANSPORT="http" \
+  -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
+  -e NEO4J_MCP_SERVER_PORT="8000" \
+  -e NEO4J_MCP_SERVER_PATH="/mcp/" \
+  mcp/neo4j-data-modeling:latest
+
+# Run with security middleware for production
+docker run --rm -p 8000:8000 \
+  -e NEO4J_TRANSPORT="http" \
+  -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
+  -e NEO4J_MCP_SERVER_PORT="8000" \
+  -e NEO4J_MCP_SERVER_PATH="/mcp/" \
+  -e NEO4J_MCP_SERVER_ALLOWED_HOSTS="example.com,www.example.com" \
+  -e NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://example.com" \
+  mcp/neo4j-data-modeling:latest
+```
+
+### 🔧 Environment Variables
+
+| Variable                           | Default                                 | Description                                        |
+| ---------------------------------- | --------------------------------------- | -------------------------------------------------- |
+| `NEO4J_TRANSPORT`                  | `stdio` (local), `http` (remote)        | Transport protocol (`stdio`, `http`, or `sse`)     |
+| `NEO4J_MCP_SERVER_HOST`            | `127.0.0.1` (local)                     | Host to bind to                                    |
+| `NEO4J_MCP_SERVER_PORT`            | `8000`                                  | Port for HTTP/SSE transport                        |
+| `NEO4J_MCP_SERVER_PATH`            | `/mcp/`                                 | Path for accessing MCP server                      |
+| `NEO4J_MCP_SERVER_ALLOW_ORIGINS`   | _(empty - secure by default)_           | Comma-separated list of allowed CORS origins       |
+| `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
+
+### 🌐 SSE Transport for Legacy Web Access
+
+When using SSE transport (for legacy web clients), the server exposes an HTTP endpoint:
+
+```bash
+# Start the server with SSE transport
+docker run -d -p 8000:8000 \
+  -e NEO4J_TRANSPORT="sse" \
+  -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
+  -e NEO4J_MCP_SERVER_PORT="8000" \
+  --name neo4j-data-modeling-mcp-server \
+  mcp-neo4j-data-modeling:latest
+
+# Test the SSE endpoint
+curl http://localhost:8000/sse
+
+# Use with MCP Inspector
+npx @modelcontextprotocol/inspector http://localhost:8000/sse
 ```
 
 ## 🚀 Development
