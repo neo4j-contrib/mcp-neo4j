@@ -529,3 +529,43 @@ class TestProcessConfig:
         assert config["host"] == expected_host
         assert config["port"] == expected_port
         assert config["path"] == expected_path
+
+
+class TestNamespaceConfigProcessing:
+    """Test namespace configuration processing in process_config."""
+
+    def test_process_config_namespace_cli(self, clean_env, args_factory):
+        """Test process_config when namespace provided via CLI."""
+        args = args_factory(namespace="test-cli")
+        config = process_config(args)
+        assert config["namespace"] == "test-cli"
+
+    def test_process_config_namespace_env_var(self, clean_env, args_factory):
+        """Test process_config when namespace provided via environment variable."""
+        os.environ["NEO4J_NAMESPACE"] = "test-env"
+        args = args_factory()
+        config = process_config(args)
+        assert config["namespace"] == "test-env"
+
+    def test_process_config_namespace_cli_overrides_env(self, clean_env, args_factory):
+        """Test that CLI namespace takes precedence over environment variable."""
+        os.environ["NEO4J_NAMESPACE"] = "test-env"
+        args = args_factory(namespace="test-cli")
+        config = process_config(args)
+        assert config["namespace"] == "test-cli"
+
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_process_config_namespace_default_empty(self, mock_logger, clean_env, args_factory):
+        """Test that namespace defaults to empty string when not provided."""
+        args = args_factory()
+        config = process_config(args)
+        assert config["namespace"] == ""
+        
+        # Check that info message was logged
+        mock_logger.info.assert_called_with("Info: No namespace provided. No namespace will be used.")
+
+    def test_process_config_includes_namespace_in_output(self, clean_env, args_factory):
+        """Test that process_config output includes namespace key."""
+        args = args_factory(namespace="test")
+        config = process_config(args)
+        assert "namespace" in config
