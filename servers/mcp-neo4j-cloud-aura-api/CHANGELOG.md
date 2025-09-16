@@ -6,7 +6,7 @@
 
 ### Added
 
-## Next
+## v0.4.2
 
 ### Fixed
 * fix bug where config logging wasn't being used
