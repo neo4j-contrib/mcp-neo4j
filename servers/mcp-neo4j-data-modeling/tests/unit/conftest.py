@@ -1,4 +1,7 @@
+import argparse
+import os
 from typing import Any
+from unittest.mock import Mock
 
 import pytest
 from fastmcp.server import FastMCP
@@ -8,9 +11,60 @@ from mcp_neo4j_data_modeling.server import create_mcp_server
 
 
 @pytest.fixture
+def clean_env():
+    """Fixture to clean environment variables before each test."""
+    env_vars = [
+        "NEO4J_TRANSPORT",
+        "NEO4J_MCP_SERVER_HOST",
+        "NEO4J_MCP_SERVER_PORT",
+        "NEO4J_MCP_SERVER_PATH",
+        "NEO4J_MCP_SERVER_ALLOW_ORIGINS",
+        "NEO4J_MCP_SERVER_ALLOWED_HOSTS",
+    ]
+    # Store original values
+    original_values = {}
+    for var in env_vars:
+        if var in os.environ:
+            original_values[var] = os.environ[var]
+            del os.environ[var]
+
+    yield
+
+    # Restore original values
+    for var, value in original_values.items():
+        os.environ[var] = value
+
+
+@pytest.fixture
+def args_factory():
+    """Factory fixture to create argparse.Namespace objects with default None values."""
+
+    def _create_args(**kwargs):
+        defaults = {
+            "transport": None,
+            "server_host": None,
+            "server_port": None,
+            "server_path": None,
+            "allow_origins": None,
+            "allowed_hosts": None,
+        }
+        defaults.update(kwargs)
+        return argparse.Namespace(**defaults)
+
+    return _create_args
+
+
+@pytest.fixture
+def mock_logger():
+    """Mock logger for testing logging behavior."""
+    return Mock()
+
+
+@pytest.fixture
 def test_mcp_server() -> FastMCP:
     """Create an MCP server instance for testing."""
     return create_mcp_server()
+
 
 @pytest.fixture(scope="function")
 def arrows_data_model_dict() -> dict[str, Any]:
@@ -172,5 +226,3 @@ def valid_data_model() -> DataModel:
         end_node_label="Place",
     )
     return DataModel(nodes=nodes, relationships=[relationship])
-
-

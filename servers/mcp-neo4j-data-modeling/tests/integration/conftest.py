@@ -1,7 +1,8 @@
-import os
-from typing import Any
 import asyncio
+import os
 import subprocess
+from typing import Any
+
 import pytest
 import pytest_asyncio
 from neo4j import AsyncGraphDatabase
@@ -70,29 +71,36 @@ def clear_data(setup: Neo4jContainer):
     with setup.get_driver().session(database="neo4j") as session:
         session.run("MATCH (n) DETACH DELETE n")
 
+
 @pytest_asyncio.fixture
 async def sse_server():
     """Start the MCP server in SSE mode."""
 
-    
     process = await asyncio.create_subprocess_exec(
-        "uv", "run", "mcp-neo4j-data-modeling", 
-        "--transport", "sse", 
-        "--server-host", "127.0.0.1", 
-        "--server-port", "8002",
+        "uv",
+        "run",
+        "mcp-neo4j-data-modeling",
+        "--transport",
+        "sse",
+        "--server-host",
+        "127.0.0.1",
+        "--server-port",
+        "8002",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        cwd=os.getcwd()
+        cwd=os.getcwd(),
     )
-    
+
     await asyncio.sleep(3)
-    
+
     if process.returncode is not None:
         stdout, stderr = await process.communicate()
-        raise RuntimeError(f"Server failed to start. stdout: {stdout.decode()}, stderr: {stderr.decode()}")
-    
+        raise RuntimeError(
+            f"Server failed to start. stdout: {stdout.decode()}, stderr: {stderr.decode()}"
+        )
+
     yield process
-    
+
     try:
         process.terminate()
         await asyncio.wait_for(process.wait(), timeout=5.0)

@@ -6,8 +6,6 @@ import aiohttp
 import pytest
 import pytest_asyncio
 
-from mcp_neo4j_data_modeling.server import create_mcp_server
-
 
 async def parse_sse_response(response: aiohttp.ClientResponse) -> dict:
     """Parse Server-Sent Events response from FastMCP 2.0."""
@@ -23,13 +21,12 @@ async def parse_sse_response(response: aiohttp.ClientResponse) -> dict:
     raise ValueError("No data line found in SSE response")
 
 
-
-    @pytest.mark.asyncio
-    async def test_http_transport_creation(self, mcp_server):
-        """Test that HTTP transport can be created."""
-        # Test that the server can be created
-        tools = await mcp_server.get_tools()
-        assert len(tools) > 0
+@pytest.mark.asyncio
+async def test_http_transport_creation(mcp_server):
+    """Test that HTTP transport can be created."""
+    # Test that the server can be created
+    tools = await mcp_server.get_tools()
+    assert len(tools) > 0
 
 
 class TestHTTPEndpoints:

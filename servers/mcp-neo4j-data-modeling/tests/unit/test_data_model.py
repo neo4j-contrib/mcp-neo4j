@@ -650,5 +650,3 @@ def test_get_cypher_constraints_query(valid_data_model: DataModel):
         queries[1]
         == "CREATE CONSTRAINT Place_constraint IF NOT EXISTS FOR (n:Place) REQUIRE (n.id) IS NODE KEY;"
     )
-
-
