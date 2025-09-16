@@ -1,6 +1,14 @@
 ## Next
 
 ### Fixed
+
+### Changed
+
+### Added
+
+## v0.5.0
+
+### Fixed
 * Fix bug where MCP server could only be deployed with stdio transport
 
 ### Changed
