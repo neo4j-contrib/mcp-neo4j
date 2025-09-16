@@ -118,8 +118,8 @@ def parse_transport(args: argparse.Namespace) -> Literal["stdio", "http", "sse"]
     else:
         if os.getenv("NEO4J_TRANSPORT") is not None:
             if os.getenv("NEO4J_TRANSPORT") not in ALLOWED_TRANSPORTS:
-                logger.error(f"Invalid transport: {os.getenv("NEO4J_TRANSPORT")}. Allowed transports are: {ALLOWED_TRANSPORTS}")
-                raise ValueError(f"Invalid transport: {os.getenv("NEO4J_TRANSPORT")}. Allowed transports are: {ALLOWED_TRANSPORTS}")
+                logger.error(f"Invalid transport: {os.getenv('NEO4J_TRANSPORT')}. Allowed transports are: {ALLOWED_TRANSPORTS}")
+                raise ValueError(f"Invalid transport: {os.getenv('NEO4J_TRANSPORT')}. Allowed transports are: {ALLOWED_TRANSPORTS}")
             return os.getenv("NEO4J_TRANSPORT")
         else:
             logger.info("Info: No transport type provided. Using default: stdio")
