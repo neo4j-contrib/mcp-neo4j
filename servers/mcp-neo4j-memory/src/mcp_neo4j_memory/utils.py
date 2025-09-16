@@ -165,5 +165,15 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
                 "Info: No allowed hosts provided. Defaulting to secure mode - only localhost and 127.0.0.1 allowed."
             )
             config["allowed_hosts"] = ["localhost", "127.0.0.1"]
+
+    # namespace configuration
+    if args.namespace is not None:
+        config["namespace"] = args.namespace
+    else:
+        if os.getenv("NEO4J_NAMESPACE") is not None:
+            config["namespace"] = os.getenv("NEO4J_NAMESPACE")
+        else:
+            logger.info("Info: No namespace provided. No namespace will be used.")
+            config["namespace"] = ""
     
     return config

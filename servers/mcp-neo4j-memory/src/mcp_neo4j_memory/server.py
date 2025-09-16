@@ -21,12 +21,27 @@ logger = logging.getLogger('mcp_neo4j_memory')
 logger.setLevel(logging.INFO)
 
 
-def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
+def _format_namespace(namespace: str) -> str:
+    """Format namespace by ensuring it ends with a hyphen if not empty."""
+    if namespace:
+        if namespace.endswith("-"):
+            return namespace
+        else:
+            return namespace + "-"
+    else:
+        return ""
+
+
+def create_mcp_server(memory: Neo4jMemory, namespace: str = "") -> FastMCP:
     """Create an MCP server instance for memory management."""
+    
+    namespace_prefix = _format_namespace(namespace)
     
     mcp: FastMCP = FastMCP("mcp-neo4j-memory", dependencies=["neo4j", "pydantic"], stateless_http=True)
 
-    @mcp.tool(annotations=ToolAnnotations(title="Read Graph", 
+    @mcp.tool(
+        name=namespace_prefix + "read_graph",
+        annotations=ToolAnnotations(title="Read Graph", 
                                           readOnlyHint=True, 
                                           destructiveHint=False, 
                                           idempotentHint=True, 
@@ -45,7 +60,9 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
             logger.error(f"Error reading full knowledge graph: {e}")
             raise ToolError(f"Error reading full knowledge graph: {e}")
 
-    @mcp.tool(annotations=ToolAnnotations(title="Create Entities", 
+    @mcp.tool(
+        name=namespace_prefix + "create_entities",
+        annotations=ToolAnnotations(title="Create Entities", 
                                           readOnlyHint=False, 
                                           destructiveHint=False, 
                                           idempotentHint=True, 
@@ -65,7 +82,9 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
             logger.error(f"Error creating entities: {e}")
             raise ToolError(f"Error creating entities: {e}")
 
-    @mcp.tool(annotations=ToolAnnotations(title="Create Relations", 
+    @mcp.tool(
+        name=namespace_prefix + "create_relations",
+        annotations=ToolAnnotations(title="Create Relations", 
                                           readOnlyHint=False, 
                                           destructiveHint=False, 
                                           idempotentHint=True, 
@@ -85,7 +104,9 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
             logger.error(f"Error creating relations: {e}")
             raise ToolError(f"Error creating relations: {e}")
 
-    @mcp.tool(annotations=ToolAnnotations(title="Add Observations", 
+    @mcp.tool(
+        name=namespace_prefix + "add_observations",
+        annotations=ToolAnnotations(title="Add Observations", 
                                           readOnlyHint=False, 
                                           destructiveHint=False, 
                                           idempotentHint=True, 
@@ -105,7 +126,9 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
             logger.error(f"Error adding observations: {e}")
             raise ToolError(f"Error adding observations: {e}")
 
-    @mcp.tool(annotations=ToolAnnotations(title="Delete Entities", 
+    @mcp.tool(
+        name=namespace_prefix + "delete_entities",
+        annotations=ToolAnnotations(title="Delete Entities", 
                                           readOnlyHint=False, 
                                           destructiveHint=True, 
                                           idempotentHint=True, 
@@ -124,7 +147,9 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
             logger.error(f"Error deleting entities: {e}")
             raise ToolError(f"Error deleting entities: {e}")
 
-    @mcp.tool(annotations=ToolAnnotations(title="Delete Observations", 
+    @mcp.tool(
+        name=namespace_prefix + "delete_observations",
+        annotations=ToolAnnotations(title="Delete Observations", 
                                           readOnlyHint=False, 
                                           destructiveHint=True, 
                                           idempotentHint=True, 
@@ -144,7 +169,9 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
             logger.error(f"Error deleting observations: {e}")
             raise ToolError(f"Error deleting observations: {e}")
 
-    @mcp.tool(annotations=ToolAnnotations(title="Delete Relations", 
+    @mcp.tool(
+        name=namespace_prefix + "delete_relations",
+        annotations=ToolAnnotations(title="Delete Relations", 
                                           readOnlyHint=False, 
                                           destructiveHint=True, 
                                           idempotentHint=True, 
@@ -164,7 +191,9 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
             logger.error(f"Error deleting relations: {e}")
             raise ToolError(f"Error deleting relations: {e}")
 
-    @mcp.tool(annotations=ToolAnnotations(title="Search Memories", 
+    @mcp.tool(
+        name=namespace_prefix + "search_memories",
+        annotations=ToolAnnotations(title="Search Memories", 
                                           readOnlyHint=True, 
                                           destructiveHint=False, 
                                           idempotentHint=True, 
@@ -183,7 +212,9 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
             logger.error(f"Error searching memories: {e}")
             raise ToolError(f"Error searching memories: {e}")
         
-    @mcp.tool(annotations=ToolAnnotations(title="Find Memories by Name", 
+    @mcp.tool(
+        name=namespace_prefix + "find_memories_by_name",
+        annotations=ToolAnnotations(title="Find Memories by Name",
                                           readOnlyHint=True, 
                                           destructiveHint=False, 
                                           idempotentHint=True, 
@@ -211,6 +242,7 @@ async def main(
     neo4j_password: str,
     neo4j_database: str,
     transport: Literal["stdio", "sse", "http"] = "stdio",
+    namespace: str = "",
     host: str = "127.0.0.1",
     port: int = 8000,
     path: str = "/mcp/",
@@ -255,7 +287,7 @@ async def main(
     ]
 
     # Create MCP server
-    mcp = create_mcp_server(memory)
+    mcp = create_mcp_server(memory, namespace)
     logger.info("MCP server created")
 
     # Run the server with the specified transport
