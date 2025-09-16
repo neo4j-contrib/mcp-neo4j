@@ -5,6 +5,7 @@
 ### Changed
 
 ### Added
+* Add namespacing support for multi-tenant deployments with `--namespace` CLI argument and `NEO4J_NAMESPACE` environment variable
 
 ## v0.5.0
 
@@ -17,7 +18,6 @@
 * Change default transport to `stdio` in Dockerfile
 
 ### Added
-* Add namespacing support for multi-tenant deployments with `--namespace` CLI argument and `NEO4J_NAMESPACE` environment variable
 * Add security middleware (CORS and TrustedHost) for HTTP and SSE transports
 * Add CLI  support for `--allow-origins` and `--allowed-hosts` configuration
 * Add environment variable for `NEO4J_MCP_SERVER_ALLOW_ORIGINS` and `NEO4J_MCP_SERVER_ALLOWED_HOSTS` configuration
