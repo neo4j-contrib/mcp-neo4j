@@ -1,5 +1,3 @@
-# Makefile for cypher-guard Python bindings
-
 .PHONY: format test clean inspector build_local_docker_image install-dev test-unit test-integration test-http test-all all
 
 format:

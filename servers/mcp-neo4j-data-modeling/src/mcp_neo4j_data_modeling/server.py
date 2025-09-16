@@ -4,6 +4,9 @@ from typing import Any, Literal, Optional
 
 from fastmcp.server import FastMCP
 from pydantic import Field, ValidationError
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .data_model import (
     DataModel,
@@ -395,18 +398,38 @@ async def main(
     host: str = "127.0.0.1",
     port: int = 8000,
     path: str = "/mcp/",
+    allow_origins: list[str] = [],
+    allowed_hosts: list[str] = [],
 ) -> None:
     logger.info("Starting MCP Neo4j Data Modeling Server")
+
+    custom_middleware = [
+        Middleware(
+            CORSMiddleware,
+            allow_origins=allow_origins,
+            allow_methods=["GET", "POST"],
+            allow_headers=["*"],
+        ),
+        Middleware(TrustedHostMiddleware,
+                   allowed_hosts=allowed_hosts)
+    ]
 
     mcp = create_mcp_server()
 
     match transport:
         case "http":
-            await mcp.run_http_async(host=host, port=port, path=path)
+            logger.info(
+                f"Running Neo4j Data Modeling MCP Server with HTTP transport on {host}:{port}..."
+            )
+            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware)
         case "stdio":
+            logger.info("Running Neo4j Data Modeling MCP Server with stdio transport...")
             await mcp.run_stdio_async()
         case "sse":
-            await mcp.run_sse_async(host=host, port=port, path=path)
+            logger.info(
+                f"Running Neo4j Data Modeling MCP Server with SSE transport on {host}:{port}..."
+            )
+            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware, transport="sse")
 
 
 if __name__ == "__main__":
