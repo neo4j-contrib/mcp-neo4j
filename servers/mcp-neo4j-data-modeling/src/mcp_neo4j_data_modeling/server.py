@@ -29,12 +29,24 @@ from .static import (
 logger = logging.getLogger("mcp_neo4j_data_modeling")
 
 
-def create_mcp_server() -> FastMCP:
+def _format_namespace(namespace: str) -> str:
+    if namespace:
+        if namespace.endswith("-"):
+            return namespace
+        else:
+            return namespace + "-"
+    else:
+        return ""
+
+
+def create_mcp_server(namespace: str = "") -> FastMCP:
     """Create an MCP server instance for data modeling."""
 
     mcp: FastMCP = FastMCP(
         "mcp-neo4j-data-modeling", dependencies=["pydantic"], stateless_http=True
     )
+
+    namespace_prefix = _format_namespace(namespace)
 
     @mcp.resource("resource://schema/node")
     def node_schema() -> dict[str, Any]:
@@ -108,7 +120,7 @@ def create_mcp_server() -> FastMCP:
         logger.info("Getting the Health Insurance Fraud Detection data model.")
         return json.dumps(HEALTH_INSURANCE_FRAUD_MODEL, indent=2)
 
-    @mcp.tool()
+    @mcp.tool(name=namespace_prefix + "validate_node")
     def validate_node(
         node: Node, return_validated: bool = False
     ) -> bool | dict[str, Any]:
@@ -125,7 +137,7 @@ def create_mcp_server() -> FastMCP:
             logger.error(f"Validation error: {e}")
             raise ValueError(f"Validation error: {e}")
 
-    @mcp.tool()
+    @mcp.tool(name=namespace_prefix + "validate_relationship")
     def validate_relationship(
         relationship: Relationship, return_validated: bool = False
     ) -> bool | dict[str, Any]:
@@ -144,7 +156,7 @@ def create_mcp_server() -> FastMCP:
             logger.error(f"Validation error: {e}")
             raise ValueError(f"Validation error: {e}")
 
-    @mcp.tool()
+    @mcp.tool(name=namespace_prefix + "validate_data_model")
     def validate_data_model(
         data_model: DataModel, return_validated: bool = False
     ) -> bool | dict[str, Any]:
@@ -161,19 +173,19 @@ def create_mcp_server() -> FastMCP:
             logger.error(f"Validation error: {e}")
             raise ValueError(f"Validation error: {e}")
 
-    @mcp.tool()
+    @mcp.tool(name=namespace_prefix + "load_from_arrows_json")
     def load_from_arrows_json(arrows_data_model_dict: dict[str, Any]) -> DataModel:
         "Load a data model from the Arrows web application format. Returns a data model as a JSON string."
         logger.info("Loading a data model from the Arrows web application format.")
         return DataModel.from_arrows(arrows_data_model_dict)
 
-    @mcp.tool()
+    @mcp.tool(name=namespace_prefix + "export_to_arrows_json")
     def export_to_arrows_json(data_model: DataModel) -> str:
         "Export the data model to the Arrows web application format. Returns a JSON string. This should be presented to the user as an artifact if possible."
         logger.info("Exporting the data model to the Arrows web application format.")
         return data_model.to_arrows_json_str()
 
-    @mcp.tool()
+    @mcp.tool(name=namespace_prefix + "get_mermaid_config_str")
     def get_mermaid_config_str(data_model: DataModel) -> str:
         "Get the Mermaid configuration string for the data model. This may be visualized in Claude Desktop and other applications with Mermaid support."
         logger.info("Getting the Mermaid configuration string for the data model.")
@@ -184,7 +196,7 @@ def create_mcp_server() -> FastMCP:
             raise ValueError(f"Validation error: {e}")
         return dm_validated.get_mermaid_config_str()
 
-    @mcp.tool()
+    @mcp.tool(name=namespace_prefix + "get_node_cypher_ingest_query")
     def get_node_cypher_ingest_query(
         node: Node = Field(description="The node to get the Cypher query for."),
     ) -> str:
@@ -198,7 +210,7 @@ def create_mcp_server() -> FastMCP:
         )
         return node.get_cypher_ingest_query_for_many_records()
 
-    @mcp.tool()
+    @mcp.tool(name=namespace_prefix + "get_relationship_cypher_ingest_query")
     def get_relationship_cypher_ingest_query(
         data_model: DataModel = Field(
             description="The data model snippet that contains the relationship, start node and end node."
@@ -228,7 +240,7 @@ def create_mcp_server() -> FastMCP:
             relationship_end_node_label,
         )
 
-    @mcp.tool()
+    @mcp.tool(name=namespace_prefix + "get_constraints_cypher_queries")
     def get_constraints_cypher_queries(data_model: DataModel) -> list[str]:
         "Get the Cypher queries to create constraints on the data model. This creates range indexes on the key properties of the nodes and relationships and enforces uniqueness and existence of the key properties."
         logger.info(
@@ -236,7 +248,7 @@ def create_mcp_server() -> FastMCP:
         )
         return data_model.get_cypher_constraints_query()
 
-    @mcp.tool()
+    @mcp.tool(name=namespace_prefix + "get_example_data_model")
     def get_example_data_model(
         example_name: str = Field(
             ...,
@@ -270,7 +282,7 @@ def create_mcp_server() -> FastMCP:
             mermaid_config=validated_data_model.get_mermaid_config_str(),
         )
 
-    @mcp.tool()
+    @mcp.tool(name=namespace_prefix + "list_example_data_models")
     def list_example_data_models() -> dict[str, Any]:
         """List all available example data models with descriptions. Returns a dictionary with example names and their descriptions."""
         logger.info("Listing available example data models.")
@@ -401,6 +413,7 @@ Process:
 
 async def main(
     transport: Literal["stdio", "sse", "http"] = "stdio",
+    namespace: str = "",
     host: str = "127.0.0.1",
     port: int = 8000,
     path: str = "/mcp/",
@@ -419,7 +432,7 @@ async def main(
         Middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts),
     ]
 
-    mcp = create_mcp_server()
+    mcp = create_mcp_server(namespace=namespace)
 
     match transport:
         case "http":

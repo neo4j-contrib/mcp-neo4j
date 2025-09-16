@@ -295,4 +295,14 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
     config["allow_origins"] = parse_allow_origins(args)
     config["allowed_hosts"] = parse_allowed_hosts(args)
 
+    # namespace configuration
+    if args.namespace is not None:
+        config["namespace"] = args.namespace
+    else:
+        if os.getenv("TOOL_NAMESPACE") is not None:
+            config["namespace"] = os.getenv("TOOL_NAMESPACE")
+        else:
+            logger.info("Info: No namespace provided. No namespace will be used.")
+            config["namespace"] = ""
+
     return config
