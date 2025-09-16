@@ -1,13 +1,15 @@
 import os
 from unittest.mock import patch
+
 import pytest
+
 from mcp_neo4j_data_modeling.utils import (
-    parse_transport,
-    parse_server_host,
-    parse_server_port,
-    parse_server_path,
     parse_allow_origins,
     parse_allowed_hosts,
+    parse_server_host,
+    parse_server_path,
+    parse_server_port,
+    parse_transport,
     process_config,
 )
 
@@ -36,7 +38,7 @@ class TestParseTransport:
         result = parse_transport(args)
         assert result == "sse"
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
+    @patch("mcp_neo4j_data_modeling.utils.logger")
     def test_parse_transport_default_stdio(self, mock_logger, clean_env, args_factory):
         """Test that transport defaults to stdio when not provided."""
         args = args_factory()
@@ -44,10 +46,14 @@ class TestParseTransport:
         assert result == "stdio"
 
         # Check that info message was logged
-        mock_logger.info.assert_called_once_with("Info: No transport type provided. Using default: stdio")
+        mock_logger.info.assert_called_once_with(
+            "Info: No transport type provided. Using default: stdio"
+        )
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_transport_invalid_cli_raises_error(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_transport_invalid_cli_raises_error(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test that invalid transport in CLI raises ValueError."""
         args = args_factory(transport="invalid")
         with pytest.raises(ValueError, match="Invalid transport: invalid"):
@@ -56,8 +62,10 @@ class TestParseTransport:
         # Check that error was logged
         mock_logger.error.assert_called_once()
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_transport_invalid_env_raises_error(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_transport_invalid_env_raises_error(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test that invalid transport in env var raises ValueError."""
         os.environ["NEO4J_TRANSPORT"] = "invalid"
         args = args_factory()
@@ -89,8 +97,10 @@ class TestParseServerHost:
         result = parse_server_host(args, "http")
         assert result == "cli-host"
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_server_host_default_for_non_stdio(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_server_host_default_for_non_stdio(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test that server_host defaults to 127.0.0.1 for non-stdio transport."""
         args = args_factory()
         result = parse_server_host(args, "http")
@@ -99,8 +109,10 @@ class TestParseServerHost:
         # Check that warning was logged
         mock_logger.warning.assert_called_once()
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_server_host_none_for_stdio(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_server_host_none_for_stdio(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test that server_host returns None for stdio transport when not provided."""
         args = args_factory()
         result = parse_server_host(args, "stdio")
@@ -109,8 +121,10 @@ class TestParseServerHost:
         # Check that info message was logged
         mock_logger.info.assert_called_once()
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_server_host_stdio_warning_cli(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_server_host_stdio_warning_cli(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test warning when server_host provided with stdio transport via CLI."""
         args = args_factory(server_host="test-host")
         result = parse_server_host(args, "stdio")
@@ -118,10 +132,15 @@ class TestParseServerHost:
 
         # Check that warning was logged
         mock_logger.warning.assert_called_once()
-        assert "server_host` argument will be set, but ignored" in mock_logger.warning.call_args[0][0]
+        assert (
+            "server_host` argument will be set, but ignored"
+            in mock_logger.warning.call_args[0][0]
+        )
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_server_host_stdio_warning_env(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_server_host_stdio_warning_env(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test warning when server_host provided with stdio transport via env var."""
         os.environ["NEO4J_MCP_SERVER_HOST"] = "env-host"
         args = args_factory()
@@ -130,7 +149,10 @@ class TestParseServerHost:
 
         # Check that warning was logged
         mock_logger.warning.assert_called_once()
-        assert "NEO4J_MCP_SERVER_HOST` environment variable will be set, but ignored" in mock_logger.warning.call_args[0][0]
+        assert (
+            "NEO4J_MCP_SERVER_HOST` environment variable will be set, but ignored"
+            in mock_logger.warning.call_args[0][0]
+        )
 
 
 class TestParseServerPort:
@@ -154,8 +176,10 @@ class TestParseServerPort:
         result = parse_server_port(args, "http")
         assert result == 9000
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_server_port_default_for_non_stdio(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_server_port_default_for_non_stdio(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test that server_port defaults to 8000 for non-stdio transport."""
         args = args_factory()
         result = parse_server_port(args, "http")
@@ -164,8 +188,10 @@ class TestParseServerPort:
         # Check that warning was logged
         mock_logger.warning.assert_called_once()
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_server_port_none_for_stdio(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_server_port_none_for_stdio(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test that server_port returns None for stdio transport when not provided."""
         args = args_factory()
         result = parse_server_port(args, "stdio")
@@ -174,8 +200,10 @@ class TestParseServerPort:
         # Check that info message was logged
         mock_logger.info.assert_called_once()
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_server_port_stdio_warning_cli(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_server_port_stdio_warning_cli(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test warning when server_port provided with stdio transport via CLI."""
         args = args_factory(server_port=9000)
         result = parse_server_port(args, "stdio")
@@ -183,10 +211,15 @@ class TestParseServerPort:
 
         # Check that warning was logged
         mock_logger.warning.assert_called_once()
-        assert "server_port` argument will be set, but ignored" in mock_logger.warning.call_args[0][0]
+        assert (
+            "server_port` argument will be set, but ignored"
+            in mock_logger.warning.call_args[0][0]
+        )
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_server_port_stdio_warning_env(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_server_port_stdio_warning_env(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test warning when server_port provided with stdio transport via env var."""
         os.environ["NEO4J_MCP_SERVER_PORT"] = "9000"
         args = args_factory()
@@ -195,7 +228,10 @@ class TestParseServerPort:
 
         # Check that warning was logged
         mock_logger.warning.assert_called_once()
-        assert "NEO4J_MCP_SERVER_PORT` environment variable will be set, but ignored" in mock_logger.warning.call_args[0][0]
+        assert (
+            "NEO4J_MCP_SERVER_PORT` environment variable will be set, but ignored"
+            in mock_logger.warning.call_args[0][0]
+        )
 
 
 class TestParseServerPath:
@@ -219,8 +255,10 @@ class TestParseServerPath:
         result = parse_server_path(args, "http")
         assert result == "/cli/"
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_server_path_default_for_non_stdio(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_server_path_default_for_non_stdio(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test that server_path defaults to /mcp/ for non-stdio transport."""
         args = args_factory()
         result = parse_server_path(args, "http")
@@ -229,8 +267,10 @@ class TestParseServerPath:
         # Check that warning was logged
         mock_logger.warning.assert_called_once()
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_server_path_none_for_stdio(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_server_path_none_for_stdio(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test that server_path returns None for stdio transport when not provided."""
         args = args_factory()
         result = parse_server_path(args, "stdio")
@@ -239,8 +279,10 @@ class TestParseServerPath:
         # Check that info message was logged
         mock_logger.info.assert_called_once()
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_server_path_stdio_warning_cli(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_server_path_stdio_warning_cli(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test warning when server_path provided with stdio transport via CLI."""
         args = args_factory(server_path="/test/")
         result = parse_server_path(args, "stdio")
@@ -248,10 +290,15 @@ class TestParseServerPath:
 
         # Check that warning was logged
         mock_logger.warning.assert_called_once()
-        assert "server_path` argument will be set, but ignored" in mock_logger.warning.call_args[0][0]
+        assert (
+            "server_path` argument will be set, but ignored"
+            in mock_logger.warning.call_args[0][0]
+        )
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_server_path_stdio_warning_env(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_server_path_stdio_warning_env(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test warning when server_path provided with stdio transport via env var."""
         os.environ["NEO4J_MCP_SERVER_PATH"] = "/env/"
         args = args_factory()
@@ -260,7 +307,10 @@ class TestParseServerPath:
 
         # Check that warning was logged
         mock_logger.warning.assert_called_once()
-        assert "NEO4J_MCP_SERVER_PATH` environment variable will be set, but ignored" in mock_logger.warning.call_args[0][0]
+        assert (
+            "NEO4J_MCP_SERVER_PATH` environment variable will be set, but ignored"
+            in mock_logger.warning.call_args[0][0]
+        )
 
 
 class TestParseAllowOrigins:
@@ -292,15 +342,19 @@ class TestParseAllowOrigins:
         result = parse_allow_origins(args)
         assert result == expected_origins
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_allow_origins_defaults_empty(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_allow_origins_defaults_empty(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test that allow_origins defaults to empty list when not provided."""
         args = args_factory()
         result = parse_allow_origins(args)
         assert result == []
 
         # Check that info message was logged
-        mock_logger.info.assert_called_once_with("Info: No allow origins provided. Defaulting to no allowed origins.")
+        mock_logger.info.assert_called_once_with(
+            "Info: No allow origins provided. Defaulting to no allowed origins."
+        )
 
     def test_parse_allow_origins_empty_string(self, clean_env, args_factory):
         """Test allow_origins with empty string from CLI."""
@@ -360,8 +414,10 @@ class TestParseAllowedHosts:
         result = parse_allowed_hosts(args)
         assert result == expected_hosts
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
-    def test_parse_allowed_hosts_defaults_secure(self, mock_logger, clean_env, args_factory):
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_allowed_hosts_defaults_secure(
+        self, mock_logger, clean_env, args_factory
+    ):
         """Test that allowed_hosts defaults to secure localhost/127.0.0.1 when not provided."""
         args = args_factory()
         result = parse_allowed_hosts(args)
@@ -402,7 +458,7 @@ class TestProcessConfig:
             server_port=9000,
             server_path="/test/",
             allow_origins="http://localhost:3000",
-            allowed_hosts="example.com,www.example.com"
+            allowed_hosts="example.com,www.example.com",
         )
 
         config = process_config(args)
@@ -433,7 +489,7 @@ class TestProcessConfig:
         assert config["allow_origins"] == ["http://env.com", "https://env.com"]
         assert config["allowed_hosts"] == ["env.com", "www.env.com"]
 
-    @patch('mcp_neo4j_data_modeling.utils.logger')
+    @patch("mcp_neo4j_data_modeling.utils.logger")
     def test_process_config_defaults(self, mock_logger, clean_env, args_factory):
         """Test process_config with minimal arguments (defaults applied)."""
         args = args_factory()
@@ -456,7 +512,13 @@ class TestProcessConfig:
         ],
     )
     def test_process_config_transport_scenarios(
-        self, clean_env, args_factory, transport, expected_host, expected_port, expected_path
+        self,
+        clean_env,
+        args_factory,
+        transport,
+        expected_host,
+        expected_port,
+        expected_path,
     ):
         """Test process_config with different transport modes."""
         args = args_factory(transport=transport)

@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from fastmcp.server import FastMCP
 from pydantic import Field, ValidationError
@@ -16,14 +16,14 @@ from .data_model import (
 )
 from .models import ExampleDataModelResponse
 from .static import (
-    DATA_INGEST_PROCESS,
-    PATIENT_JOURNEY_MODEL,
-    SUPPLY_CHAIN_MODEL,
-    SOFTWARE_DEPENDENCY_MODEL,
-    OIL_GAS_MONITORING_MODEL,
     CUSTOMER_360_MODEL,
+    DATA_INGEST_PROCESS,
     FRAUD_AML_MODEL,
     HEALTH_INSURANCE_FRAUD_MODEL,
+    OIL_GAS_MONITORING_MODEL,
+    PATIENT_JOURNEY_MODEL,
+    SOFTWARE_DEPENDENCY_MODEL,
+    SUPPLY_CHAIN_MODEL,
 )
 
 logger = logging.getLogger("mcp_neo4j_data_modeling")
@@ -325,15 +325,21 @@ def create_mcp_server() -> FastMCP:
             "total_examples": len(examples),
             "usage": "Use the get_example_data_model tool with any of the example names above to get a specific data model",
         }
-    
+
     @mcp.prompt(title="Create New Data Model")
-    def create_new_data_model(data_context: str = Field(..., description="A description of the data and any specific details the agent should focus on."), 
-                              use_cases: str = Field(..., description="A list of use cases for the data model to address."),
-                              desired_nodes: str = "",
-                              desired_relationships: str = ""
-                              ) -> str:
+    def create_new_data_model(
+        data_context: str = Field(
+            ...,
+            description="A description of the data and any specific details the agent should focus on.",
+        ),
+        use_cases: str = Field(
+            ..., description="A list of use cases for the data model to address."
+        ),
+        desired_nodes: str = "",
+        desired_relationships: str = "",
+    ) -> str:
         """
-        Guide the agent in creating a new graph data model. 
+        Guide the agent in creating a new graph data model.
         You should provide the sample data alongside this prompt.
         Be as descriptive as possible when providing data context and use cases. These will be used to effectively shape your data model.
         If you have an idea of what your data model should look like, you may optionally provide desired nodes and relationships.
@@ -410,8 +416,7 @@ async def main(
             allow_methods=["GET", "POST"],
             allow_headers=["*"],
         ),
-        Middleware(TrustedHostMiddleware,
-                   allowed_hosts=allowed_hosts)
+        Middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts),
     ]
 
     mcp = create_mcp_server()
@@ -421,15 +426,25 @@ async def main(
             logger.info(
                 f"Running Neo4j Data Modeling MCP Server with HTTP transport on {host}:{port}..."
             )
-            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware)
+            await mcp.run_http_async(
+                host=host, port=port, path=path, middleware=custom_middleware
+            )
         case "stdio":
-            logger.info("Running Neo4j Data Modeling MCP Server with stdio transport...")
+            logger.info(
+                "Running Neo4j Data Modeling MCP Server with stdio transport..."
+            )
             await mcp.run_stdio_async()
         case "sse":
             logger.info(
                 f"Running Neo4j Data Modeling MCP Server with SSE transport on {host}:{port}..."
             )
-            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware, transport="sse")
+            await mcp.run_http_async(
+                host=host,
+                port=port,
+                path=path,
+                middleware=custom_middleware,
+                transport="sse",
+            )
 
 
 if __name__ == "__main__":

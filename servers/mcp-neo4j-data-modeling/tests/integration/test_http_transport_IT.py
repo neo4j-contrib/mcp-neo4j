@@ -6,8 +6,6 @@ import aiohttp
 import pytest
 import pytest_asyncio
 
-from mcp_neo4j_data_modeling.server import create_mcp_server
-
 
 async def parse_sse_response(response: aiohttp.ClientResponse) -> dict:
     """Parse Server-Sent Events response from FastMCP 2.0."""
@@ -21,7 +19,6 @@ async def parse_sse_response(response: aiohttp.ClientResponse) -> dict:
             return json.loads(json_str)
 
     raise ValueError("No data line found in SSE response")
-
 
 
 @pytest.mark.asyncio

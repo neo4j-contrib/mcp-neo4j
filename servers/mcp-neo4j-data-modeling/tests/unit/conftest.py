@@ -65,6 +65,7 @@ def test_mcp_server() -> FastMCP:
     """Create an MCP server instance for testing."""
     return create_mcp_server()
 
+
 @pytest.fixture(scope="function")
 def arrows_data_model_dict() -> dict[str, Any]:
     return {
@@ -225,5 +226,3 @@ def valid_data_model() -> DataModel:
         end_node_label="Place",
     )
     return DataModel(nodes=nodes, relationships=[relationship])
-
-
