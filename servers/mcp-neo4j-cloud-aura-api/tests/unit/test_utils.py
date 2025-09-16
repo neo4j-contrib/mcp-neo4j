@@ -29,6 +29,7 @@ def clean_env():
         "NEO4J_MCP_SERVER_PATH",
         "NEO4J_MCP_SERVER_ALLOW_ORIGINS",
         "NEO4J_MCP_SERVER_ALLOWED_HOSTS",
+        "NEO4J_NAMESPACE",
     ]
     # Store original values
     original_values = {}
@@ -58,6 +59,7 @@ def args_factory():
             "server_path": None,
             "allow_origins": None,
             "allowed_hosts": None,
+            "namespace": None,
         }
         defaults.update(kwargs)
         return argparse.Namespace(**defaults)
@@ -630,3 +632,52 @@ class TestProcessConfig:
         assert config["host"] == expected_host
         assert config["port"] == expected_port
         assert config["path"] == expected_path
+
+
+class TestNamespaceConfigProcessing:
+    """Test namespace configuration processing in process_config."""
+
+    def test_process_config_namespace_cli(self, clean_env, args_factory):
+        """Test process_config when namespace is provided via CLI argument."""
+        args = args_factory(
+            client_id="test-id",
+            client_secret="test-secret", 
+            namespace="test-cli"
+        )
+        config = process_config(args)
+        assert config["namespace"] == "test-cli"
+
+    def test_process_config_namespace_env_var(self, clean_env, args_factory):
+        """Test process_config when namespace is provided via environment variable."""
+        os.environ["NEO4J_NAMESPACE"] = "test-env"
+        args = args_factory(client_id="test-id", client_secret="test-secret")
+        config = process_config(args)
+        assert config["namespace"] == "test-env"
+
+    def test_process_config_namespace_precedence(self, clean_env, args_factory):
+        """Test that CLI namespace argument takes precedence over environment variable."""
+        os.environ["NEO4J_NAMESPACE"] = "test-env"
+        args = args_factory(
+            client_id="test-id",
+            client_secret="test-secret",
+            namespace="test-cli"
+        )
+        config = process_config(args)
+        assert config["namespace"] == "test-cli"
+
+    def test_process_config_namespace_default(self, clean_env, args_factory, mock_logger):
+        """Test process_config when no namespace is provided (defaults to empty string)."""
+        args = args_factory(client_id="test-id", client_secret="test-secret")
+        config = process_config(args)
+        assert config["namespace"] == ""
+        mock_logger.info.assert_any_call("Info: No namespace provided. No namespace will be used.")
+
+    def test_process_config_namespace_empty_string(self, clean_env, args_factory):
+        """Test process_config when namespace is explicitly set to empty string."""
+        args = args_factory(
+            client_id="test-id", 
+            client_secret="test-secret",
+            namespace=""
+        )
+        config = process_config(args)
+        assert config["namespace"] == ""
