@@ -193,6 +193,28 @@ Add the server to your `claude_desktop_config.json` with the transport method sp
 }
 ```
 
+### 🏷️ Namespacing for Multi-tenant Deployments
+
+The server supports namespacing:
+
+```json
+"mcpServers": {
+  "neo4j-data-modeling-app1": {
+    "command": "uvx",
+    "args": [ "mcp-neo4j-data-modeling@0.4.0", "--transport", "stdio", "--namespace", "app1" ]
+  },
+  "neo4j-data-modeling-app2": {
+    "command": "uvx", 
+    "args": [ "mcp-neo4j-data-modeling@0.4.0", "--transport", "stdio", "--namespace", "app2" ]
+  }
+}
+```
+
+With namespacing enabled:
+- Tools get prefixed: `app1-validate_node`, `app2-validate_node` 
+- Each namespace operates independently
+- Perfect for multi-tenant or multi-application scenarios
+
 ### 🌐 HTTP Transport Mode
 
 The server supports HTTP transport for web-based deployments and microservices:
@@ -203,6 +225,9 @@ mcp-neo4j-data-modeling --transport http
 
 # Custom HTTP configuration
 mcp-neo4j-data-modeling --transport http --host 127.0.0.1 --port 8080 --path /api/mcp/
+
+# With namespace for multi-tenant deployment
+mcp-neo4j-data-modeling --transport http --namespace myapp
 ```
 
 Environment variables for HTTP configuration:
@@ -212,6 +237,7 @@ export MCP_TRANSPORT=http
 export NEO4J_MCP_SERVER_HOST=127.0.0.1
 export NEO4J_MCP_SERVER_PORT=8080
 export NEO4J_MCP_SERVER_PATH=/api/mcp/
+export NEO4J_NAMESPACE=myapp
 mcp-neo4j-data-modeling
 ```
 
@@ -245,6 +271,7 @@ Here we use the Docker Hub hosted Data Modeling MCP server image with stdio tran
         "-p",
         "8000:8000",
         "-e", "NEO4J_TRANSPORT=stdio",
+        "-e", "NEO4J_NAMESPACE=myapp",
         "mcp/neo4j-data-modeling:latest"
       ]
     }
@@ -289,6 +316,7 @@ docker run --rm -p 8000:8000 \
 | `NEO4J_MCP_SERVER_HOST`            | `127.0.0.1` (local)                     | Host to bind to                                    |
 | `NEO4J_MCP_SERVER_PORT`            | `8000`                                  | Port for HTTP/SSE transport                        |
 | `NEO4J_MCP_SERVER_PATH`            | `/mcp/`                                 | Path for accessing MCP server                      |
+| `NEO4J_NAMESPACE`                  | _(empty - no prefix)_                   | Namespace prefix for tool names (e.g., `myapp-validate_node`) |
 | `NEO4J_MCP_SERVER_ALLOW_ORIGINS`   | _(empty - secure by default)_           | Comma-separated list of allowed CORS origins       |
 | `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
 
