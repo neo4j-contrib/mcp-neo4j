@@ -193,9 +193,9 @@ Add the server to your `claude_desktop_config.json` with the transport method sp
 }
 ```
 
-### 🏷️ Namespacing for Multi-tenant Deployments
+### 🏷️ Namespacing Tools
 
-The server supports namespacing:
+The server supports namespacing the server tools:
 
 ```json
 "mcpServers": {
@@ -213,7 +213,6 @@ The server supports namespacing:
 With namespacing enabled:
 - Tools get prefixed: `app1-validate_node`, `app2-validate_node` 
 - Each namespace operates independently
-- Perfect for multi-tenant or multi-application scenarios
 
 ### 🌐 HTTP Transport Mode
 

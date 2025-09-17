@@ -6,6 +6,7 @@ import pytest
 from mcp_neo4j_data_modeling.utils import (
     parse_allow_origins,
     parse_allowed_hosts,
+    parse_namespace,
     parse_server_host,
     parse_server_path,
     parse_server_port,
@@ -531,6 +532,61 @@ class TestProcessConfig:
         assert config["path"] == expected_path
 
 
+class TestParseNamespace:
+    """Test namespace parsing functionality."""
+
+    def test_parse_namespace_from_cli_args(self, clean_env, args_factory):
+        """Test parsing namespace from CLI arguments."""
+        args = args_factory(namespace="test-cli")
+        result = parse_namespace(args)
+        assert result == "test-cli"
+
+    def test_parse_namespace_from_env_var(self, clean_env, args_factory):
+        """Test parsing namespace from environment variable."""
+        os.environ["NEO4J_NAMESPACE"] = "test-env"
+        args = args_factory()
+        result = parse_namespace(args)
+        assert result == "test-env"
+
+    def test_parse_namespace_cli_overrides_env(self, clean_env, args_factory):
+        """Test that CLI argument takes precedence over environment variable."""
+        os.environ["NEO4J_NAMESPACE"] = "test-env"
+        args = args_factory(namespace="test-cli")
+        result = parse_namespace(args)
+        assert result == "test-cli"
+
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_namespace_default_empty(self, mock_logger, clean_env, args_factory):
+        """Test that namespace defaults to empty string when not provided."""
+        args = args_factory()
+        result = parse_namespace(args)
+        assert result == ""
+
+        # Check that info message was logged
+        mock_logger.info.assert_called_once_with("Info: No namespace provided for tools. No namespace will be used.")
+
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_namespace_logs_cli_value(self, mock_logger, clean_env, args_factory):
+        """Test that namespace value is logged when provided via CLI."""
+        args = args_factory(namespace="my-app")
+        result = parse_namespace(args)
+        assert result == "my-app"
+
+        # Check that info message was logged
+        mock_logger.info.assert_called_once_with("Info: Namespace provided for tools: my-app")
+
+    @patch("mcp_neo4j_data_modeling.utils.logger")
+    def test_parse_namespace_logs_env_value(self, mock_logger, clean_env, args_factory):
+        """Test that namespace value is logged when provided via environment."""
+        os.environ["NEO4J_NAMESPACE"] = "env-app"
+        args = args_factory()
+        result = parse_namespace(args)
+        assert result == "env-app"
+
+        # Check that info message was logged
+        mock_logger.info.assert_called_once_with("Info: Namespace provided for tools: env-app")
+
+
 class TestNamespaceConfigProcessing:
     """Test namespace configuration processing in process_config."""
 
@@ -554,15 +610,11 @@ class TestNamespaceConfigProcessing:
         config = process_config(args)
         assert config["namespace"] == "test-cli"
 
-    @patch("mcp_neo4j_data_modeling.utils.logger")
-    def test_process_config_namespace_default_empty(self, mock_logger, clean_env, args_factory):
+    def test_process_config_namespace_default_empty(self, clean_env, args_factory):
         """Test that namespace defaults to empty string when not provided."""
         args = args_factory()
         config = process_config(args)
         assert config["namespace"] == ""
-        
-        # Check that info message was logged
-        mock_logger.info.assert_called_with("Info: No namespace provided. No namespace will be used.")
 
     def test_process_config_includes_namespace_in_output(self, clean_env, args_factory):
         """Test that process_config output includes namespace key."""

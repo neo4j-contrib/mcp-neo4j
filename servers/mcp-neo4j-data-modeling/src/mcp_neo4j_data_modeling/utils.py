@@ -7,7 +7,28 @@ logger = logging.getLogger(__name__)
 
 ALLOWED_TRANSPORTS = ["stdio", "http", "sse"]
 
+def format_namespace(namespace: str) -> str:
+    """
+    Format the namespace to ensure it ends with a hyphen.
 
+    Parameters
+    ----------
+    namespace : str
+        The namespace to format.
+
+    Returns
+    -------
+    formatted_namespace : str
+        The namespace in format: namespace-toolname
+    """
+    if namespace:
+        if namespace.endswith("-"):
+            return namespace
+        else:
+            return namespace + "-"
+    else:
+        return ""
+    
 def parse_transport(args: argparse.Namespace) -> Literal["stdio", "http", "sse"]:
     """
     Parse the transport from the command line arguments or environment variables.
@@ -265,6 +286,21 @@ def parse_allowed_hosts(args: argparse.Namespace) -> list[str]:
             )
             return ["localhost", "127.0.0.1"]
 
+def parse_namespace(args: argparse.Namespace) -> str:
+    """
+    Parse the namespace from the command line arguments or environment variables.
+    """
+        # namespace configuration
+    if args.namespace is not None:
+        logger.info(f"Info: Namespace provided for tools: {args.namespace}")
+        return args.namespace
+    else:
+        if os.getenv("NEO4J_NAMESPACE") is not None:
+            logger.info(f"Info: Namespace provided for tools: {os.getenv('NEO4J_NAMESPACE')}")
+            return os.getenv("NEO4J_NAMESPACE")
+        else:
+            logger.info("Info: No namespace provided for tools. No namespace will be used.")
+            return ""
 
 def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]:
     """
@@ -291,18 +327,13 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
     config["port"] = parse_server_port(args, config["transport"])
     config["path"] = parse_server_path(args, config["transport"])
 
+    # namespace configuration
+    config["namespace"] = parse_namespace(args)
+
     # middleware configuration
     config["allow_origins"] = parse_allow_origins(args)
     config["allowed_hosts"] = parse_allowed_hosts(args)
 
-    # namespace configuration
-    if args.namespace is not None:
-        config["namespace"] = args.namespace
-    else:
-        if os.getenv("NEO4J_NAMESPACE") is not None:
-            config["namespace"] = os.getenv("NEO4J_NAMESPACE")
-        else:
-            logger.info("Info: No namespace provided. No namespace will be used.")
-            config["namespace"] = ""
+
 
     return config

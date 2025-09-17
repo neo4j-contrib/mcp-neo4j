@@ -7,6 +7,7 @@ from pydantic import Field, ValidationError
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from .utils import format_namespace
 
 from .data_model import (
     DataModel,
@@ -29,16 +30,6 @@ from .static import (
 logger = logging.getLogger("mcp_neo4j_data_modeling")
 
 
-def _format_namespace(namespace: str) -> str:
-    if namespace:
-        if namespace.endswith("-"):
-            return namespace
-        else:
-            return namespace + "-"
-    else:
-        return ""
-
-
 def create_mcp_server(namespace: str = "") -> FastMCP:
     """Create an MCP server instance for data modeling."""
 
@@ -46,7 +37,7 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         "mcp-neo4j-data-modeling", dependencies=["pydantic"], stateless_http=True
     )
 
-    namespace_prefix = _format_namespace(namespace)
+    namespace_prefix = format_namespace(namespace)
 
     @mcp.resource("resource://schema/node")
     def node_schema() -> dict[str, Any]:

@@ -201,21 +201,21 @@ class TestMCPResources:
 class TestNamespacing:
     """Test namespacing functionality."""
 
-    def test_format_namespace(self):
-        """Test the _format_namespace function behavior."""
-        from mcp_neo4j_data_modeling.server import _format_namespace
+    def testformat_namespace(self):
+        """Test the format_namespace function behavior."""
+        from mcp_neo4j_data_modeling.server import format_namespace
 
         # Empty namespace
-        assert _format_namespace("") == ""
+        assert format_namespace("") == ""
 
         # Namespace without dash
-        assert _format_namespace("myapp") == "myapp-"
+        assert format_namespace("myapp") == "myapp-"
 
         # Namespace with dash
-        assert _format_namespace("myapp-") == "myapp-"
+        assert format_namespace("myapp-") == "myapp-"
 
         # Complex namespace
-        assert _format_namespace("company.product") == "company.product-"
+        assert format_namespace("company.product") == "company.product-"
 
     @pytest.mark.asyncio
     async def test_namespace_tool_prefixes(self):
