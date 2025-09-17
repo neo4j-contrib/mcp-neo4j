@@ -39,11 +39,12 @@ def _is_write_query(query: str) -> bool:
 
 
 def create_mcp_server(
-    neo4j_driver: AsyncDriver, 
-    database: str = "neo4j", 
+    neo4j_driver: AsyncDriver,
+    database: str = "neo4j",
     namespace: str = "",
     read_timeout: int = 30,
     token_limit: Optional[int] = None,
+    read_only: bool = False,
 ) -> FastMCP:
     mcp: FastMCP = FastMCP(
         "mcp-neo4j-cypher", dependencies=["neo4j", "pydantic"], stateless_http=True
@@ -210,50 +211,54 @@ def create_mcp_server(
             logger.error(f"Error executing read query: {e}\n{query}\n{params}")
             raise ToolError(f"Error: {e}\n{query}\n{params}")
 
-    @mcp.tool(
-        name=namespace_prefix + "write_neo4j_cypher",
-        annotations=ToolAnnotations(
-            title="Write Neo4j Cypher",
-            readOnlyHint=False,
-            destructiveHint=True,
-            idempotentHint=False,
-            openWorldHint=True,
-        ),
-    )
-    async def write_neo4j_cypher(
-        query: str = Field(..., description="The Cypher query to execute."),
-        params: dict[str, Any] = Field(
-            dict(), description="The parameters to pass to the Cypher query."
-        ),
-    ) -> list[ToolResult]:
-        """Execute a write Cypher query on the neo4j database."""
+    if not read_only:
 
-        if not _is_write_query(query):
-            raise ValueError("Only write queries are allowed for write-query")
+        @mcp.tool(
+            name=namespace_prefix + "write_neo4j_cypher",
+            annotations=ToolAnnotations(
+                title="Write Neo4j Cypher",
+                readOnlyHint=False,
+                destructiveHint=True,
+                idempotentHint=False,
+                openWorldHint=True,
+            ),
+        )
+        async def write_neo4j_cypher(
+            query: str = Field(..., description="The Cypher query to execute."),
+            params: dict[str, Any] = Field(
+                dict(), description="The parameters to pass to the Cypher query."
+            ),
+        ) -> list[ToolResult]:
+            """Execute a write Cypher query on the neo4j database."""
 
-        try:
-            _, summary, _ = await neo4j_driver.execute_query(
-                query,
-                parameters_=params,
-                routing_control=RoutingControl.WRITE,
-                database_=database,
-            )
+            if not _is_write_query(query):
+                raise ValueError("Only write queries are allowed for write-query")
 
-            counters_json_str = json.dumps(summary.counters.__dict__, default=str)
+            try:
+                _, summary, _ = await neo4j_driver.execute_query(
+                    query,
+                    parameters_=params,
+                    routing_control=RoutingControl.WRITE,
+                    database_=database,
+                )
 
-            logger.debug(f"Write query affected {counters_json_str}")
+                counters_json_str = json.dumps(summary.counters.__dict__, default=str)
 
-            return ToolResult(
-                content=[TextContent(type="text", text=counters_json_str)]
-            )
+                logger.debug(f"Write query affected {counters_json_str}")
 
-        except Neo4jError as e:
-            logger.error(f"Neo4j Error executing write query: {e}\n{query}\n{params}")
-            raise ToolError(f"Neo4j Error: {e}\n{query}\n{params}")
+                return ToolResult(
+                    content=[TextContent(type="text", text=counters_json_str)]
+                )
 
-        except Exception as e:
-            logger.error(f"Error executing write query: {e}\n{query}\n{params}")
-            raise ToolError(f"Error: {e}\n{query}\n{params}")
+            except Neo4jError as e:
+                logger.error(
+                    f"Neo4j Error executing write query: {e}\n{query}\n{params}"
+                )
+                raise ToolError(f"Neo4j Error: {e}\n{query}\n{params}")
+
+            except Exception as e:
+                logger.error(f"Error executing write query: {e}\n{query}\n{params}")
+                raise ToolError(f"Error: {e}\n{query}\n{params}")
 
     return mcp
 
@@ -272,6 +277,7 @@ async def main(
     allowed_hosts: list[str] = [],
     read_timeout: int = 30,
     token_limit: Optional[int] = None,
+    read_only: bool = False,
 ) -> None:
     logger.info("Starting MCP neo4j Server")
 
@@ -289,11 +295,12 @@ async def main(
             allow_methods=["GET", "POST"],
             allow_headers=["*"],
         ),
-        Middleware(TrustedHostMiddleware, 
-                   allowed_hosts=allowed_hosts)
+        Middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts),
     ]
-    
-    mcp = create_mcp_server(neo4j_driver, database, namespace, read_timeout, token_limit)
+
+    mcp = create_mcp_server(
+        neo4j_driver, database, namespace, read_timeout, token_limit, read_only
+    )
 
     # Run the server with the specified transport
     match transport:
@@ -311,7 +318,13 @@ async def main(
             logger.info(
                 f"Running Neo4j Cypher MCP Server with SSE transport on {host}:{port}..."
             )
-            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware, transport="sse")
+            await mcp.run_http_async(
+                host=host,
+                port=port,
+                path=path,
+                middleware=custom_middleware,
+                transport="sse",
+            )
         case _:
             logger.error(
                 f"Invalid transport: {transport} | Must be either 'stdio', 'sse', or 'http'"
