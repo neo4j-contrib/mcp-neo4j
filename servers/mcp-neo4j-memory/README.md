@@ -147,6 +147,15 @@ Alternatively, you can set environment variables:
 }
 ```
 
+#### Namespacing
+For multi-tenant deployments, add `--namespace` to prefix tool names:
+```json
+"args": [ "mcp-neo4j-memory@0.4.0", "--namespace", "myapp", "--db-url", "..." ]
+```
+Tools become: `myapp-read_graph`, `myapp-create_entities`, etc.
+
+Can also use `NEO4J_NAMESPACE` environment variable.
+
 ### 🌐 HTTP Transport Mode
 
 The server supports HTTP transport for web-based deployments and microservices:
@@ -166,6 +175,7 @@ export NEO4J_TRANSPORT=http
 export NEO4J_MCP_SERVER_HOST=127.0.0.1
 export NEO4J_MCP_SERVER_PORT=8080
 export NEO4J_MCP_SERVER_PATH=/api/mcp/
+export NEO4J_NAMESPACE=myapp
 mcp-neo4j-memory
 ```
 
@@ -298,6 +308,7 @@ docker run --rm -p 8000:8000 \
 | `NEO4J_MCP_SERVER_PATH`            | `/mcp/`                                 | Path for accessing MCP server                      |
 | `NEO4J_MCP_SERVER_ALLOW_ORIGINS`   | _(empty - secure by default)_           | Comma-separated list of allowed CORS origins       |
 | `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
+| `NEO4J_NAMESPACE`                  | _(empty - no prefix)_                   | Namespace prefix for tool names (e.g., `myapp-read_graph`) |
 
 ### 🌐 SSE Transport for Legacy Web Access
 
