@@ -20,6 +20,7 @@ def main():
     parser.add_argument("--client-secret", help="Neo4j Aura API Client Secret", 
                         default=os.environ.get("NEO4J_AURA_CLIENT_SECRET"))
     parser.add_argument("--transport", default=None, help="Transport type")
+    parser.add_argument("--namespace", default=None, help="Tool namespace prefix")
     parser.add_argument("--server-host", default=None, help="Server host")
     parser.add_argument("--server-port", default=None, help="Server port")
     parser.add_argument("--server-path", default=None, help="Server path")
@@ -33,6 +34,7 @@ def main():
         default=None,
         help="Allowed hosts for DNS rebinding protection on remote servers(comma-separated list)",
     )
+  
     
     args = parser.parse_args()
     

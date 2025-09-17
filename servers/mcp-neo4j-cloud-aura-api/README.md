@@ -164,6 +164,57 @@ Alternatively, you can set environment variables:
 }
 ```
 
+### 🏷️ Namespacing for Multi-tenant Deployments
+
+The server supports namespacing to prefix tool names for multi-tenant deployments:
+
+```json
+"mcpServers": {
+  "neo4j-aura-app1": {
+    "command": "uvx",
+    "args": [
+      "mcp-neo4j-aura-manager@0.4.2",
+      "--client-id", "<your-client-id>",
+      "--client-secret", "<your-client-secret>",
+      "--namespace", "app1"
+    ]
+  },
+  "neo4j-aura-app2": {
+    "command": "uvx", 
+    "args": [
+      "mcp-neo4j-aura-manager@0.4.2",
+      "--client-id", "<your-client-id>",
+      "--client-secret", "<your-client-secret>",
+      "--namespace", "app2"
+    ]
+  }
+}
+```
+
+#### CLI Usage
+```bash
+# With namespace
+mcp-neo4j-aura-manager --client-id <id> --client-secret <secret> --namespace myapp
+
+# Tools become: myapp-list_instances, myapp-create_instance, etc.
+```
+
+#### Environment Variables
+```bash
+export NEO4J_AURA_CLIENT_ID=your_client_id
+export NEO4J_AURA_CLIENT_SECRET=your_client_secret  
+export NEO4J_NAMESPACE=myapp
+mcp-neo4j-aura-manager
+```
+
+#### Docker with Namespacing
+```bash
+docker run -e NEO4J_AURA_CLIENT_ID=<id> \
+           -e NEO4J_AURA_CLIENT_SECRET=<secret> \
+           -e NEO4J_NAMESPACE=myapp \
+           mcp-neo4j-aura-manager
+```
+
 ### 🌐 HTTP Transport Mode
 
 The server supports HTTP transport for web-based deployments and microservices:
@@ -185,6 +236,7 @@ export NEO4J_MCP_SERVER_PORT=8080
 export NEO4J_MCP_SERVER_PATH=/api/mcp/
 export NEO4J_MCP_SERVER_ALLOWED_HOSTS="localhost,127.0.0.1"
 export NEO4J_MCP_SERVER_ALLOW_ORIGINS="http://localhost:3000"
+export NEO4J_NAMESPACE=myapp
 mcp-neo4j-aura-manager
 ```
 
@@ -330,6 +382,7 @@ docker run --rm -p 8000:8000 \
 | `NEO4J_MCP_SERVER_PATH`            | `/mcp/`                                 | Path for accessing MCP server                      |
 | `NEO4J_MCP_SERVER_ALLOW_ORIGINS`   | _(empty - secure by default)_           | Comma-separated list of allowed CORS origins       |
 | `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
+| `NEO4J_NAMESPACE`                  | _(empty - no prefix)_                   | Namespace prefix for tool names (e.g., `myapp-list_instances`) |
 
 ### 🌐 SSE Transport for Legacy Web Access
 

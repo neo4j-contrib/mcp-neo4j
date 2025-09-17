@@ -8,17 +8,22 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .aura_manager import AuraManager
-from .utils import get_logger
+from .utils import get_logger, format_namespace
 
 logger = get_logger(__name__)
 
 
-def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
+
+def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP:
     """Create an MCP server instance for Aura management."""
+    
+    namespace_prefix = format_namespace(namespace)
     
     mcp: FastMCP = FastMCP("mcp-neo4j-aura-manager", dependencies=["requests", "pydantic", "starlette"])
 
-    @mcp.tool(annotations=ToolAnnotations(title="List Instances",
+    @mcp.tool(
+        name=namespace_prefix + "list_instances",
+        annotations=ToolAnnotations(title="List Instances",
                                           readOnlyHint=True,
                                           destructiveHint=False,
                                           idempotentHint=True,
@@ -30,11 +35,14 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
         result = await aura_manager.list_instances()
         return result
 
-    @mcp.tool(annotations=ToolAnnotations(title="Get Instance Details",
-                                          readOnlyHint=True,
-                                          destructiveHint=False,
-                                          idempotentHint=True,
-                                          openWorldHint=True
+    @mcp.tool(
+        name=namespace_prefix + "get_instance_details",
+        annotations=ToolAnnotations(
+            title="Get Instance Details",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True
         
     ))
     async def get_instance_details(instance_ids: List[str]) -> dict:
@@ -42,7 +50,9 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
         result = await aura_manager.get_instance_details(instance_ids)
         return result
 
-    @mcp.tool(annotations=ToolAnnotations(title="Get Instance by Name",
+    @mcp.tool(
+        name=namespace_prefix + "get_instance_by_name",
+        annotations=ToolAnnotations(title="Get Instance by Name",
                                           readOnlyHint=True,
                                           destructiveHint=False,
                                           idempotentHint=True,
@@ -54,7 +64,9 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
         result = await aura_manager.get_instance_by_name(name)
         return result
 
-    @mcp.tool(annotations=ToolAnnotations(title="Create Instance",
+    @mcp.tool(
+        name=namespace_prefix + "create_instance",
+        annotations=ToolAnnotations(title="Create Instance",
                                           readOnlyHint=False,
                                           destructiveHint=False,
                                           idempotentHint=True,
@@ -86,7 +98,9 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
         )
         return result
 
-    @mcp.tool(annotations=ToolAnnotations(title="Update Instance Name",
+    @mcp.tool(
+        name=namespace_prefix + "update_instance_name",
+        annotations=ToolAnnotations(title="Update Instance Name",
                                           readOnlyHint=False,
                                           destructiveHint=True,
                                           idempotentHint=True,
@@ -98,7 +112,9 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
         result = await aura_manager.update_instance_name(instance_id, name)
         return result
 
-    @mcp.tool(annotations=ToolAnnotations(title="Update Instance Memory",
+    @mcp.tool(
+        name=namespace_prefix + "update_instance_memory",
+        annotations=ToolAnnotations(title="Update Instance Memory",
                                           readOnlyHint=False,
                                           destructiveHint=True,
                                           idempotentHint=True,
@@ -110,7 +126,8 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
         result = await aura_manager.update_instance_memory(instance_id, memory)
         return result
 
-    @mcp.tool(annotations=ToolAnnotations(title="Update Instance Vector Optimization",
+    @mcp.tool(name=namespace_prefix + "update_instance_vector_optimization",
+        annotations=ToolAnnotations(title="Update Instance Vector Optimization",
                                           readOnlyHint=False,
                                           destructiveHint=True,
                                           idempotentHint=True,
@@ -122,7 +139,9 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
         result = await aura_manager.update_instance_vector_optimization(instance_id, vector_optimized)
         return result
 
-    @mcp.tool(annotations=ToolAnnotations(title="Pause Instance",
+    @mcp.tool(
+        name=namespace_prefix + "pause_instance",
+        annotations=ToolAnnotations(title="Pause Instance",
                                           readOnlyHint=False,
                                           destructiveHint=False,
                                           idempotentHint=True,
@@ -134,7 +153,9 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
         result = await aura_manager.pause_instance(instance_id)
         return result
 
-    @mcp.tool(annotations=ToolAnnotations(title="Resume Instance",
+    @mcp.tool(
+        name=namespace_prefix + "resume_instance",
+        annotations=ToolAnnotations(title="Resume Instance",
                                           readOnlyHint=False,
                                           destructiveHint=False,
                                           idempotentHint=True,
@@ -146,7 +167,10 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
         result = await aura_manager.resume_instance(instance_id)
         return result
 
-    @mcp.tool(annotations=ToolAnnotations(title="List Tenants",
+
+    @mcp.tool(
+        name=namespace_prefix + "list_tenants",
+        annotations=ToolAnnotations(title="List Tenants",
                                           readOnlyHint=True,
                                           destructiveHint=False,
                                           idempotentHint=True,
@@ -158,7 +182,9 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
         result = await aura_manager.list_tenants()
         return result
 
-    @mcp.tool(annotations=ToolAnnotations(title="Get Tenant Details",
+    @mcp.tool(
+        name=namespace_prefix + "get_tenant_details",
+        annotations=ToolAnnotations(title="Get Tenant Details",
                                           readOnlyHint=True,
                                           destructiveHint=False,
                                           idempotentHint=True,
@@ -170,7 +196,8 @@ def create_mcp_server(aura_manager: AuraManager) -> FastMCP:
         result = await aura_manager.get_tenant_details(tenant_id)
         return result
 
-    @mcp.tool(annotations=ToolAnnotations(title="Delete Instance",
+    @mcp.tool(name=namespace_prefix + "delete_instance",
+    annotations=ToolAnnotations(title="Delete Instance",
                                           readOnlyHint=False,
                                           destructiveHint=True,
                                           idempotentHint=True,
@@ -189,6 +216,7 @@ async def main(
     client_id: str,
     client_secret: str,
     transport: Literal["stdio", "sse", "http"] = "stdio",
+    namespace: str = "",
     host: str = "127.0.0.1",
     port: int = 8000,
     path: str = "/mcp/",
@@ -209,9 +237,9 @@ async def main(
         Middleware(TrustedHostMiddleware,
                    allowed_hosts=allowed_hosts)
     ]
-
+    
     # Create MCP server
-    mcp = create_mcp_server(aura_manager)
+    mcp = create_mcp_server(aura_manager, namespace)
 
     # Run the server with the specified transport
     match transport:

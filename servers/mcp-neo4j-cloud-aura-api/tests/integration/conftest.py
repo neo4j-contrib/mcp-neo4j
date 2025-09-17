@@ -95,7 +95,8 @@ def middleware_test_server() -> Dict[str, str]:
                 port=8005,
                 path="/mcp/",
                 allow_origins=[],  # Empty by default for security testing
-                allowed_hosts=["localhost", "127.0.0.1"]
+                allowed_hosts=["localhost", "127.0.0.1"],
+                namespace=""  # Add namespace parameter
             ))
 
         server_thread = threading.Thread(target=run_server, daemon=True)
@@ -131,7 +132,8 @@ def middleware_test_server_restricted_cors() -> Dict[str, str]:
                 port=8006,
                 path="/mcp/",
                 allow_origins=["http://localhost:3000", "https://trusted-site.com"],
-                allowed_hosts=["localhost", "127.0.0.1"]
+                allowed_hosts=["localhost", "127.0.0.1"],
+                namespace=""  # Add namespace parameter
             ))
 
         server_thread = threading.Thread(target=run_server, daemon=True)
