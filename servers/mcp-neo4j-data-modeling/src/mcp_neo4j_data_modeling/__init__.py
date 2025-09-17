@@ -30,6 +30,7 @@ def main():
         default=None,
         help="Allowed hosts for DNS rebinding protection on remote servers (comma-separated list)",
     )
+    parser.add_argument("--namespace", default=None, help="Tool namespace prefix")
 
     args = parser.parse_args()
 
