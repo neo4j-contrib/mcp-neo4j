@@ -9,6 +9,32 @@ logger = logging.getLogger("mcp_neo4j_cypher")
 logger.setLevel(logging.INFO)
 
 
+def parse_boolean_safely(value):
+    """Safely parse a string value to boolean with validation."""
+    if value is None:
+        return None
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, str):
+        # Strip whitespace and convert to lowercase for comparison
+        normalized = value.strip().lower()
+
+        # Define valid true/false values
+        true_values = {"true", "yes"}
+        false_values = {"false", "no"}
+
+        if normalized in true_values:
+            return True
+        elif normalized in false_values:
+            return False
+        else:
+            raise ValueError(
+                f"Invalid boolean value: '{value}'. Must be one of: {', '.join(true_values | false_values)}"
+            )
+
+
 def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]:
     """
     Process the command line arguments and environment variables to create a config dictionary.
@@ -246,20 +272,15 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
             logger.info("Info: No read timeout provided. Using default: 30 seconds")
             config["read_timeout"] = 30
     # parse read-only
-    if args.read_only is not None:
-        config["read_only"] = args.read_only
+    if args.read_only:  # True if --read-only flag was passed
+        config["read_only"] = True
+        logger.info("Info: Read-only mode enabled.")
+    elif os.getenv("NEO4J_READ_ONLY") is not None:
+        config["read_only"] = parse_boolean_safely(os.getenv("NEO4J_READ_ONLY"))
+        logger.info(f"Info: Read-only mode set to {config['read_only']} via environment variable.")
     else:
-        if os.getenv("NEO4J_READ_ONLY") is not None:
-            # Cast string env var to boolean
-            config["read_only"] = os.getenv("NEO4J_READ_ONLY").lower() in (
-                "true",
-                "yes",
-            )
-        else:
-            logger.info(
-                "Info: No read-only setting provided. Write queries will be allowed."
-            )
-            config["read_only"] = False
+        logger.info("Info: No read-only setting provided. Write queries will be allowed.")
+        config["read_only"] = False
 
     return config
 
