@@ -39,8 +39,7 @@ def main():
     )
     parser.add_argument(
         "--read-only",
-        type=bool,
-        default=False,
+        action="store_true",
         help="Allow only read-only queries (default: False)",
     )
     parser.add_argument("--token-limit", default=None, help="Response token limit")
