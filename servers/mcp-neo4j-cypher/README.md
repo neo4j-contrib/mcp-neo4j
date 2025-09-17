@@ -405,6 +405,7 @@ docker run --rm -p 8000:8000 \
 | `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
 | `NEO4J_RESPONSE_TOKEN_LIMIT`       | _(none)_                                | Maximum tokens for read query responses            |
 | `NEO4J_READ_TIMEOUT`               | `30`                                    | Timeout in seconds for read queries                |
+| `NEO4J_READ_ONLY`                  | `false`                                 | Allow only read-only queries (true/false)          |
 
 ### 🌐 SSE Transport for Legacy Web Access
 
