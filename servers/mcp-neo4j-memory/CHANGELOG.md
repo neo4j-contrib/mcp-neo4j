@@ -5,6 +5,7 @@
 ### Changed
 
 ### Added
+* Add namespacing support for multi-tenant deployments with `--namespace` CLI argument and `NEO4J_NAMESPACE` environment variable
 
 ## v0.4.0
 
