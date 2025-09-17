@@ -506,7 +506,7 @@ class TestNamespaceConfigProcessing:
         )
         config = process_config(args)
         assert config["namespace"] == ""
-        mock_logger.info.assert_any_call("Info: No namespace provided. No namespace will be used.")
+        mock_logger.info.assert_any_call("Info: No namespace provided for tools. No namespace will be used.")
 
     def test_process_config_namespace_empty_string(self, clean_env, args_factory):
         """Test process_config when namespace is explicitly set to empty string."""

@@ -24,6 +24,7 @@ def main():
     parser.add_argument("--allowed-hosts", default=None, help="Comma-separated list of allowed hosts for DNS rebinding protection")
     
     args = parser.parse_args()
+
     config = process_config(args)
     asyncio.run(server.main(**config))
 

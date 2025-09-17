@@ -1,29 +1,29 @@
 import pytest
 from unittest.mock import Mock, AsyncMock
 
-from mcp_neo4j_memory.server import _format_namespace, create_mcp_server
+from mcp_neo4j_memory.server import format_namespace, create_mcp_server
 from mcp_neo4j_memory.neo4j_memory import Neo4jMemory, KnowledgeGraph
 
 
 class TestFormatNamespace:
-    """Test the _format_namespace function behavior."""
+    """Test the format_namespace function behavior."""
 
-    def test_format_namespace_empty_string(self):
-        """Test _format_namespace with empty string returns empty string."""
-        assert _format_namespace("") == ""
+    def testformat_namespace_empty_string(self):
+        """Test format_namespace with empty string returns empty string."""
+        assert format_namespace("") == ""
 
-    def test_format_namespace_no_hyphen(self):
-        """Test _format_namespace adds hyphen when not present."""
-        assert _format_namespace("myapp") == "myapp-"
+    def testformat_namespace_no_hyphen(self):
+        """Test format_namespace adds hyphen when not present."""
+        assert format_namespace("myapp") == "myapp-"
 
-    def test_format_namespace_with_hyphen(self):
-        """Test _format_namespace returns string as-is when hyphen already present."""
-        assert _format_namespace("myapp-") == "myapp-"
+    def testformat_namespace_with_hyphen(self):
+        """Test format_namespace returns string as-is when hyphen already present."""
+        assert format_namespace("myapp-") == "myapp-"
 
-    def test_format_namespace_complex_name(self):
-        """Test _format_namespace with complex namespace names."""
-        assert _format_namespace("company.product") == "company.product-"
-        assert _format_namespace("app_v2") == "app_v2-"
+    def testformat_namespace_complex_name(self):
+        """Test format_namespace with complex namespace names."""
+        assert format_namespace("company.product") == "company.product-"
+        assert format_namespace("app_v2") == "app_v2-"
 
 
 class TestNamespacing:

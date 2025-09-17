@@ -15,28 +15,20 @@ from neo4j.exceptions import Neo4jError
 from mcp.types import ToolAnnotations
 
 from .neo4j_memory import Neo4jMemory, Entity, Relation, ObservationAddition, ObservationDeletion, KnowledgeGraph
+from .utils import format_namespace
 
 # Set up logging
 logger = logging.getLogger('mcp_neo4j_memory')
 logger.setLevel(logging.INFO)
 
 
-def _format_namespace(namespace: str) -> str:
-    """Format namespace by ensuring it ends with a hyphen if not empty."""
-    if namespace:
-        if namespace.endswith("-"):
-            return namespace
-        else:
-            return namespace + "-"
-    else:
-        return ""
+
 
 
 def create_mcp_server(memory: Neo4jMemory, namespace: str = "") -> FastMCP:
     """Create an MCP server instance for memory management."""
     
-    namespace_prefix = _format_namespace(namespace)
-    
+    namespace_prefix = format_namespace(namespace)
     mcp: FastMCP = FastMCP("mcp-neo4j-memory", dependencies=["neo4j", "pydantic"], stateless_http=True)
 
     @mcp.tool(

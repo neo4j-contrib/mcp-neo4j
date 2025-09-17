@@ -6,6 +6,16 @@ from typing import Union
 logger = logging.getLogger("mcp_neo4j_memory")
 logger.setLevel(logging.INFO)
 
+def format_namespace(namespace: str) -> str:
+    """Format namespace by ensuring it ends with a hyphen if not empty."""
+    if namespace:
+        if namespace.endswith("-"):
+            return namespace
+        else:
+            return namespace + "-"
+    else:
+        return ""
+    
 def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]:
     """
     Process the command line arguments and environment variables to create a config dictionary. 
@@ -168,12 +178,14 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
 
     # namespace configuration
     if args.namespace is not None:
+        logger.info(f"Info: Namespace provided for tools: {args.namespace}")
         config["namespace"] = args.namespace
     else:
         if os.getenv("NEO4J_NAMESPACE") is not None:
+            logger.info(f"Info: Namespace provided for tools: {os.getenv('NEO4J_NAMESPACE')}")
             config["namespace"] = os.getenv("NEO4J_NAMESPACE")
         else:
-            logger.info("Info: No namespace provided. No namespace will be used.")
+            logger.info("Info: No namespace provided for tools. No namespace will be used.")
             config["namespace"] = ""
     
     return config
