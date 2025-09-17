@@ -5,7 +5,11 @@ from unittest.mock import patch
 import pytest
 import tiktoken
 
-from mcp_neo4j_cypher.utils import _truncate_string_to_tokens, process_config, parse_boolean_safely
+from mcp_neo4j_cypher.utils import (
+    _truncate_string_to_tokens,
+    parse_boolean_safely,
+    process_config,
+)
 
 
 @pytest.fixture

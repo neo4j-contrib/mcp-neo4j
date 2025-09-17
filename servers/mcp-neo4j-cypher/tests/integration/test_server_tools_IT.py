@@ -157,5 +157,3 @@ async def test_timeout_configuration_passed_correctly(async_neo4j_driver):
 
     # The actual timeout values are used internally in Query objects,
     # so this test mainly verifies the parameter is accepted without error
-
-

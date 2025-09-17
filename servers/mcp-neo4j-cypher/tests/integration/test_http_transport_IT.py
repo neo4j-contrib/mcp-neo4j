@@ -98,7 +98,7 @@ async def test_http_write_tool_call_read_only_mode(http_server_read_only):
                 "method": "tools/call",
                 "params": {
                     "name": "write_neo4j_cypher",
-                    "arguments": {"query": "CREATE (n:Test {name: 'test'}) RETURN n"}
+                    "arguments": {"query": "CREATE (n:Test {name: 'test'}) RETURN n"},
                 },
             },
             headers={
@@ -133,7 +133,7 @@ async def test_http_read_tool_call_read_only_mode(http_server_read_only):
                 "method": "tools/call",
                 "params": {
                     "name": "read_neo4j_cypher",
-                    "arguments": {"query": "MATCH (n) RETURN count(n) as total"}
+                    "arguments": {"query": "MATCH (n) RETURN count(n) as total"},
                 },
             },
             headers={

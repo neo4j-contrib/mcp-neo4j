@@ -12,7 +12,7 @@ logger.setLevel(logging.INFO)
 def parse_boolean_safely(value: Union[str, bool]) -> bool:
     """
     Safely parse a string value to boolean with strict validation.
-    
+
     Parameters
     ----------
     value : Union[str, bool]
@@ -34,11 +34,12 @@ def parse_boolean_safely(value: Union[str, bool]) -> bool:
         elif normalized == "false":
             return False
         else:
-            raise ValueError(f"Invalid boolean value: '{value}'. Must be 'true' or 'false'")
+            raise ValueError(
+                f"Invalid boolean value: '{value}'. Must be 'true' or 'false'"
+            )
     # we shouldn't get here, but just in case
     else:
         raise ValueError(f"Invalid boolean value: '{value}'. Must be 'true' or 'false'")
-
 
 
 def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]:
@@ -281,7 +282,9 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
     # parse read-only
     if args.read_only:
         config["read_only"] = True
-        logger.info(f"Info: Read-only mode set to {config['read_only']} via command line argument.")
+        logger.info(
+            f"Info: Read-only mode set to {config['read_only']} via command line argument."
+        )
     elif os.getenv("NEO4J_READ_ONLY") is not None:
         config["read_only"] = parse_boolean_safely(os.getenv("NEO4J_READ_ONLY"))
         logger.info(

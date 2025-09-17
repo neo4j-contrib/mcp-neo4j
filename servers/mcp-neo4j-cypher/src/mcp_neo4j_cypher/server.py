@@ -51,7 +51,7 @@ def create_mcp_server(
 
     namespace_prefix = _format_namespace(namespace)
     allow_writes = not read_only
-    
+
     @mcp.tool(
         name=namespace_prefix + "get_neo4j_schema",
         annotations=ToolAnnotations(
@@ -211,8 +211,6 @@ def create_mcp_server(
             logger.error(f"Error executing read query: {e}\n{query}\n{params}")
             raise ToolError(f"Error: {e}\n{query}\n{params}")
 
-
-
     @mcp.tool(
         name=namespace_prefix + "write_neo4j_cypher",
         annotations=ToolAnnotations(
@@ -252,9 +250,7 @@ def create_mcp_server(
             )
 
         except Neo4jError as e:
-            logger.error(
-                f"Neo4j Error executing write query: {e}\n{query}\n{params}"
-            )
+            logger.error(f"Neo4j Error executing write query: {e}\n{query}\n{params}")
             raise ToolError(f"Neo4j Error: {e}\n{query}\n{params}")
 
         except Exception as e:

@@ -271,7 +271,6 @@ async def http_server_custom_hosts(setup: Neo4jContainer):
         await process.wait()
 
 
-
 @pytest_asyncio.fixture
 async def http_server_read_only(setup: Neo4jContainer):
     """Start the MCP server in HTTP mode with read-only enabled."""
