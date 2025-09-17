@@ -7,15 +7,14 @@ from fastmcp.exceptions import ToolError
 from fastmcp.server import FastMCP
 from fastmcp.tools.tool import TextContent, ToolResult
 from mcp.types import ToolAnnotations
-from neo4j import AsyncDriver, AsyncGraphDatabase, RoutingControl, Query
+from neo4j import AsyncDriver, AsyncGraphDatabase, Query, RoutingControl
 from neo4j.exceptions import ClientError, Neo4jError
 from pydantic import Field
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from .utils import _value_sanitize
-from .utils import _value_sanitize, _truncate_string_to_tokens
+from .utils import _truncate_string_to_tokens, _value_sanitize
 
 logger = logging.getLogger("mcp_neo4j_cypher")
 
@@ -51,7 +50,8 @@ def create_mcp_server(
     )
 
     namespace_prefix = _format_namespace(namespace)
-
+    allow_writes = not read_only
+    
     @mcp.tool(
         name=namespace_prefix + "get_neo4j_schema",
         annotations=ToolAnnotations(
@@ -211,54 +211,55 @@ def create_mcp_server(
             logger.error(f"Error executing read query: {e}\n{query}\n{params}")
             raise ToolError(f"Error: {e}\n{query}\n{params}")
 
-    if not read_only:
 
-        @mcp.tool(
-            name=namespace_prefix + "write_neo4j_cypher",
-            annotations=ToolAnnotations(
-                title="Write Neo4j Cypher",
-                readOnlyHint=False,
-                destructiveHint=True,
-                idempotentHint=False,
-                openWorldHint=True,
-            ),
-        )
-        async def write_neo4j_cypher(
-            query: str = Field(..., description="The Cypher query to execute."),
-            params: dict[str, Any] = Field(
-                dict(), description="The parameters to pass to the Cypher query."
-            ),
-        ) -> list[ToolResult]:
-            """Execute a write Cypher query on the neo4j database."""
 
-            if not _is_write_query(query):
-                raise ValueError("Only write queries are allowed for write-query")
+    @mcp.tool(
+        name=namespace_prefix + "write_neo4j_cypher",
+        annotations=ToolAnnotations(
+            title="Write Neo4j Cypher",
+            readOnlyHint=False,
+            destructiveHint=True,
+            idempotentHint=False,
+            openWorldHint=True,
+        ),
+        enabled=allow_writes,
+    )
+    async def write_neo4j_cypher(
+        query: str = Field(..., description="The Cypher query to execute."),
+        params: dict[str, Any] = Field(
+            dict(), description="The parameters to pass to the Cypher query."
+        ),
+    ) -> list[ToolResult]:
+        """Execute a write Cypher query on the neo4j database."""
 
-            try:
-                _, summary, _ = await neo4j_driver.execute_query(
-                    query,
-                    parameters_=params,
-                    routing_control=RoutingControl.WRITE,
-                    database_=database,
-                )
+        if not _is_write_query(query):
+            raise ValueError("Only write queries are allowed for write-query")
 
-                counters_json_str = json.dumps(summary.counters.__dict__, default=str)
+        try:
+            _, summary, _ = await neo4j_driver.execute_query(
+                query,
+                parameters_=params,
+                routing_control=RoutingControl.WRITE,
+                database_=database,
+            )
 
-                logger.debug(f"Write query affected {counters_json_str}")
+            counters_json_str = json.dumps(summary.counters.__dict__, default=str)
 
-                return ToolResult(
-                    content=[TextContent(type="text", text=counters_json_str)]
-                )
+            logger.debug(f"Write query affected {counters_json_str}")
 
-            except Neo4jError as e:
-                logger.error(
-                    f"Neo4j Error executing write query: {e}\n{query}\n{params}"
-                )
-                raise ToolError(f"Neo4j Error: {e}\n{query}\n{params}")
+            return ToolResult(
+                content=[TextContent(type="text", text=counters_json_str)]
+            )
 
-            except Exception as e:
-                logger.error(f"Error executing write query: {e}\n{query}\n{params}")
-                raise ToolError(f"Error: {e}\n{query}\n{params}")
+        except Neo4jError as e:
+            logger.error(
+                f"Neo4j Error executing write query: {e}\n{query}\n{params}"
+            )
+            raise ToolError(f"Neo4j Error: {e}\n{query}\n{params}")
+
+        except Exception as e:
+            logger.error(f"Error executing write query: {e}\n{query}\n{params}")
+            raise ToolError(f"Error: {e}\n{query}\n{params}")
 
     return mcp
 

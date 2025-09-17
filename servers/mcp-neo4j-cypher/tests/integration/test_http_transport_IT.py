@@ -51,6 +51,110 @@ async def test_http_tools_list(http_server):
 
 
 @pytest.mark.asyncio
+async def test_http_tools_list_read_only_mode(http_server_read_only):
+    """Test that tools/list endpoint excludes write tools when read-only is enabled."""
+    session_id = str(uuid.uuid4())
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            "http://127.0.0.1:8005/mcp/",
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "mcp-session-id": session_id,
+            },
+        ) as response:
+            print(f"Response status: {response.status}")
+            print(f"Response headers: {dict(response.headers)}")
+            response_text = await response.text()
+            print(f"Response text: {response_text}")
+
+            assert response.status == 200
+            result = await parse_sse_response(response)
+            assert "result" in result
+            assert "tools" in result["result"]
+            tools = result["result"]["tools"]
+            assert len(tools) > 0
+            tool_names = [tool["name"] for tool in tools]
+
+            # Read tools should be available
+            assert "get_neo4j_schema" in tool_names
+            assert "read_neo4j_cypher" in tool_names
+
+            # Write tools should NOT be available in read-only mode
+            assert "write_neo4j_cypher" not in tool_names
+
+
+@pytest.mark.asyncio
+async def test_http_write_tool_call_read_only_mode(http_server_read_only):
+    """Test that attempting to call write tools fails when read-only is enabled."""
+    session_id = str(uuid.uuid4())
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            "http://127.0.0.1:8005/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "write_neo4j_cypher",
+                    "arguments": {"query": "CREATE (n:Test {name: 'test'}) RETURN n"}
+                },
+            },
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "mcp-session-id": session_id,
+            },
+        ) as response:
+            print(f"Response status: {response.status}")
+            response_text = await response.text()
+            print(f"Response text: {response_text}")
+
+            assert response.status == 200
+            result = await parse_sse_response(response)
+
+            # Should get an error because the tool doesn't exist in read-only mode
+            assert "result" in result
+            assert result["result"]["isError"] is True
+            assert "Unknown tool" in result["result"]["content"][0]["text"]
+
+
+@pytest.mark.asyncio
+async def test_http_read_tool_call_read_only_mode(http_server_read_only):
+    """Test that read tools still work when read-only is enabled."""
+    session_id = str(uuid.uuid4())
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            "http://127.0.0.1:8005/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "read_neo4j_cypher",
+                    "arguments": {"query": "MATCH (n) RETURN count(n) as total"}
+                },
+            },
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "mcp-session-id": session_id,
+            },
+        ) as response:
+            print(f"Response status: {response.status}")
+            response_text = await response.text()
+            print(f"Response text: {response_text}")
+
+            assert response.status == 200
+            result = await parse_sse_response(response)
+
+            # Should succeed - read tools should work in read-only mode
+            assert "result" in result
+            assert "content" in result["result"]
+
+
+@pytest.mark.asyncio
 async def test_http_get_schema(http_server):
     """Test that get_neo4j_schema works over HTTP."""
     async with aiohttp.ClientSession() as session:
@@ -440,15 +544,17 @@ async def test_dns_rebinding_protection_trusted_hosts(http_server):
             "http://127.0.0.1:8001/mcp/",
             json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
             headers={
-                "Accept": "application/json, text/event-stream", 
+                "Accept": "application/json, text/event-stream",
                 "Content-Type": "application/json",
                 "Host": "localhost:8001",
                 "mcp-session-id": session_id,
             },
         ) as response:
             print(f"Trusted host (localhost) response status: {response.status}")
-            print(f"Trusted host (localhost) response headers: {dict(response.headers)}")
-            
+            print(
+                f"Trusted host (localhost) response headers: {dict(response.headers)}"
+            )
+
             # Should work with trusted host
             assert response.status == 200
             result = await parse_sse_response(response)
@@ -456,7 +562,7 @@ async def test_dns_rebinding_protection_trusted_hosts(http_server):
             assert "tools" in result["result"]
 
 
-@pytest.mark.asyncio  
+@pytest.mark.asyncio
 async def test_dns_rebinding_protection_untrusted_hosts(http_server):
     """Test DNS rebinding protection with TrustedHostMiddleware - untrusted hosts."""
     session_id = str(uuid.uuid4())
@@ -467,14 +573,14 @@ async def test_dns_rebinding_protection_untrusted_hosts(http_server):
             json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
             headers={
                 "Accept": "application/json, text/event-stream",
-                "Content-Type": "application/json", 
+                "Content-Type": "application/json",
                 "Host": "malicious-site.evil",
                 "mcp-session-id": session_id,
             },
         ) as response:
             print(f"Untrusted host response status: {response.status}")
             print(f"Untrusted host response headers: {dict(response.headers)}")
-            
+
             # Should block untrusted host (DNS rebinding protection)
             assert response.status == 400
 
@@ -495,16 +601,18 @@ async def test_dns_rebinding_custom_allowed_hosts(http_server_custom_hosts):
                 "mcp-session-id": session_id,
             },
         ) as response:
-            print(f"Custom allowed host (example.com) response status: {response.status}")
+            print(
+                f"Custom allowed host (example.com) response status: {response.status}"
+            )
             print(f"Custom allowed host response headers: {dict(response.headers)}")
-            
+
             # Should work with custom allowed host
             assert response.status == 200
             result = await parse_sse_response(response)
             assert "result" in result
             assert "tools" in result["result"]
-        
-        # Test with another custom allowed host with port - should work 
+
+        # Test with another custom allowed host with port - should work
         async with session.post(
             "http://127.0.0.1:8004/mcp/",
             json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
@@ -515,10 +623,12 @@ async def test_dns_rebinding_custom_allowed_hosts(http_server_custom_hosts):
                 "mcp-session-id": session_id,
             },
         ) as response:
-            print(f"Custom allowed host (test.local:8004) response status: {response.status}")
+            print(
+                f"Custom allowed host (test.local:8004) response status: {response.status}"
+            )
             print(f"Custom allowed host response headers: {dict(response.headers)}")
-            
-            # Should work with custom allowed host 
+
+            # Should work with custom allowed host
             assert response.status == 200
             result = await parse_sse_response(response)
             assert "result" in result
@@ -535,8 +645,10 @@ async def test_dns_rebinding_custom_allowed_hosts(http_server_custom_hosts):
                 "mcp-session-id": session_id,
             },
         ) as response:
-            print(f"Localhost (not in custom allowed) response status: {response.status}")
+            print(
+                f"Localhost (not in custom allowed) response status: {response.status}"
+            )
             print(f"Localhost response headers: {dict(response.headers)}")
-            
+
             # Should block localhost when not in custom allowed hosts
             assert response.status == 400

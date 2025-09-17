@@ -1,38 +1,44 @@
-import tiktoken
-
 import argparse
 import logging
 import os
 from typing import Any, Union
 
+import tiktoken
+
 logger = logging.getLogger("mcp_neo4j_cypher")
 logger.setLevel(logging.INFO)
 
 
-def parse_boolean_safely(value):
-    """Safely parse a string value to boolean with validation."""
-    if value is None:
-        return None
+def parse_boolean_safely(value: Union[str, bool]) -> bool:
+    """
+    Safely parse a string value to boolean with strict validation.
+    
+    Parameters
+    ----------
+    value : Union[str, bool]
+        The value to parse to boolean.
+
+    Returns
+    -------
+    bool
+        The parsed boolean value.
+    """
 
     if isinstance(value, bool):
         return value
 
-    if isinstance(value, str):
-        # Strip whitespace and convert to lowercase for comparison
+    elif isinstance(value, str):
         normalized = value.strip().lower()
-
-        # Define valid true/false values
-        true_values = {"true", "yes"}
-        false_values = {"false", "no"}
-
-        if normalized in true_values:
+        if normalized == "true":
             return True
-        elif normalized in false_values:
+        elif normalized == "false":
             return False
         else:
-            raise ValueError(
-                f"Invalid boolean value: '{value}'. Must be one of: {', '.join(true_values | false_values)}"
-            )
+            raise ValueError(f"Invalid boolean value: '{value}'. Must be 'true' or 'false'")
+    # we shouldn't get here, but just in case
+    else:
+        raise ValueError(f"Invalid boolean value: '{value}'. Must be 'true' or 'false'")
+
 
 
 def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]:
@@ -271,15 +277,20 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
         else:
             logger.info("Info: No read timeout provided. Using default: 30 seconds")
             config["read_timeout"] = 30
+
     # parse read-only
-    if args.read_only:  # True if --read-only flag was passed
+    if args.read_only:
         config["read_only"] = True
-        logger.info("Info: Read-only mode enabled.")
+        logger.info(f"Info: Read-only mode set to {config['read_only']} via command line argument.")
     elif os.getenv("NEO4J_READ_ONLY") is not None:
         config["read_only"] = parse_boolean_safely(os.getenv("NEO4J_READ_ONLY"))
-        logger.info(f"Info: Read-only mode set to {config['read_only']} via environment variable.")
+        logger.info(
+            f"Info: Read-only mode set to {config['read_only']} via environment variable."
+        )
     else:
-        logger.info("Info: No read-only setting provided. Write queries will be allowed.")
+        logger.info(
+            "Info: No read-only setting provided. Write queries will be allowed."
+        )
         config["read_only"] = False
 
     return config
