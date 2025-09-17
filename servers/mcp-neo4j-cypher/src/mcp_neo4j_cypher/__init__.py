@@ -32,10 +32,15 @@ def main():
         help="Allowed hosts for DNS rebinding protection on remote servers(comma-separated list)",
     )
     parser.add_argument(
-        "--read-timeout", 
-        type=int, 
-        default=None, 
-        help="Timeout in seconds for read queries (default: 30)"
+        "--read-timeout",
+        type=int,
+        default=None,
+        help="Timeout in seconds for read queries (default: 30)",
+    )
+    parser.add_argument(
+        "--read-only",
+        action="store_true",
+        help="Allow only read-only queries (default: False)",
     )
     parser.add_argument("--token-limit", default=None, help="Response token limit")
 

@@ -160,6 +160,14 @@
       "default": 30,
       "required": false,
       "sensitive": false
+    },
+    "read_only": {
+      "type": "boolean",
+      "title": "Read Only Mode",
+      "description": "Allow only read-only queries, no write operations permitted.",
+      "default": false,
+      "required": false,
+      "sensitive": false
     }
   }
 }

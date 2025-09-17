@@ -38,6 +38,7 @@ The server offers these core tools:
     - `query` (string): The Cypher update query
     - `params` (dictionary, optional): Parameters to pass to the Cypher query
   - Returns: A JSON serialized result summary counter with `{ nodes_updated: number, relationships_created: number, ... }`
+  - **Availability**: May be disabled by supplying --read-only as cli flag or `NEO4J_READ_ONLY=true` environment variable
 
 #### 🕸️ Schema Tools
 
@@ -405,6 +406,7 @@ docker run --rm -p 8000:8000 \
 | `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
 | `NEO4J_RESPONSE_TOKEN_LIMIT`       | _(none)_                                | Maximum tokens for read query responses            |
 | `NEO4J_READ_TIMEOUT`               | `30`                                    | Timeout in seconds for read queries                |
+| `NEO4J_READ_ONLY`                  | `false`                                 | Allow only read-only queries (true/false)          |
 
 ### 🌐 SSE Transport for Legacy Web Access
 

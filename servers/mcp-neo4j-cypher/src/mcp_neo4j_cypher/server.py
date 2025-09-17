@@ -7,15 +7,14 @@ from fastmcp.exceptions import ToolError
 from fastmcp.server import FastMCP
 from fastmcp.tools.tool import TextContent, ToolResult
 from mcp.types import ToolAnnotations
-from neo4j import AsyncDriver, AsyncGraphDatabase, RoutingControl, Query
+from neo4j import AsyncDriver, AsyncGraphDatabase, Query, RoutingControl
 from neo4j.exceptions import ClientError, Neo4jError
 from pydantic import Field
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from .utils import _value_sanitize
-from .utils import _value_sanitize, _truncate_string_to_tokens
+from .utils import _truncate_string_to_tokens, _value_sanitize
 
 logger = logging.getLogger("mcp_neo4j_cypher")
 
@@ -39,17 +38,19 @@ def _is_write_query(query: str) -> bool:
 
 
 def create_mcp_server(
-    neo4j_driver: AsyncDriver, 
-    database: str = "neo4j", 
+    neo4j_driver: AsyncDriver,
+    database: str = "neo4j",
     namespace: str = "",
     read_timeout: int = 30,
     token_limit: Optional[int] = None,
+    read_only: bool = False,
 ) -> FastMCP:
     mcp: FastMCP = FastMCP(
         "mcp-neo4j-cypher", dependencies=["neo4j", "pydantic"], stateless_http=True
     )
 
     namespace_prefix = _format_namespace(namespace)
+    allow_writes = not read_only
 
     @mcp.tool(
         name=namespace_prefix + "get_neo4j_schema",
@@ -219,6 +220,7 @@ def create_mcp_server(
             idempotentHint=False,
             openWorldHint=True,
         ),
+        enabled=allow_writes,
     )
     async def write_neo4j_cypher(
         query: str = Field(..., description="The Cypher query to execute."),
@@ -272,6 +274,7 @@ async def main(
     allowed_hosts: list[str] = [],
     read_timeout: int = 30,
     token_limit: Optional[int] = None,
+    read_only: bool = False,
 ) -> None:
     logger.info("Starting MCP neo4j Server")
 
@@ -289,11 +292,12 @@ async def main(
             allow_methods=["GET", "POST"],
             allow_headers=["*"],
         ),
-        Middleware(TrustedHostMiddleware, 
-                   allowed_hosts=allowed_hosts)
+        Middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts),
     ]
-    
-    mcp = create_mcp_server(neo4j_driver, database, namespace, read_timeout, token_limit)
+
+    mcp = create_mcp_server(
+        neo4j_driver, database, namespace, read_timeout, token_limit, read_only
+    )
 
     # Run the server with the specified transport
     match transport:
@@ -311,7 +315,13 @@ async def main(
             logger.info(
                 f"Running Neo4j Cypher MCP Server with SSE transport on {host}:{port}..."
             )
-            await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware, transport="sse")
+            await mcp.run_http_async(
+                host=host,
+                port=port,
+                path=path,
+                middleware=custom_middleware,
+                transport="sse",
+            )
         case _:
             logger.error(
                 f"Invalid transport: {transport} | Must be either 'stdio', 'sse', or 'http'"

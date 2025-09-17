@@ -269,3 +269,51 @@ async def http_server_custom_hosts(setup: Neo4jContainer):
     except asyncio.TimeoutError:
         process.kill()
         await process.wait()
+
+
+@pytest_asyncio.fixture
+async def http_server_read_only(setup: Neo4jContainer):
+    """Start the MCP server in HTTP mode with read-only enabled."""
+    # Start server process in HTTP mode with read-only
+    process = await asyncio.create_subprocess_exec(
+        "uv",
+        "run",
+        "mcp-neo4j-cypher",
+        "--transport",
+        "http",
+        "--server-host",
+        "127.0.0.1",
+        "--server-port",
+        "8005",
+        "--read-only",
+        "--db-url",
+        setup.get_connection_url(),
+        "--username",
+        setup.username,
+        "--password",
+        setup.password,
+        env=os.environ.copy(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=os.getcwd(),
+    )
+
+    # Wait for server to start
+    await asyncio.sleep(3)
+
+    # Check if process is still running
+    if process.returncode is not None:
+        stdout, stderr = await process.communicate()
+        raise RuntimeError(
+            f"Read-only server failed to start. stdout: {stdout.decode()}, stderr: {stderr.decode()}"
+        )
+
+    yield process
+
+    # Cleanup
+    try:
+        process.terminate()
+        await asyncio.wait_for(process.wait(), timeout=5.0)
+    except asyncio.TimeoutError:
+        process.kill()
+        await process.wait()
