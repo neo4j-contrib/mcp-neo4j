@@ -13,6 +13,16 @@ def get_logger(name: str) -> logging.Logger:
 
 logger = get_logger(__name__)
 
+
+def format_namespace(namespace: str) -> str:
+    if namespace:
+        if namespace.endswith("-"):
+            return namespace
+        else:
+            return namespace + "-"
+    else:
+        return ""
+    
 def _validate_region(cloud_provider: str, region: str) -> None:
     """
     Validate the region exists for the given cloud provider.
@@ -298,6 +308,22 @@ def parse_allowed_hosts(args: argparse.Namespace) -> list[str]:
             )
             return ["localhost", "127.0.0.1"]
         
+def parse_namespace(args: argparse.Namespace) -> str:
+    """
+    Parse the namespace from the command line arguments or environment variables.
+    """
+        # namespace configuration
+    if args.namespace is not None:
+        logger.info(f"Info: Namespace provided for tools: {args.namespace}")
+        return args.namespace
+    else:
+        if os.getenv("NEO4J_NAMESPACE") is not None:
+            logger.info(f"Info: Namespace provided for tools: {os.getenv('NEO4J_NAMESPACE')}")
+            return os.getenv("NEO4J_NAMESPACE")
+        else:
+            logger.info("Info: No namespace provided for tools. No namespace will be used.")
+            return ""
+        
 def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]:
     """
     Process the command line arguments and environment variables to create a config dictionary. 
@@ -332,13 +358,6 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
     config["allowed_hosts"] = parse_allowed_hosts(args)
 
     # namespace configuration
-    if args.namespace is not None:
-        config["namespace"] = args.namespace
-    else:
-        if os.getenv("NEO4J_NAMESPACE") is not None:
-            config["namespace"] = os.getenv("NEO4J_NAMESPACE")
-        else:
-            logger.info("Info: No namespace provided. No namespace will be used.")
-            config["namespace"] = ""
+    config["namespace"] = parse_namespace(args)
 
     return config

@@ -8,25 +8,16 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .aura_manager import AuraManager
-from .utils import get_logger
+from .utils import get_logger, format_namespace
 
 logger = get_logger(__name__)
 
-
-def _format_namespace(namespace: str) -> str:
-    if namespace:
-        if namespace.endswith("-"):
-            return namespace
-        else:
-            return namespace + "-"
-    else:
-        return ""
 
 
 def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP:
     """Create an MCP server instance for Aura management."""
     
-    namespace_prefix = _format_namespace(namespace)
+    namespace_prefix = format_namespace(namespace)
     
     mcp: FastMCP = FastMCP("mcp-neo4j-aura-manager", dependencies=["requests", "pydantic", "starlette"])
 
