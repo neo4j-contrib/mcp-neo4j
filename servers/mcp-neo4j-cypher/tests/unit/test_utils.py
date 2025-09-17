@@ -696,13 +696,9 @@ class TestParseBooleanSafely:
 
 def test_read_only_cli_args(clean_env, args_factory):
     """Test read-only mode via CLI arguments."""
-    # Boolean values
+    # CLI arguments are boolean flags (store_true action)
     assert process_config(args_factory(read_only=True))["read_only"] is True
     assert process_config(args_factory(read_only=False))["read_only"] is False
-
-    # String values
-    assert process_config(args_factory(read_only="true"))["read_only"] is True
-    assert process_config(args_factory(read_only="FALSE"))["read_only"] is False
 
 
 def test_read_only_env_vars(clean_env, args_factory):
@@ -715,22 +711,30 @@ def test_read_only_env_vars(clean_env, args_factory):
 
 
 def test_read_only_invalid_values(clean_env, args_factory):
-    """Test read-only mode with invalid values raises ValueError."""
-    # CLI invalid
+    """Test read-only mode with invalid environment values raises ValueError."""
+    # Environment invalid values should raise ValueError
+    os.environ["NEO4J_READ_ONLY"] = "yes"
     with pytest.raises(ValueError):
-        process_config(args_factory(read_only="yes"))
+        process_config(args_factory())
 
-    # Environment invalid
     os.environ["NEO4J_READ_ONLY"] = "1"
+    with pytest.raises(ValueError):
+        process_config(args_factory())
+
+    os.environ["NEO4J_READ_ONLY"] = ""
     with pytest.raises(ValueError):
         process_config(args_factory())
 
 
 def test_read_only_defaults_and_precedence(clean_env, args_factory):
     """Test read-only defaults and CLI precedence."""
-    # Default is False
+    # Default is False when no args and no env var
     assert process_config(args_factory())["read_only"] is False
 
-    # CLI overrides environment
+    # CLI overrides environment - when CLI flag is present (True), it takes precedence
+    os.environ["NEO4J_READ_ONLY"] = "false"
+    assert process_config(args_factory(read_only=True))["read_only"] is True
+
+    # When CLI flag is absent (False), env var is used
     os.environ["NEO4J_READ_ONLY"] = "true"
-    assert process_config(args_factory(read_only=False))["read_only"] is False
+    assert process_config(args_factory(read_only=False))["read_only"] is True
