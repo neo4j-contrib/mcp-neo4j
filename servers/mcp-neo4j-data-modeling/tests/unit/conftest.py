@@ -20,6 +20,7 @@ def clean_env():
         "NEO4J_MCP_SERVER_PATH",
         "NEO4J_MCP_SERVER_ALLOW_ORIGINS",
         "NEO4J_MCP_SERVER_ALLOWED_HOSTS",
+        "NEO4J_NAMESPACE",
     ]
     # Store original values
     original_values = {}
@@ -47,6 +48,7 @@ def args_factory():
             "server_path": None,
             "allow_origins": None,
             "allowed_hosts": None,
+            "namespace": None,
         }
         defaults.update(kwargs)
         return argparse.Namespace(**defaults)

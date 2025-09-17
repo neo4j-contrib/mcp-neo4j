@@ -196,3 +196,113 @@ class TestMCPResources:
         # Both should have the same number of nodes and relationships
         assert len(tool_model.nodes) == len(resource_data["nodes"])
         assert len(tool_model.relationships) == len(resource_data["relationships"])
+
+
+class TestNamespacing:
+    """Test namespacing functionality."""
+
+    def testformat_namespace(self):
+        """Test the format_namespace function behavior."""
+        from mcp_neo4j_data_modeling.server import format_namespace
+
+        # Empty namespace
+        assert format_namespace("") == ""
+
+        # Namespace without dash
+        assert format_namespace("myapp") == "myapp-"
+
+        # Namespace with dash
+        assert format_namespace("myapp-") == "myapp-"
+
+        # Complex namespace
+        assert format_namespace("company.product") == "company.product-"
+
+    @pytest.mark.asyncio
+    async def test_namespace_tool_prefixes(self):
+        """Test that tools are correctly prefixed with namespace."""
+        from mcp_neo4j_data_modeling.server import create_mcp_server
+
+        # Test with namespace
+        namespaced_server = create_mcp_server(namespace="test-ns")
+        tools = await namespaced_server.get_tools()
+
+        expected_tools = [
+            "test-ns-validate_node",
+            "test-ns-validate_relationship",
+            "test-ns-validate_data_model",
+            "test-ns-load_from_arrows_json",
+            "test-ns-export_to_arrows_json",
+        ]
+
+        for expected_tool in expected_tools:
+            assert expected_tool in tools.keys(), (
+                f"Expected tool {expected_tool} not found in {list(tools.keys())}"
+            )
+
+        # Test without namespace
+        default_server = create_mcp_server()
+        default_tools = await default_server.get_tools()
+
+        expected_default_tools = [
+            "validate_node",
+            "validate_relationship",
+            "validate_data_model",
+            "load_from_arrows_json",
+            "export_to_arrows_json",
+        ]
+
+        for expected_tool in expected_default_tools:
+            assert expected_tool in default_tools.keys(), (
+                f"Expected default tool {expected_tool} not found in {list(default_tools.keys())}"
+            )
+
+    @pytest.mark.asyncio
+    async def test_namespace_tool_functionality(self):
+        """Test that namespaced tools function correctly."""
+        from mcp_neo4j_data_modeling.data_model import Node, Property
+        from mcp_neo4j_data_modeling.server import create_mcp_server
+
+        # Create server with namespace
+        namespaced_server = create_mcp_server(namespace="test")
+        tools = await namespaced_server.get_tools()
+
+        # Get the namespaced validate_node tool
+        validate_tool = tools.get("test-validate_node")
+        assert validate_tool is not None
+
+        # Test that the tool works correctly
+        test_node = Node(
+            label="Person",
+            key_property=Property(
+                name="id", type="STRING", description="Unique identifier"
+            ),
+            properties=[
+                Property(name="name", type="STRING"),
+                Property(name="age", type="INTEGER"),
+            ],
+        )
+
+        result = validate_tool.fn(node=test_node)
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_multiple_namespace_isolation(self):
+        """Test that different namespaces create isolated tool sets."""
+        from mcp_neo4j_data_modeling.server import create_mcp_server
+
+        # Create servers with different namespaces
+        server_a = create_mcp_server(namespace="app-a")
+        server_b = create_mcp_server(namespace="app-b")
+
+        tools_a = await server_a.get_tools()
+        tools_b = await server_b.get_tools()
+
+        # Check that each server has its own prefixed tools
+        assert "app-a-validate_node" in tools_a.keys()
+        assert "app-a-validate_node" not in tools_b.keys()
+
+        assert "app-b-validate_node" in tools_b.keys()
+        assert "app-b-validate_node" not in tools_a.keys()
+
+        # Verify they both have the same number of tools (just different prefixes)
+        assert len(tools_a) == len(tools_b)
