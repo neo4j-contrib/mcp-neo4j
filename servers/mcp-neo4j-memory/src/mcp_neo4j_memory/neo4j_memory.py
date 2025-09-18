@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict, List
 
 from neo4j import AsyncDriver, RoutingControl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # Set up logging
@@ -11,26 +11,104 @@ logger.setLevel(logging.INFO)
 
 # Models for our knowledge graph
 class Entity(BaseModel):
-    name: str
-    type: str
-    observations: List[str]
+    """Represents a memory entity in the knowledge graph.
+    
+    Example:
+    {
+        "name": "John Smith",
+        "type": "person", 
+        "observations": ["Works at Neo4j", "Lives in San Francisco", "Expert in graph databases"]
+    }
+    """
+    name: str = Field(
+        description="Unique identifier/name for the entity. Should be descriptive and specific.",
+        min_length=1,
+        examples=["John Smith", "Neo4j Inc", "San Francisco"]
+    )
+    type: str = Field(
+        description="Category or classification of the entity. Common types: 'person', 'company', 'location', 'concept', 'event'",
+        min_length=1,
+        examples=["person", "company", "location", "concept", "event"]
+    )
+    observations: List[str] = Field(
+        description="List of facts, observations, or notes about this entity. Each observation should be a complete, standalone fact.",
+        examples=[["Works at Neo4j", "Lives in San Francisco"], ["Headquartered in Sweden", "Graph database company"]]
+    )
 
 class Relation(BaseModel):
-    source: str
-    target: str
-    relationType: str
+    """Represents a relationship between two entities in the knowledge graph.
+    
+    Example:
+    {
+        "source": "John Smith",
+        "target": "Neo4j Inc", 
+        "relationType": "WORKS_AT"
+    }
+    """
+    source: str = Field(
+        description="Name of the source entity (must match an existing entity name exactly)",
+        min_length=1,
+        examples=["John Smith", "Neo4j Inc"]
+    )
+    target: str = Field(
+        description="Name of the target entity (must match an existing entity name exactly)",
+        min_length=1, 
+        examples=["Neo4j Inc", "San Francisco"]
+    )
+    relationType: str = Field(
+        description="Type of relationship between source and target. Use descriptive, uppercase names with underscores.",
+        min_length=1,
+        examples=["WORKS_AT", "LIVES_IN", "MANAGES", "COLLABORATES_WITH", "LOCATED_IN"]
+    )
 
 class KnowledgeGraph(BaseModel):
-    entities: List[Entity]
-    relations: List[Relation]
+    """Complete knowledge graph containing entities and their relationships."""
+    entities: List[Entity] = Field(
+        description="List of all entities in the knowledge graph",
+        default=[]
+    )
+    relations: List[Relation] = Field(
+        description="List of all relationships between entities",
+        default=[]
+    )
 
 class ObservationAddition(BaseModel):
-    entityName: str
-    observations: List[str]
+    """Request to add new observations to an existing entity.
+    
+    Example:
+    {
+        "entityName": "John Smith",
+        "observations": ["Recently promoted to Senior Engineer", "Speaks fluent German"]
+    }
+    """
+    entityName: str = Field(
+        description="Exact name of the existing entity to add observations to",
+        min_length=1,
+        examples=["John Smith", "Neo4j Inc"]
+    )
+    observations: List[str] = Field(
+        description="New observations/facts to add to the entity. Each should be unique and informative.",
+        min_length=1
+    )
 
 class ObservationDeletion(BaseModel):
-    entityName: str
-    observations: List[str]
+    """Request to delete specific observations from an existing entity.
+    
+    Example:
+    {
+        "entityName": "John Smith", 
+        "observations": ["Old job title", "Outdated contact info"]
+    }
+    """
+    entityName: str = Field(
+        description="Exact name of the existing entity to remove observations from",
+        min_length=1,
+        examples=["John Smith", "Neo4j Inc"]
+    )
+    observations: List[str] = Field(
+        description="Exact observation texts to delete from the entity (must match existing observations exactly)",
+        min_length=1
+    )
 
 class Neo4jMemory:
     def __init__(self, neo4j_driver: AsyncDriver):
