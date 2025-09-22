@@ -72,8 +72,6 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
         Creates new memory entities with their associated observations. If an entity with the same name
         already exists, this operation will merge the observations with existing ones.
         
-        Args:
-            entities: List of Entity objects to create
             
         Returns:
             list[Entity]: The created entities with their final state
@@ -118,9 +116,6 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
         Creates directed relationships between entities that already exist. Both source and target
         entities must already be present in the graph. Use descriptive relationship types.
         
-        Args:
-            relations: List of Relation objects specifying source, target, and relationship type
-            
         Returns:
             list[Relation]: The created relationships
             
@@ -164,9 +159,6 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
         Appends new observations to entities that already exist. The entity must be present
         in the graph before adding observations. Each observation should be a distinct fact.
         
-        Args:
-            observations: List of ObservationAddition objects with entity name and new observations
-            
         Returns:
             list[dict]: Details about the added observations including entity name and new facts
             
@@ -208,9 +200,6 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
         Permanently removes entities from the graph along with all relationships they participate in.
         This is a destructive operation that cannot be undone. Entity names must match exactly.
         
-        Args:
-            entityNames: List of exact entity names to delete (case-sensitive)
-            
         Returns:
             str: Success confirmation message
             
@@ -244,9 +233,6 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
         Removes specific observation texts from entities. The observation text must match exactly
         what is stored. The entity will remain but the specified observations will be deleted.
         
-        Args:
-            deletions: List of ObservationDeletion objects with entity name and observations to remove
-            
         Returns:
             str: Success confirmation message
             
@@ -291,9 +277,6 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
         relationship type must match exactly for deletion. This only affects the relationships,
         not the entities they connect.
         
-        Args:
-            relations: List of Relation objects specifying exact relationships to delete
-            
         Returns:
             str: Success confirmation message
             
@@ -340,9 +323,6 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
         Returns matching entities and their related connections. Supports partial matches
         and multiple search terms.
         
-        Args:
-            query: Search terms to find matching entities (searches name, type, observations)
-            
         Returns:
             KnowledgeGraph: Subgraph containing matching entities and their relationships
             
@@ -376,9 +356,6 @@ def create_mcp_server(memory: Neo4jMemory) -> FastMCP:
         Retrieves entities that exactly match the provided names, along with all their
         relationships and connected entities. Use this when you know the exact entity names.
         
-        Args:
-            names: List of exact entity names to find (case-sensitive exact matches)
-            
         Returns:
             KnowledgeGraph: Subgraph containing the specified entities and their relationships
             
