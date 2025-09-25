@@ -4,7 +4,7 @@
   "mcpServers": {
     "mcp-neo4j-cloud-aura-api": {
       "command": "uvx",
-      "args": [ "mcp-neo4j-cloud-aura-api" ]
+      "args": [ "mcp-neo4j-aura-manager" ]
     },
     "mcp-neo4j-cypher": {
       "command": "uvx",
