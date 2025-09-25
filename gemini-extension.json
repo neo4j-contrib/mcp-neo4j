@@ -1,0 +1,22 @@
+{
+  "name": "mcp-neo4j",
+  "version": "1.0.0",
+  "mcpServers": {
+    "mcp-neo4j-cloud-aura-api": {
+      "command": "uvx",
+      "args": [ "mcp-neo4j-aura-manager" ]
+    },
+    "mcp-neo4j-cypher": {
+      "command": "uvx",
+      "args": [ "mcp-neo4j-cypher" ]
+    },
+    "mcp-neo4j-data-modeling": {
+      "command": "uvx",
+      "args": [ "mcp-neo4j-data-modeling" ]
+    },
+    "mcp-neo4j-memory": {
+      "command": "uvx",
+      "args": [ "mcp-neo4j-memory" ]
+    }
+  }
+}
