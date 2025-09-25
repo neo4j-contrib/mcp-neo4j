@@ -555,6 +555,67 @@ For development with Claude Desktop using the local source:
 
 Replace `/path/to/mcp-neo4j-cypher` with your actual project directory path.
 
+## Google Gemini CLI Integration
+
+The following steps describe how to configure and use the Neo4j MCP server with the Gemini CLI.
+
+### 1. Create the Extension Manifest File
+
+Create a new folder and inside it, add a file named **`gemini-extension.json`** with the following content:
+
+```json
+{
+  "name": "Neo4j Cypher MCP",
+  "description": "MCP server for Neo4j Cypher queries",
+  "version": "1.0.0",
+  "mcpServers": {
+    "neo4j-cypher": {
+      "command": "/path/to/mcp-neo4j-cypher",
+      "args": [
+        "--transport",
+        "stdio",
+        "--read-timeout",
+        "60"
+      ],
+      "env": {
+        "NEO4J_URI": "bolt://localhost:7687",
+        "NEO4J_USERNAME": "neo4j",
+        "NEO4J_PASSWORD": "<your-password>",
+        "NEO4J_DATABASE": "neo4j"
+      }
+    }
+  }
+}
+```
+
+---
+
+### 2. Link the Extension
+
+From the same directory where the manifest file is located, run:
+
+```bash
+gemini extensions link .
+```
+
+---
+
+### 3. Verify the MCP Server
+
+Start the **Gemini CLI** and press **`Ctrl + T`**.
+
+* Confirm that the MCP server is displayed in a **Ready** state.
+* Once it is ready, you can proceed to run queries against it.
+
+---
+
+### 4. Allow MCP Tool Execution
+
+When prompted to allow execution of an MCP tool, select:
+
+**“Yes, always allow all tools from server neo4j-cypher.”**
+
+
 ## 📄 License
 
 This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
