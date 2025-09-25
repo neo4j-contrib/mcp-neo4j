@@ -16,3 +16,6 @@ Assuming everything went well, you should be able to view 4 Neo4j related tools.
 To uninstall run:
 
   gemini extensions uninstall mcp-neo4j
+
+## To do
+Currently the stdio based servers are showing up with their tools.  The HTTP ones are not.  
