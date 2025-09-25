@@ -3,14 +3,9 @@
   "description": "MCP server for Neo4j Cypher queries",
   "version": "1.0.0",
   "mcpServers": {
-    "neo4j-cypher": {
-      "command": "mcp-neo4j-cypher",
-      "args": [
-        "--transport",
-        "stdio",
-        "--read-timeout",
-        "60"
-      ]
+    "mcp-neo4j-cypher": {
+      "command": "uvx",
+      "args": [ "mcp-neo4j-cypher", "--transport", "stdio"  ],
     }
   }
 }
