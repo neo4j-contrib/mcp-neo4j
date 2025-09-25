@@ -21,7 +21,3 @@ Assuming everything went well, you should be able to view 4 Neo4j related tools.
 To uninstall run:
 
     gemini extensions uninstall mcp-neo4j
-
-## To do
-
-Currently the mcp-neo4j-memory tools aren't coming up.  We're working to resolve this issue.
