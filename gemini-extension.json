@@ -1,0 +1,16 @@
+{
+  "name": "Neo4j Cypher MCP",
+  "description": "MCP server for Neo4j Cypher queries",
+  "version": "1.0.0",
+  "mcpServers": {
+    "neo4j-cypher": {
+      "command": "mcp-neo4j-cypher",
+      "args": [
+        "--transport",
+        "stdio",
+        "--read-timeout",
+        "60"
+      ]
+    }
+  }
+}
