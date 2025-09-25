@@ -5,6 +5,10 @@
     "mcp-neo4j-cypher": {
       "command": "uvx",
       "args": [ "mcp-neo4j-cypher", "--transport", "stdio"  ]
+    },
+    "mcp-neo4j-memory": {
+      "command": "uvx",
+      "args": [ "mcp-neo4j-memory", "--transport", "stdio"  ]
     }
   }
 }
