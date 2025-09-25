@@ -2,20 +2,24 @@
 
 This is an extension that runs the Neo4j MCP server.
 
+## Install
+
 To get started run the command:
 
-  gemini extensions install https://github.com/benofben/mcp-neo4j.git
+    gemini extensions install https://github.com/benofben/mcp-neo4j.git
 
 With the extension intalled successfully, you can then run:
 
-  gemini
+    gemini
 
 Assuming everything went well, you should be able to view 4 Neo4j related tools.  You will need to set environmental variables to run them.
 
 ## Uninstall
+
 To uninstall run:
 
-  gemini extensions uninstall mcp-neo4j
+    gemini extensions uninstall mcp-neo4j
 
 ## To do
+
 Currently the stdio based servers are showing up with their tools.  The HTTP ones are not.  
