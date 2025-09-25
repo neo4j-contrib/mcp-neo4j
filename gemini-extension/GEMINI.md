@@ -22,4 +22,4 @@ To uninstall run:
 
 ## To do
 
-Currently the stdio based servers are showing up with their tools.  The HTTP ones are not.  
+Currently two of the servers don't seem to be coming up.
