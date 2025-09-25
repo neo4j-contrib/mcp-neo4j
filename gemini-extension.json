@@ -12,11 +12,11 @@
     },
     "mcp-neo4j-aura-manager": {
       "command": "uvx",
-      "args": [ "mcp-neo4j-aura-manager" ]
+      "args": [ "mcp-neo4j-aura-manager", "--transport", "stdio" ]
     },
     "neo4j-data-modeling": {
       "command": "uvx",
-      "args": [ "mcp-neo4j-data-modeling@0.5.0", "--transport", "stdio" ]
+      "args": [ "mcp-neo4j-data-modeling", "--transport", "stdio" ]
     }
   }
 }
