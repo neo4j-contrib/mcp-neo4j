@@ -11,7 +11,8 @@
       "args": [ "mcp-neo4j-memory", "--transport", "stdio"  ]
     },
     "mcp-neo4j-aura-manager": {
-    "command": "uvx",
-    "args": [ "mcp-neo4j-aura-manager" ]
+      "command": "uvx",
+      "args": [ "mcp-neo4j-aura-manager" ]
+    }
   }
 }
