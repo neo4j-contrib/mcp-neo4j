@@ -4,7 +4,7 @@
   "mcpServers": {
     "mcp-neo4j-cypher": {
       "command": "uvx",
-      "args": [ "mcp-neo4j-cypher", "--transport", "stdio"  ],
+      "args": [ "mcp-neo4j-cypher", "--transport", "stdio"  ]
     }
   }
 }
