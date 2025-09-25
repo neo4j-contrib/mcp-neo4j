@@ -10,7 +10,7 @@
       "command": "uvx",
       "args": [ "mcp-neo4j-memory", "--transport", "stdio"  ]
     },
-    "mcp-neo4j-aura-manager": {
+    "neo4j-aura": {
       "command": "uvx",
       "args": [ "mcp-neo4j-aura-manager", "--transport", "stdio" ]
     },

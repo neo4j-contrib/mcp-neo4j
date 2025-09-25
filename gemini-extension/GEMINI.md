@@ -10,3 +10,9 @@ With the extension intalled successfully, you can then run:
 
   gemini
 
+Assuming everything went well, you should be able to view 4 Neo4j related tools.  You will need to set environmental variables to run them.
+
+## Uninstall
+To uninstall run:
+
+  gemini extensions uninstall mcp-neo4j
