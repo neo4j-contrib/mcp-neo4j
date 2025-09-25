@@ -23,3 +23,6 @@ To uninstall run:
 ## To do
 
 Currently two of the servers don't seem to be coming up.
+
+* mcp-neo4j-memory
+* mcp-neo4j-cloud-aura-api
