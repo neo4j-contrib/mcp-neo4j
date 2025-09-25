@@ -8,7 +8,9 @@ To get started run the command:
 
     gemini extensions install https://github.com/benofben/mcp-neo4j.git
 
-With the extension intalled successfully, you can then run:
+The servers require various environmental variables.  You can set those on the command line.
+
+You can then run:
 
     gemini
 
