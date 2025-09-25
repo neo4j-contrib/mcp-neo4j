@@ -6,7 +6,7 @@ This is an extension that runs the Neo4j MCP server.
 
 To get started run the command:
 
-    gemini extensions install https://github.com/benofben/mcp-neo4j.git
+    gemini extensions install https://github.com/neo4j-contrib/mcp-neo4j.git
 
 The servers require various environmental variables.  You can set those on the command line.
 
@@ -24,7 +24,4 @@ To uninstall run:
 
 ## To do
 
-Currently two of the servers don't seem to be coming up.
-
-* mcp-neo4j-memory
-* mcp-neo4j-cloud-aura-api
+Currently the mcp-neo4j-memory tools aren't coming up.  We're working to resolve this issue.
