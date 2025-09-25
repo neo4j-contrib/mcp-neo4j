@@ -8,11 +8,11 @@
     },
     "mcp-neo4j-memory": {
       "command": "uvx",
-      "args": [ "mcp-neo4j-memory", "--transport", "stdio"  ]
+      "args": [ "mcp-neo4j-memory", "--transport", "http"  ]
     },
-    "neo4j-aura": {
+    "mcp-neo4j-aura-manager": {
       "command": "uvx",
-      "args": [ "mcp-neo4j-aura-manager", "--transport", "stdio" ]
+      "args": [ "mcp-neo4j-aura-manager", "--transport", "http" ]
     },
     "neo4j-data-modeling": {
       "command": "uvx",
