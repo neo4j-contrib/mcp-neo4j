@@ -3,6 +3,7 @@
 ### Fixed
 
 ### Changed
+* Updated tool docstrings to better describe their function, inputs and outputs
 
 ### Added
 * Add namespacing support for multi-tenant deployments with `--namespace` CLI argument and `NEO4J_NAMESPACE` environment variable
