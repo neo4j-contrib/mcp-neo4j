@@ -5,6 +5,10 @@
 ### Changed
 
 ### Added
+
+## v0.4.1
+
+### Added
 * Add env variable `NEO4J_READ_ONLY` and cli variable `--read-only` to configure tool availability
 
 ## v0.4.0
