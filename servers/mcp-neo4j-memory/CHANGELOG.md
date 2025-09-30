@@ -3,6 +3,7 @@
 ### Fixed
 
 ### Changed
+* Updated tool docstrings to better describe their function, inputs and outputs
 
 ### Added
 
