@@ -3,6 +3,12 @@
 ### Fixed
 
 ### Changed
+
+### Added
+
+## v0.4.1
+
+### Changed
 * Updated tool docstrings to better describe their function, inputs and outputs
 
 ### Added
