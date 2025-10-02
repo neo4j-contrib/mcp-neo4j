@@ -69,6 +69,18 @@ export NEO4J_MCP_SERVER_PATH=/api/mcp/
 mcp-neo4j-cypher
 ```
 
+## Cloud Deployment
+
+All servers in this repository are containerized and ready for cloud deployment on platforms like AWS ECS Fargate and Azure Container Apps. Each server supports HTTP transport mode specifically designed for scalable, production-ready deployments with auto-scaling and load balancing capabilities.
+
+📋 **[Complete Cloud Deployment Guide →](README-Cloud.md)**
+
+The deployment guide covers:
+- **AWS ECS Fargate**: Step-by-step deployment with auto-scaling and Application Load Balancer
+- **Azure Container Apps**: Serverless container deployment with built-in scaling and traffic management
+- **Configuration Best Practices**: Security, monitoring, resource recommendations, and troubleshooting
+- **Integration Examples**: Connecting MCP clients to cloud-deployed servers
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
