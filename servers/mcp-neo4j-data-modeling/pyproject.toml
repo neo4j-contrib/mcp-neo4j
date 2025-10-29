@@ -8,6 +8,7 @@ dependencies = [
     "fastmcp>=2.0.0",
     "pydantic>=2.10.1",
     "starlette>=0.47.0",
+    "rdflib>=7.0.0",
 ]
 
 

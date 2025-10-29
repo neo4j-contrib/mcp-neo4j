@@ -650,3 +650,140 @@ def test_get_cypher_constraints_query(valid_data_model: DataModel):
         queries[1]
         == "CREATE CONSTRAINT Place_constraint IF NOT EXISTS FOR (n:Place) REQUIRE (n.id) IS NODE KEY;"
     )
+
+
+def test_data_model_to_owl_turtle_str():
+    """Test converting a data model to an OWL Turtle string."""
+    nodes = [
+        Node(
+            label="Person",
+            key_property=Property(
+                name="personId", type="STRING", description="Unique identifier"
+            ),
+            properties=[
+                Property(name="name", type="STRING", description="Name of the person"),
+                Property(name="birthYear", type="INTEGER", description="Birth year"),
+            ],
+        ),
+        Node(
+            label="Address",
+            key_property=Property(
+                name="addressId", type="STRING", description="Unique identifier"
+            ),
+            properties=[
+                Property(name="streetAddress", type="STRING", description="Street address"),
+            ],
+        ),
+    ]
+    relationships = [
+        Relationship(
+            type="LIVES_AT",
+            start_node_label="Person",
+            end_node_label="Address",
+            properties=[],
+        ),
+    ]
+
+    data_model = DataModel(nodes=nodes, relationships=relationships)
+    turtle_str = data_model.to_owl_turtle_str()
+
+    # Basic checks to ensure the turtle string contains expected elements
+    assert "owl:Ontology" in turtle_str
+    assert ":Person" in turtle_str
+    assert ":Address" in turtle_str
+    assert ":LIVES_AT" in turtle_str
+    assert ":personId" in turtle_str
+    assert ":name" in turtle_str
+    assert ":birthYear" in turtle_str
+    assert "owl:Class" in turtle_str
+    assert "owl:ObjectProperty" in turtle_str
+    assert "owl:DatatypeProperty" in turtle_str
+
+
+def test_data_model_from_owl_turtle_str():
+    """Test converting an OWL Turtle string to a data model."""
+    # Read the test TTL file
+    import pathlib
+    ttl_file = pathlib.Path(__file__).parent.parent / "resources" / "blueplaques.ttl"
+    with open(ttl_file, "r") as f:
+        turtle_str = f.read()
+
+    data_model = DataModel.from_owl_turtle_str(turtle_str)
+
+    # Check that nodes were created
+    assert len(data_model.nodes) > 0
+
+    # Check for expected classes
+    node_labels = {n.label for n in data_model.nodes}
+    assert "Person" in node_labels
+    assert "Address" in node_labels
+    assert "Plaque" in node_labels
+    assert "MusicalComposition" in node_labels
+    assert "Organization" in node_labels
+
+    # Check for expected relationships
+    assert len(data_model.relationships) > 0
+    relationship_types = {r.type for r in data_model.relationships}
+    assert "COMPOSED" in relationship_types
+    assert "HONORED_BY" in relationship_types
+    assert "LOCATED_AT" in relationship_types
+
+    # Check that Person node has properties
+    person_node = next((n for n in data_model.nodes if n.label == "Person"), None)
+    assert person_node is not None
+    assert person_node.key_property is not None
+
+    # Check for expected properties on Person
+    all_person_props = [person_node.key_property.name] + [p.name for p in person_node.properties]
+    assert "personId" in all_person_props
+    assert any("name" in prop.lower() or "nationality" in prop.lower() or "profession" in prop.lower()
+               for prop in all_person_props)
+
+
+def test_data_model_owl_turtle_round_trip():
+    """Test converting a data model to OWL Turtle and back."""
+    nodes = [
+        Node(
+            label="Person",
+            key_property=Property(name="personId", type="STRING"),
+            properties=[
+                Property(name="name", type="STRING"),
+                Property(name="age", type="INTEGER"),
+            ],
+        ),
+        Node(
+            label="Company",
+            key_property=Property(name="companyId", type="STRING"),
+            properties=[
+                Property(name="companyName", type="STRING"),
+            ],
+        ),
+    ]
+    relationships = [
+        Relationship(
+            type="WORKS_FOR",
+            start_node_label="Person",
+            end_node_label="Company",
+            properties=[],
+        ),
+    ]
+
+    original_model = DataModel(nodes=nodes, relationships=relationships)
+
+    # Convert to Turtle
+    turtle_str = original_model.to_owl_turtle_str()
+
+    # Convert back to DataModel
+    restored_model = DataModel.from_owl_turtle_str(turtle_str)
+
+    # Check that basic structure is preserved
+    assert len(restored_model.nodes) == len(original_model.nodes)
+    assert len(restored_model.relationships) == len(original_model.relationships)
+
+    restored_labels = {n.label for n in restored_model.nodes}
+    original_labels = {n.label for n in original_model.nodes}
+    assert restored_labels == original_labels
+
+    restored_rel_types = {r.type for r in restored_model.relationships}
+    original_rel_types = {r.type for r in original_model.relationships}
+    assert restored_rel_types == original_rel_types

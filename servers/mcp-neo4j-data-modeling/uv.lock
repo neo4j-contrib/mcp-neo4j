@@ -750,6 +750,15 @@ wheels = [
 ]
 
 [[package]]
+name = "isodate"
+version = "0.7.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/4d/e940025e2ce31a8ce1202635910747e5a87cc3a6a6bb2d00973375014749/isodate-0.7.2.tar.gz", hash = "sha256:4cd1aa0f43ca76f4a6c6c0292a85f40b35ec2e43e315b59f06e6d32171a953e6", size = 29705 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/aa/0aca39a37d3c7eb941ba736ede56d689e7be91cab5d9ca846bde3999eba6/isodate-0.7.2-py3-none-any.whl", hash = "sha256:28009937d8031054830160fce6d409ed342816b543597cece116d966c6d99e15", size = 22320 },
+]
+
+[[package]]
 name = "jedi"
 version = "0.19.2"
 source = { registry = "https://pypi.org/simple" }
@@ -870,6 +879,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
     { name = "pydantic" },
+    { name = "rdflib" },
     { name = "starlette" },
 ]
 
@@ -888,6 +898,7 @@ dev = [
 requires-dist = [
     { name = "fastmcp", specifier = ">=2.0.0" },
     { name = "pydantic", specifier = ">=2.10.1" },
+    { name = "rdflib", specifier = ">=7.0.0" },
     { name = "starlette", specifier = ">=0.47.0" },
 ]
 
@@ -1377,6 +1388,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyparsing"
+version = "3.2.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f2/a5/181488fc2b9d093e3972d2a472855aae8a03f000592dbfce716a512b3359/pyparsing-3.2.5.tar.gz", hash = "sha256:2df8d5b7b2802ef88e8d016a2eb9c7aeaa923529cd251ed0fe4608275d4105b6", size = 1099274 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/5e/1aa9a93198c6b64513c9d7752de7422c06402de6600a8767da1524f9570b/pyparsing-3.2.5-py3-none-any.whl", hash = "sha256:e38a4f02064cf41fe6593d328d0512495ad1f3d8a91c4f73fc401b3079a59a5e", size = 113890 },
+]
+
+[[package]]
 name = "pyright"
 version = "1.1.401"
 source = { registry = "https://pypi.org/simple" }
@@ -1548,6 +1568,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/76/0c/3a633acd762aa6655fcb71fa841907eae0ab1e8582ff494b137266de341d/pyzmq-26.4.0-pp311-pypy311_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:43b03c1ceea27c6520124f4fb2ba9c647409b9abdf9a62388117148a90419494", size = 798248 },
     { url = "https://files.pythonhosted.org/packages/cd/cc/6c99c84aa60ac1cc56747bed6be8ce6305b9b861d7475772e7a25ce019d3/pyzmq-26.4.0-pp311-pypy311_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7731abd23a782851426d4e37deb2057bf9410848a4459b5ede4fe89342e687a9", size = 756757 },
     { url = "https://files.pythonhosted.org/packages/13/9c/d8073bd898eb896e94c679abe82e47506e2b750eb261cf6010ced869797c/pyzmq-26.4.0-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:a222ad02fbe80166b0526c038776e8042cd4e5f0dec1489a006a1df47e9040e0", size = 555371 },
+]
+
+[[package]]
+name = "rdflib"
+version = "7.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "isodate", marker = "python_full_version < '3.11'" },
+    { name = "pyparsing" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c8/cd/01e49acce660e7f9d161f8885004313f9973cbc5ccbcb11888c147f3fa3a/rdflib-7.3.0.tar.gz", hash = "sha256:2da6a5d3d0da2d095dd7de49e388db1c97542efc035bda4000c154d2b6cf8a6e", size = 4697755 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/43/96/da4ade02b6ade99edba8cb8659b316b4ca2c6f7ba5942ed184853e54a97c/rdflib-7.3.0-py3-none-any.whl", hash = "sha256:501e29710f1f7f8e5a0b075483050ef512da5130d97f255bd57789424d18e643", size = 566857 },
 ]
 
 [[package]]
