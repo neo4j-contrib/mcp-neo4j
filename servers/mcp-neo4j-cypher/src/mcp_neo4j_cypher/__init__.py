@@ -43,6 +43,12 @@ def main():
         help="Allow only read-only queries (default: False)",
     )
     parser.add_argument("--token-limit", default=None, help="Response token limit")
+    parser.add_argument(
+        "--sample",
+        type=int,
+        default=None,
+        help="Default sample size for schema operations (default: None, scans entire graph)",
+    )
 
     args = parser.parse_args()
     config = process_config(args)

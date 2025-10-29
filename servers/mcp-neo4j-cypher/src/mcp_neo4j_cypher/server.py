@@ -44,6 +44,7 @@ def create_mcp_server(
     read_timeout: int = 30,
     token_limit: Optional[int] = None,
     read_only: bool = False,
+    sample: Optional[int] = None,
 ) -> FastMCP:
     mcp: FastMCP = FastMCP(
         "mcp-neo4j-cypher", dependencies=["neo4j", "pydantic"], stateless_http=True
@@ -62,15 +63,32 @@ def create_mcp_server(
             openWorldHint=True,
         ),
     )
-    async def get_neo4j_schema() -> list[ToolResult]:
+    async def get_neo4j_schema(sample_param: int=None) -> list[ToolResult]:
         """
-        List all nodes, their attributes and their relationships to other nodes in the neo4j database.
-        This requires that the APOC plugin is installed and enabled.
+        Returns nodes, their properties (with types and indexed flags), and relationships
+        using APOC's schema inspection.
+
+        Notes:
+            - If `sample_param` is not provided (None), uses the server's default sample setting.
+            - If no default is configured, APOC defaults to `sample=-1`, i.e. scans the *entire graph*.
+            This can be very slow or timeout on large databases.
+            - To limit work, specify e.g. `sample_param=1000`.
         """
 
-        get_schema_query = """
-        CALL apoc.meta.schema();
-        """
+        # Use provided sample_param, otherwise fall back to server default, otherwise None (full scan)
+        effective_sample = sample_param if sample_param is not None else sample
+
+        if effective_sample is None:
+            # original full-scan behaviour (no parameter)
+            get_schema_query = "CALL apoc.meta.schema() YIELD value RETURN value"
+            logger.warning(
+                "Running get_neo4j_schema with no sampling (equivalent to sample=-1). "
+                "This may be slow or timeout on large graphs."
+            )
+        else:
+            get_schema_query = """
+                CALL apoc.meta.schema({sample: $sample}) YIELD value RETURN value
+            """
 
         def clean_schema(schema: dict) -> dict:
             cleaned = {}
@@ -132,12 +150,21 @@ def create_mcp_server(
             return cleaned
 
         try:
-            results_json_str = await neo4j_driver.execute_query(
-                get_schema_query,
-                routing_control=RoutingControl.READ,
-                database_=database,
-                result_transformer_=lambda r: r.data(),
-            )
+            if effective_sample is None:
+                results_json_str = await neo4j_driver.execute_query(
+                    get_schema_query,
+                    routing_control=RoutingControl.READ,
+                    database_=database,
+                    result_transformer_=lambda r: r.data(),
+                )
+            else:
+                results_json_str = await neo4j_driver.execute_query(
+                    get_schema_query,
+                    {"sample": effective_sample},
+                    routing_control=RoutingControl.READ,
+                    database_=database,
+                    result_transformer_=lambda r: r.data(),
+                )
 
             logger.debug(f"Read query returned {len(results_json_str)} rows")
 
@@ -275,6 +302,7 @@ async def main(
     read_timeout: int = 30,
     token_limit: Optional[int] = None,
     read_only: bool = False,
+    sample: Optional[int] = None,
 ) -> None:
     logger.info("Starting MCP neo4j Server")
 
@@ -296,7 +324,7 @@ async def main(
     ]
 
     mcp = create_mcp_server(
-        neo4j_driver, database, namespace, read_timeout, token_limit, read_only
+        neo4j_driver, database, namespace, read_timeout, token_limit, read_only, sample
     )
 
     # Run the server with the specified transport
