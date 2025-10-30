@@ -44,7 +44,7 @@ def create_mcp_server(
     read_timeout: int = 30,
     token_limit: Optional[int] = None,
     read_only: bool = False,
-    sample: Optional[int] = None,
+    config_sample_size: int = 1000,
 ) -> FastMCP:
     mcp: FastMCP = FastMCP(
         "mcp-neo4j-cypher", dependencies=["neo4j", "pydantic"], stateless_http=True
@@ -63,32 +63,23 @@ def create_mcp_server(
             openWorldHint=True,
         ),
     )
-    async def get_neo4j_schema(sample_param: int=None) -> list[ToolResult]:
+    async def get_neo4j_schema(sample_size: int = 0) -> list[ToolResult]:
         """
         Returns nodes, their properties (with types and indexed flags), and relationships
         using APOC's schema inspection.
 
         Notes:
-            - If `sample_param` is not provided (None), uses the server's default sample setting.
-            - If no default is configured, APOC defaults to `sample=-1`, i.e. scans the *entire graph*.
-            This can be very slow or timeout on large databases.
-            - To limit work, specify e.g. `sample_param=1000`.
+            - If `sample_size` is not provided, uses the server's default sample setting defined in the server configuration.
+            - If no default is configured, APOC defaults to `sample_size=1000`. This can be very slow or timeout on large databases.
+            - If retrieving the schema times out, try lowering the sample size, e.g. `sample_size=100`.
         """
 
-        # Use provided sample_param, otherwise fall back to server default, otherwise None (full scan)
-        effective_sample = sample_param if sample_param is not None else sample
+        # Use provided sample_size, otherwise fall back to server default - 1000
+        effective_sample_size = sample_size if sample_size else config_sample_size
 
-        if effective_sample is None:
-            # original full-scan behaviour (no parameter)
-            get_schema_query = "CALL apoc.meta.schema() YIELD value RETURN value"
-            logger.warning(
-                "Running get_neo4j_schema with no sampling (equivalent to sample=-1). "
-                "This may be slow or timeout on large graphs."
-            )
-        else:
-            get_schema_query = """
-                CALL apoc.meta.schema({sample: $sample}) YIELD value RETURN value
-            """
+        logger.info(f"Running `get_neo4j_schema` with sample size {effective_sample_size}.")
+
+        get_schema_query = f"CALL apoc.meta.schema({{sample: {effective_sample_size}}}) YIELD value RETURN value"
 
         def clean_schema(schema: dict) -> dict:
             cleaned = {}
@@ -150,25 +141,16 @@ def create_mcp_server(
             return cleaned
 
         try:
-            if effective_sample is None:
-                results_json_str = await neo4j_driver.execute_query(
-                    get_schema_query,
-                    routing_control=RoutingControl.READ,
-                    database_=database,
-                    result_transformer_=lambda r: r.data(),
-                )
-            else:
-                results_json_str = await neo4j_driver.execute_query(
-                    get_schema_query,
-                    {"sample": effective_sample},
-                    routing_control=RoutingControl.READ,
-                    database_=database,
-                    result_transformer_=lambda r: r.data(),
-                )
+            results_json = await neo4j_driver.execute_query(
+                get_schema_query,
+                routing_control=RoutingControl.READ,
+                database_=database,
+                result_transformer_=lambda r: r.data(),
+            )
+        
+            logger.debug(f"Read query returned {len(results_json)} rows")
 
-            logger.debug(f"Read query returned {len(results_json_str)} rows")
-
-            schema_clean = clean_schema(results_json_str[0].get("value"))
+            schema_clean = clean_schema(results_json[0].get("value"))
 
             schema_clean_str = json.dumps(schema_clean, default=str)
 
