@@ -68,10 +68,11 @@ def create_mcp_server(
         Returns nodes, their properties (with types and indexed flags), and relationships
         using APOC's schema inspection.
 
-        Notes:
+        Performance Notes:
             - If `sample_size` is not provided, uses the server's default sample setting defined in the server configuration.
             - If no default is configured, APOC defaults to `sample_size=1000`. This can be very slow or timeout on large databases.
             - If retrieving the schema times out, try lowering the sample size, e.g. `sample_size=100`.
+            - To sample the entire graph use `sample_size=-1`.
         """
 
         # Use provided sample_size, otherwise fall back to server default - 1000
@@ -284,7 +285,7 @@ async def main(
     read_timeout: int = 30,
     token_limit: Optional[int] = None,
     read_only: bool = False,
-    sample: Optional[int] = None,
+    schema_sample_size: Optional[int] = None, # this is known as the config_sample_size in the create_mcp_server function
 ) -> None:
     logger.info("Starting MCP neo4j Server")
 
@@ -306,7 +307,7 @@ async def main(
     ]
 
     mcp = create_mcp_server(
-        neo4j_driver, database, namespace, read_timeout, token_limit, read_only, sample
+        neo4j_driver, database, namespace, read_timeout, token_limit, read_only, schema_sample_size
     )
 
     # Run the server with the specified transport

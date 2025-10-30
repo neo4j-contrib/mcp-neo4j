@@ -44,10 +44,10 @@ def main():
     )
     parser.add_argument("--token-limit", default=None, help="Response token limit")
     parser.add_argument(
-        "--sample",
+        "--schema-sample-size",
         type=int,
         default=None,
-        help="Default sample size for schema operations (default: None, scans entire graph)",
+        help="Default sample size for schema operations (default: 1000)",
     )
 
     args = parser.parse_args()

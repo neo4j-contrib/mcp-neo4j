@@ -297,8 +297,8 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
         config["read_only"] = False
 
     # parse sample
-    if args.sample is not None:
-        config["schema_sample_size"] = args.sample
+    if args.schema_sample_size is not None:
+        config["schema_sample_size"] = args.schema_sample_size
         logger.info(
             f"Info: Default sample size set to {config['schema_sample_size']} via command line argument."
         )
