@@ -63,16 +63,21 @@ def create_mcp_server(
             openWorldHint=True,
         ),
     )
-    async def get_neo4j_schema(sample_size: int = 0) -> list[ToolResult]:
+    async def get_neo4j_schema(sample_size: int = config_sample_size) -> list[ToolResult]:
         """
         Returns nodes, their properties (with types and indexed flags), and relationships
         using APOC's schema inspection.
+
+        You should only provide a `sample_size` value if requested by the user, or tuning the retrieval performance.
 
         Performance Notes:
             - If `sample_size` is not provided, uses the server's default sample setting defined in the server configuration.
             - If no default is configured, APOC defaults to `sample_size=1000`. This can be very slow or timeout on large databases.
             - If retrieving the schema times out, try lowering the sample size, e.g. `sample_size=100`.
             - To sample the entire graph use `sample_size=-1`.
+            - In general:
+                - larger samples are slower, but more accurate.
+                - smaller samples are faster, but might miss information.
         """
 
         # Use provided sample_size, otherwise fall back to server default - 1000
