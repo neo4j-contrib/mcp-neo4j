@@ -303,15 +303,15 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
             f"Info: Default sample size set to {config['sample']} via command line argument."
         )
     else:
-        if os.getenv("NEO4J_SAMPLE") is not None:
+        if os.getenv("NEO4J_SCHEMA_SAMPLE_SIZE") is not None:
             try:
-                config["sample"] = int(os.getenv("NEO4J_SAMPLE"))
+                config["sample"] = int(os.getenv("NEO4J_SCHEMA_SAMPLE_SIZE"))
                 logger.info(
                     f"Info: Default sample size set to {config['sample']} via environment variable."
                 )
             except ValueError:
                 logger.warning(
-                    "Warning: Invalid sample size provided in NEO4J_SAMPLE environment variable. No default sample will be used."
+                    "Warning: Invalid sample size provided in NEO4J_SCHEMA_SAMPLE_SIZE environment variable. No default sample will be used."
                 )
                 config["sample"] = None
         else:

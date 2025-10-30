@@ -118,12 +118,12 @@ mcp-neo4j-cypher --sample 1000  # Sample 1000 nodes per label
 
 **Environment Variable:**
 ```bash
-export NEO4J_SAMPLE=1000
+export NEO4J_SCHEMA_SAMPLE_SIZE=1000
 ```
 
 **Docker:**
 ```bash
-docker run -e NEO4J_SAMPLE=1000 mcp-neo4j-cypher:latest
+docker run -e NEO4J_SCHEMA_SAMPLE_SIZE=1000 mcp-neo4j-cypher:latest
 ```
 
 The `sample` parameter controls how many nodes are examined when generating the database schema:
@@ -145,16 +145,16 @@ The `sample` parameter controls how many nodes are examined when generating the 
 
 ```bash
 # Fast schema inspection for large databases
-export NEO4J_SAMPLE=100
+export NEO4J_SCHEMA_SAMPLE_SIZE=100
 
 # Balanced performance and accuracy (default)
-export NEO4J_SAMPLE=1000
+export NEO4J_SCHEMA_SAMPLE_SIZE=1000
 
 # Comprehensive schema analysis
-export NEO4J_SAMPLE=5000
+export NEO4J_SCHEMA_SAMPLE_SIZE=5000
 
 # Full database scan (use with caution on large databases)
-export NEO4J_SAMPLE=-1
+export NEO4J_SCHEMA_SAMPLE_SIZE=-1
 ```
 
 **Performance Considerations:**
@@ -465,7 +465,7 @@ docker run --rm -p 8000:8000 \
 | `NEO4J_RESPONSE_TOKEN_LIMIT`       | _(none)_                                | Maximum tokens for read query responses            |
 | `NEO4J_READ_TIMEOUT`               | `30`                                    | Timeout in seconds for read queries                |
 | `NEO4J_READ_ONLY`                  | `false`                                 | Allow only read-only queries (true/false)          |
-| `NEO4J_SAMPLE`                     | `1000`                                  | Number of nodes to sample for schema inspection (set to -1 for full scan) |
+| `NEO4J_SCHEMA_SAMPLE_SIZE`                     | `1000`                                  | Number of nodes to sample for schema inspection (set to -1 for full scan) |
 
 ### 🌐 SSE Transport for Legacy Web Access
 
