@@ -5,6 +5,7 @@
 ### Changed
 
 ### Added
+* Update write query detection to include `INSERT` in regex check
 
 ## v0.4.1
 
