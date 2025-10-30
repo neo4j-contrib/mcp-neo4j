@@ -296,6 +296,30 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
         )
         config["read_only"] = False
 
+    # parse schema sample size
+    if args.schema_sample_size is not None:
+        config["schema_sample_size"] = args.schema_sample_size
+        logger.info(
+            f"Info: Default sample size set to {config['schema_sample_size']} via command line argument."
+        )
+    else:
+        if os.getenv("NEO4J_SCHEMA_SAMPLE_SIZE") is not None:
+            try:
+                config["schema_sample_size"] = int(os.getenv("NEO4J_SCHEMA_SAMPLE_SIZE"))
+                logger.info(
+                    f"Info: Default sample size set to {config['schema_sample_size']} via environment variable."
+                )
+            except ValueError:
+                logger.warning(
+                    "Warning: Invalid sample size provided in NEO4J_SCHEMA_SAMPLE_SIZE environment variable. No default sample will be used."
+                )
+                config["schema_sample_size"] = 1000
+        else:
+            logger.info(
+                "Info: No default sample size provided. Schema operations will scan entire graph unless explicitly specified."
+            )
+            config["schema_sample_size"] = 1000
+
     return config
 
 

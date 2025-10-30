@@ -31,6 +31,7 @@ def clean_env():
         "NEO4J_READ_TIMEOUT",
         "NEO4J_RESPONSE_TOKEN_LIMIT",
         "NEO4J_READ_ONLY",
+        "NEO4J_SCHEMA_SAMPLE_SIZE",
     ]
     # Store original values
     original_values = {}
@@ -66,6 +67,7 @@ def args_factory():
             "read_timeout": None,
             "token_limit": None,
             "read_only": None,
+            "schema_sample_size": None,
         }
         defaults.update(kwargs)
         return argparse.Namespace(**defaults)
@@ -741,4 +743,43 @@ def test_read_only_defaults_and_precedence(clean_env, args_factory):
 
     # When CLI flag is absent (False), env var is used
     os.environ["NEO4J_READ_ONLY"] = "true"
-    assert process_config(args_factory(read_only=False))["read_only"] is True
+    assert process_config(args_factory())["read_only"] is True
+
+
+def test_sample_cli_args(clean_env, args_factory):
+    """Test sample configuration via CLI arguments."""
+    assert process_config(args_factory(sample=1000))["schema_sample_size"] == 1000
+    assert process_config(args_factory(sample=500))["schema_sample_size"] == 500
+    assert process_config(args_factory(sample=0))["schema_sample_size"] == 0
+
+
+def test_sample_env_vars(clean_env, args_factory):
+    """Test sample configuration via environment variables."""
+    os.environ["NEO4J_SCHEMA_SAMPLE_SIZE"] = "2000"
+    assert process_config(args_factory())["schema_sample_size"] == 2000
+
+    os.environ["NEO4J_SCHEMA_SAMPLE_SIZE"] = "100"
+    assert process_config(args_factory())["schema_sample_size"] == 100
+
+
+def test_sample_defaults(clean_env, args_factory):
+    """Test sample defaults when not provided."""
+    assert process_config(args_factory())["schema_sample_size"] is None
+
+
+def test_sample_cli_overrides_env(clean_env, args_factory):
+    """Test that CLI arguments override environment variables for sample."""
+    os.environ["NEO4J_SCHEMA_SAMPLE_SIZE"] = "1000"
+    assert process_config(args_factory(sample=500))["schema_sample_size"] == 500
+
+
+def test_sample_invalid_env_var(clean_env, args_factory, mock_logger):
+    """Test sample with invalid environment variable value."""
+    os.environ["NEO4J_SCHEMA_SAMPLE_SIZE"] = "not_a_number"
+    config = process_config(args_factory())
+    
+    # Should default to None and log warning
+    assert config["sa"] is None
+    mock_logger.warning.assert_called_with(
+        "Warning: Invalid sample size provided in NEO4J_SCHEMA_SAMPLE_SIZE environment variable. No default sample will be used."
+    )
