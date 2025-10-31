@@ -328,6 +328,18 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
             "total_examples": len(examples),
             "usage": "Use the get_example_data_model tool with any of the example names above to get a specific data model",
         }
+    
+    @mcp.tool(name=namespace_prefix + "load_from_owl_turtle")
+    def load_from_owl_turtle(owl_turtle_str: str) -> DataModel:
+        """Load a data model from an OWL Turtle string. Returns a DataModel object."""
+        logger.info("Loading a data model from an OWL Turtle string.")
+        return DataModel.from_owl_turtle_str(owl_turtle_str)
+
+    @mcp.tool(name=namespace_prefix + "export_to_owl_turtle")
+    def export_to_owl_turtle(data_model: DataModel) -> str:
+        """Export a data model to an OWL Turtle string. Returns a string."""
+        logger.info("Exporting a data model to an OWL Turtle string.")
+        return data_model.to_owl_turtle_str()
 
     @mcp.prompt(title="Create New Data Model")
     def create_new_data_model(
