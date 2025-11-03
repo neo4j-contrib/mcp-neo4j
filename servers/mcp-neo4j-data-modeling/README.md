@@ -125,6 +125,20 @@ These tools provide integration with **[Arrows](https://arrows.app/)** - a graph
      - `data_model` (DataModel): The data model to export
    - Returns: JSON string compatible with Arrows app
 
+- `load_from_owl_turtle`
+   - Load a data model from OWL Turtle format
+   - Input:
+     - `owl_turtle_str` (str): OWL Turtle string representation of an ontology
+   - Returns: DataModel object with nodes and relationships extracted from the ontology
+   - Note: OWL Classes become Nodes, ObjectProperties become Relationships, and DatatypeProperties become Node properties.
+
+- `export_to_owl_turtle`
+   - Export a data model to OWL Turtle format
+   - Input:
+     - `data_model` (DataModel): The data model to export
+   - Returns: String representation of the data model in OWL Turtle format
+   - Note: **This conversion is lossy** - relationship properties are not preserved since OWL does not support properties on ObjectProperties
+
 #### 📚 Example Data Model Tools
 
 These tools provide access to pre-built example data models for common use cases and domains.

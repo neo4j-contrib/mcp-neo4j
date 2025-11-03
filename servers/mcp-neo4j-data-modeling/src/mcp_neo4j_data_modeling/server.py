@@ -337,7 +337,11 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
 
     @mcp.tool(name=namespace_prefix + "export_to_owl_turtle")
     def export_to_owl_turtle(data_model: DataModel) -> str:
-        """Export a data model to an OWL Turtle string. Returns a string."""
+        """
+        Export a data model to an OWL Turtle string. 
+        This process is lossy since OWL does not support properties on relationships.
+        Returns a string representation of the data model in OWL Turtle format.
+        """
         logger.info("Exporting a data model to an OWL Turtle string.")
         return data_model.to_owl_turtle_str()
 

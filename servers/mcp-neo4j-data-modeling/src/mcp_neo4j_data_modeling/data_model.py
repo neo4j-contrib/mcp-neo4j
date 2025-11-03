@@ -619,20 +619,8 @@ class DataModel(BaseModel):
             g.add((rel_uri, RDFS.domain, base_ns[rel.start_node_label]))
             g.add((rel_uri, RDFS.range, base_ns[rel.end_node_label]))
 
-            # If relationship has properties, create datatype properties
-            if rel.key_property:
-                prop_uri = base_ns[f"{rel.type}_{rel.key_property.name}"]
-                g.add((prop_uri, RDF.type, OWL.DatatypeProperty))
-                g.add((prop_uri, RDFS.domain, rel_uri))
-                xsd_type = type_mapping.get(rel.key_property.type.upper(), XSD.string)
-                g.add((prop_uri, RDFS.range, xsd_type))
-
-            for prop in rel.properties:
-                prop_uri = base_ns[f"{rel.type}_{prop.name}"]
-                g.add((prop_uri, RDF.type, OWL.DatatypeProperty))
-                g.add((prop_uri, RDFS.domain, rel_uri))
-                xsd_type = type_mapping.get(prop.type.upper(), XSD.string)
-                g.add((prop_uri, RDFS.range, xsd_type))
+            # relationships don't have properties in the OWL format. 
+            # This means translation to OWL is lossy.
 
         # Serialize to Turtle format
         return g.serialize(format="turtle")
