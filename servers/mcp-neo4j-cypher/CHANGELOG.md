@@ -5,6 +5,7 @@
 ### Changed
 
 ### Added
+* Add `NEO4J_SCHEMA_SAMPLE_SIZE` env variable and `schema-sample-size` cli argument to configure the `get_neo4j_schema` sample size
 * Update write query detection to include `INSERT` in regex check
 
 ## v0.4.1

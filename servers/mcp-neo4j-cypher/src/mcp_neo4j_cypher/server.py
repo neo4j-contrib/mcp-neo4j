@@ -44,6 +44,7 @@ def create_mcp_server(
     read_timeout: int = 30,
     token_limit: Optional[int] = None,
     read_only: bool = False,
+    config_sample_size: int = 1000,
 ) -> FastMCP:
     mcp: FastMCP = FastMCP(
         "mcp-neo4j-cypher", dependencies=["neo4j", "pydantic"], stateless_http=True
@@ -62,15 +63,25 @@ def create_mcp_server(
             openWorldHint=True,
         ),
     )
-    async def get_neo4j_schema() -> list[ToolResult]:
+    async def get_neo4j_schema(sample_size: int = Field(default=config_sample_size, description="The sample size used to infer the graph schema. Larger samples are slower, but more accurate. Smaller samples are faster, but might miss information.")) -> list[ToolResult]:
         """
-        List all nodes, their attributes and their relationships to other nodes in the neo4j database.
-        This requires that the APOC plugin is installed and enabled.
+        Returns nodes, their properties (with types and indexed flags), and relationships
+        using APOC's schema inspection.
+
+        You should only provide a `sample_size` value if requested by the user, or tuning the retrieval performance.
+
+        Performance Notes:
+            - If `sample_size` is not provided, uses the server's default sample setting defined in the server configuration.
+            - If retrieving the schema times out, try lowering the sample size, e.g. `sample_size=100`.
+            - To sample the entire graph use `sample_size=-1`.
         """
 
-        get_schema_query = """
-        CALL apoc.meta.schema();
-        """
+        # Use provided sample_size, otherwise fall back to server default - 1000
+        effective_sample_size = sample_size if sample_size else config_sample_size
+
+        logger.info(f"Running `get_neo4j_schema` with sample size {effective_sample_size}.")
+
+        get_schema_query = f"CALL apoc.meta.schema({{sample: {effective_sample_size}}}) YIELD value RETURN value"
 
         def clean_schema(schema: dict) -> dict:
             cleaned = {}
@@ -132,16 +143,16 @@ def create_mcp_server(
             return cleaned
 
         try:
-            results_json_str = await neo4j_driver.execute_query(
+            results_json = await neo4j_driver.execute_query(
                 get_schema_query,
                 routing_control=RoutingControl.READ,
                 database_=database,
                 result_transformer_=lambda r: r.data(),
             )
+        
+            logger.debug(f"Read query returned {len(results_json)} rows")
 
-            logger.debug(f"Read query returned {len(results_json_str)} rows")
-
-            schema_clean = clean_schema(results_json_str[0].get("value"))
+            schema_clean = clean_schema(results_json[0].get("value"))
 
             schema_clean_str = json.dumps(schema_clean, default=str)
 
@@ -275,6 +286,7 @@ async def main(
     read_timeout: int = 30,
     token_limit: Optional[int] = None,
     read_only: bool = False,
+    schema_sample_size: Optional[int] = None, # this is known as the config_sample_size in the create_mcp_server function
 ) -> None:
     logger.info("Starting MCP neo4j Server")
 
@@ -296,7 +308,7 @@ async def main(
     ]
 
     mcp = create_mcp_server(
-        neo4j_driver, database, namespace, read_timeout, token_limit, read_only
+        neo4j_driver, database, namespace, read_timeout, token_limit, read_only, schema_sample_size
     )
 
     # Run the server with the specified transport
