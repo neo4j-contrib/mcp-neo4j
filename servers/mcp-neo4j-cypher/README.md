@@ -269,7 +269,7 @@ Add the server to your `claude_desktop_config.json` with the database connection
   "mcpServers": {
     "neo4j-database": {
       "command": "uvx",
-      "args": [ "mcp-neo4j-cypher@0.4.1", "--transport", "stdio"  ],
+      "args": [ "mcp-neo4j-cypher@0.5.0", "--transport", "stdio"  ],
       "env": {
         "NEO4J_URI": "bolt://localhost:7687",
         "NEO4J_USERNAME": "neo4j",
@@ -313,7 +313,7 @@ Here's an example of connecting to multiple Neo4j databases using namespaces:
   "mcpServers": {
     "movies-neo4j": {
       "command": "uvx",
-      "args": ["mcp-neo4j-cypher@0.4.1", "--namespace", "movies"],
+      "args": ["mcp-neo4j-cypher@0.5.0", "--namespace", "movies"],
       "env": {
         "NEO4J_URI": "neo4j+s://demo.neo4jlabs.com",
         "NEO4J_USERNAME": "recommendations",
@@ -323,7 +323,7 @@ Here's an example of connecting to multiple Neo4j databases using namespaces:
     },
     "local-neo4j": {
       "command": "uvx",
-      "args": ["mcp-neo4j-cypher@0.4.1"],
+      "args": ["mcp-neo4j-cypher@0.5.0"],
       "env": {
         "NEO4J_URI": "bolt://localhost:7687",
         "NEO4J_USERNAME": "neo4j",
@@ -351,7 +351,7 @@ Syntax with `--db-url`, `--username`, `--password`, `--read-timeout` and other c
   "neo4j": {
     "command": "uvx",
     "args": [
-      "mcp-neo4j-cypher@0.4.1",
+      "mcp-neo4j-cypher@0.5.0",
       "--db-url",
       "bolt://localhost",
       "--username",
