@@ -3,6 +3,7 @@ from collections import Counter
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
+from rdflib import Graph, Namespace, RDF, RDFS, OWL, XSD, Literal, URIRef
 
 NODE_COLOR_PALETTE = [
     ("#e3f2fd", "#1976d2"),  # Light Blue / Blue
@@ -551,6 +552,189 @@ class DataModel(BaseModel):
     def to_arrows_json_str(self) -> str:
         "Convert the data model to an Arrows Data Model JSON string."
         return json.dumps(self.to_arrows_dict(), indent=2)
+    
+    def to_owl_turtle_str(self) -> str:
+        """
+        Convert the data model to an OWL Turtle string.
+
+        This process is lossy since OWL does not support properties on ObjectProperties.
+
+        This method creates an OWL ontology from the Neo4j data model:
+        - Node labels become OWL Classes
+        - Node properties become OWL DatatypeProperties with the node class as domain
+        - Relationship types become OWL ObjectProperties with start/end nodes as domain/range
+        - Relationship properties become OWL DatatypeProperties with the relationship as domain
+        """
+        # Create a new RDF graph
+        g = Graph()
+
+        # Define namespaces
+        # Use a generic namespace for the ontology
+        base_ns = Namespace("http://voc.neo4j.com/datamodel#")
+        g.bind("", base_ns)
+        g.bind("owl", OWL)
+        g.bind("rdfs", RDFS)
+        g.bind("xsd", XSD)
+
+        # Create the ontology declaration
+        ontology_uri = URIRef("http://voc.neo4j.com/datamodel")
+        g.add((ontology_uri, RDF.type, OWL.Ontology))
+
+        # Map Neo4j types to XSD types
+        type_mapping = {
+            "STRING": XSD.string,
+            "INTEGER": XSD.integer,
+            "FLOAT": XSD.float,
+            "BOOLEAN": XSD.boolean,
+            "DATE": XSD.date,
+            "DATETIME": XSD.dateTime,
+            "TIME": XSD.time,
+            "DURATION": XSD.duration,
+            "LONG": XSD.long,
+            "DOUBLE": XSD.double,
+        }
+
+        # Process nodes -> OWL Classes
+        for node in self.nodes:
+            class_uri = base_ns[node.label]
+            g.add((class_uri, RDF.type, OWL.Class))
+
+            # Add key property as a datatype property
+            if node.key_property:
+                prop_uri = base_ns[node.key_property.name]
+                g.add((prop_uri, RDF.type, OWL.DatatypeProperty))
+                g.add((prop_uri, RDFS.domain, class_uri))
+                xsd_type = type_mapping.get(node.key_property.type.upper(), XSD.string)
+                g.add((prop_uri, RDFS.range, xsd_type))
+
+            # Add other properties as datatype properties
+            for prop in node.properties:
+                prop_uri = base_ns[prop.name]
+                g.add((prop_uri, RDF.type, OWL.DatatypeProperty))
+                g.add((prop_uri, RDFS.domain, class_uri))
+                xsd_type = type_mapping.get(prop.type.upper(), XSD.string)
+                g.add((prop_uri, RDFS.range, xsd_type))
+
+        # Process relationships -> OWL ObjectProperties
+        for rel in self.relationships:
+            rel_uri = base_ns[rel.type]
+            g.add((rel_uri, RDF.type, OWL.ObjectProperty))
+            g.add((rel_uri, RDFS.domain, base_ns[rel.start_node_label]))
+            g.add((rel_uri, RDFS.range, base_ns[rel.end_node_label]))
+
+            # relationships don't have properties in the OWL format. 
+            # This means translation to OWL is lossy.
+
+        # Serialize to Turtle format
+        return g.serialize(format="turtle")
+
+    @classmethod
+    def from_owl_turtle_str(cls, owl_turtle_str: str) -> "DataModel":
+        """
+        Convert an OWL Turtle string to a Neo4j Data Model.
+
+        This process is lossy and some components of the ontology may be lost in the data model schema.
+
+        This method parses an OWL ontology and creates a Neo4j data model:
+        - OWL Classes become Node labels
+        - OWL DatatypeProperties with Class domains become Node properties
+        - OWL ObjectProperties become Relationships
+        - Property domains and ranges are used to infer Node labels and types
+        """
+        # Parse the Turtle string
+        g = Graph()
+        g.parse(data=owl_turtle_str, format="turtle")
+
+        # Map XSD types back to Neo4j types
+        xsd_to_neo4j = {
+            str(XSD.string): "STRING",
+            str(XSD.integer): "INTEGER",
+            str(XSD.float): "FLOAT",
+            str(XSD.boolean): "BOOLEAN",
+            str(XSD.date): "DATE",
+            str(XSD.dateTime): "DATETIME",
+            str(XSD.time): "TIME",
+            str(XSD.duration): "DURATION",
+            str(XSD.long): "LONG",
+            str(XSD.double): "DOUBLE",
+        }
+
+        # Extract OWL Classes -> Nodes
+        classes = set()
+        for s in g.subjects(RDF.type, OWL.Class):
+            classes.add(str(s).split("#")[-1].split("/")[-1])
+
+        # Extract DatatypeProperties
+        datatype_props = {}
+        for prop in g.subjects(RDF.type, OWL.DatatypeProperty):
+            prop_name = str(prop).split("#")[-1].split("/")[-1]
+            domains = list(g.objects(prop, RDFS.domain))
+            ranges = list(g.objects(prop, RDFS.range))
+
+            domain_name = str(domains[0]).split("#")[-1].split("/")[-1] if domains else None
+            range_type = xsd_to_neo4j.get(str(ranges[0]), "STRING") if ranges else "STRING"
+
+            if domain_name:
+                if domain_name not in datatype_props:
+                    datatype_props[domain_name] = []
+                datatype_props[domain_name].append({
+                    "name": prop_name,
+                    "type": range_type
+                })
+
+        # Extract ObjectProperties -> Relationships
+        object_props = []
+        for prop in g.subjects(RDF.type, OWL.ObjectProperty):
+            prop_name = str(prop).split("#")[-1].split("/")[-1]
+            domains = list(g.objects(prop, RDFS.domain))
+            ranges = list(g.objects(prop, RDFS.range))
+
+            if domains and ranges:
+                domain_name = str(domains[0]).split("#")[-1].split("/")[-1]
+                range_name = str(ranges[0]).split("#")[-1].split("/")[-1]
+
+                object_props.append({
+                    "type": prop_name,
+                    "start_node_label": domain_name,
+                    "end_node_label": range_name
+                })
+
+        # Create Nodes
+        nodes = []
+        for class_name in classes:
+            props_for_class = datatype_props.get(class_name, [])
+
+            # Use the first property as key property, or create a default one
+            if props_for_class:
+                key_prop = Property(
+                    name=props_for_class[0]["name"],
+                    type=props_for_class[0]["type"]
+                )
+                other_props = [
+                    Property(name=p["name"], type=p["type"])
+                    for p in props_for_class[1:]
+                ]
+            else:
+                # Create a default key property
+                key_prop = Property(name=f"{class_name.lower()}Id", type="STRING")
+                other_props = []
+
+            nodes.append(Node(
+                label=class_name,
+                key_property=key_prop,
+                properties=other_props
+            ))
+
+        # Create Relationships
+        relationships = []
+        for obj_prop in object_props:
+            relationships.append(Relationship(
+                type=obj_prop["type"],
+                start_node_label=obj_prop["start_node_label"],
+                end_node_label=obj_prop["end_node_label"]
+            ))
+
+        return cls(nodes=nodes, relationships=relationships) 
 
     def get_node_cypher_ingest_query_for_many_records(self, node_label: str) -> str:
         "Generate a Cypher query to ingest a list of Node records into a Neo4j database."
