@@ -554,7 +554,10 @@ class DataModel(BaseModel):
         return json.dumps(self.to_arrows_dict(), indent=2)
     
     def to_owl_turtle_str(self) -> str:
-        """Convert the data model to an OWL Turtle string.
+        """
+        Convert the data model to an OWL Turtle string.
+
+        This process is lossy since OWL does not support properties on ObjectProperties.
 
         This method creates an OWL ontology from the Neo4j data model:
         - Node labels become OWL Classes
@@ -627,7 +630,10 @@ class DataModel(BaseModel):
 
     @classmethod
     def from_owl_turtle_str(cls, owl_turtle_str: str) -> "DataModel":
-        """Convert an OWL Turtle string to a Neo4j Data Model.
+        """
+        Convert an OWL Turtle string to a Neo4j Data Model.
+
+        This process is lossy and some components of the ontology may be lost in the data model schema.
 
         This method parses an OWL ontology and creates a Neo4j data model:
         - OWL Classes become Node labels

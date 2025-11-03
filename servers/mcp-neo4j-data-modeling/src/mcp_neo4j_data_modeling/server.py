@@ -331,7 +331,11 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
     
     @mcp.tool(name=namespace_prefix + "load_from_owl_turtle")
     def load_from_owl_turtle(owl_turtle_str: str) -> DataModel:
-        """Load a data model from an OWL Turtle string. Returns a DataModel object."""
+        """
+        Load a data model from an OWL Turtle string. 
+        This process is lossy and some components of the ontology may be lost in the data model schema.
+        Returns a DataModel object.
+        """
         logger.info("Loading a data model from an OWL Turtle string.")
         return DataModel.from_owl_turtle_str(owl_turtle_str)
 
