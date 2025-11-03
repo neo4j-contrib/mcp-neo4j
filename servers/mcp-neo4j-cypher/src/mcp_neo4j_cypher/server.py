@@ -72,7 +72,6 @@ def create_mcp_server(
 
         Performance Notes:
             - If `sample_size` is not provided, uses the server's default sample setting defined in the server configuration.
-            - If no default is configured, APOC defaults to `sample_size=1000`. This can be very slow or timeout on large databases.
             - If retrieving the schema times out, try lowering the sample size, e.g. `sample_size=100`.
             - To sample the entire graph use `sample_size=-1`.
         """
