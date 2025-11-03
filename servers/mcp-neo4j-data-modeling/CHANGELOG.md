@@ -5,6 +5,10 @@
 ### Changed
 
 ### Added
+
+## v0.6.0
+
+### Added
 * Add import and export methods to `DataModel` for turtle OWL strings
 * Add MCP tools for loading and exporting turtle OWL files
 
