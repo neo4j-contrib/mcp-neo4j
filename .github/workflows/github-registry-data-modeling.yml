@@ -1,0 +1,24 @@
+name: Publish Data Modeling MCP to Github MCP Registry
+
+on:
+  push:
+    tags:
+      - mcp-neo4j-data-modeling-v*
+  workflow_dispatch:  # Allows manual triggering of the workflow
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # For OIDC
+      contents: read
+
+      # MCP publishing (works for all package types)
+      - name: Download MCP Publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/download/latest/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Publish to MCP Registry
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
+
