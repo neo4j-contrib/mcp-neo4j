@@ -1,5 +1,7 @@
 # 🔍📊 Neo4j Data Modeling MCP Server
 
+mcp-name: io.github.neo4j-contrib/mcp-neo4j-data-modeling
+
 ## 🌟 Overview
 
 A Model Context Protocol (MCP) server implementation that provides tools for creating, visualizing, and managing Neo4j graph data models. This server enables you to define nodes, relationships, and properties to design graph database schemas that can be visualized interactively.
