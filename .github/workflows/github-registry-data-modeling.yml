@@ -12,7 +12,8 @@ jobs:
     permissions:
       id-token: write  # For OIDC
       contents: read
-
+      
+    steps:
       # MCP publishing (works for all package types)
       - name: Download MCP Publisher
         run: |
