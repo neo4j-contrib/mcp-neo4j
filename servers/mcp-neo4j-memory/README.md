@@ -1,5 +1,7 @@
 # 🧠🕸️ Neo4j Knowledge Graph Memory MCP Server
 
+mcp-name: io.github.neo4j-contrib/mcp-neo4j-memory
+
 ## 🌟 Overview
 
 A Model Context Protocol (MCP) server implementation that provides persistent memory capabilities through Neo4j graph database integration.
