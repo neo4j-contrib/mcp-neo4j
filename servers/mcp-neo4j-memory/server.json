@@ -12,7 +12,7 @@
     {
       "registryType": "pypi",
       "identifier": "mcp-neo4j-memory",
-      "version": "0.4.1",
+      "version": "0.4.2",
       "transport": {
         "type": "stdio"
       },
