@@ -5,6 +5,7 @@
 ### Changed
 
 ### Added
+* Add config and Github workflow to add server to Github MCP Registry
 
 ## v0.4.3
 
