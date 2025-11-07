@@ -1,3 +1,5 @@
+LABEL io.modelcontextprotocol.server.name="io.github.neo4j-contrib/mcp-neo4j-memory"
+
 FROM python:3.11-slim
 
 # Set working directory
