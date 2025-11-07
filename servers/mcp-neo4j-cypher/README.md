@@ -1,5 +1,7 @@
 # 🔍⁉️ Neo4j MCP Server
 
+mcp-name: io.github.neo4j-contrib/mcp-neo4j-cypher
+
 ## 🌟 Overview
 
 A Model Context Protocol (MCP) server implementation that provides database interaction and allows graph exploration capabilities through Neo4j. This server enables running Cypher graph queries, analyzing complex domain data, and automatically generating business insights that can be enhanced further with an application's analysis tools.
