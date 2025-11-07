@@ -1,12 +1,16 @@
 ## Next
 
 ### Fixed
-* Fix server name in MCP Registry config
-* Update Github action to deploy to MCP Registry
 
 ### Changed
 
 ### Added
+
+## v0.4.5
+
+### Fixed
+* Fix server name in MCP Registry config
+* Update Github action to deploy to MCP Registry
 
 ## v0.4.4
 
