@@ -1,5 +1,7 @@
 # 🚀💖☁️ Neo4j Aura Database Manager MCP Server
 
+mcp-name: io.github.neo4j-contrib/mcp-neo4j-aura-manager
+
 ## 🌟 Overview
 
 A Model Context Protocol (MCP) server implementation that provides tools for managing Neo4j Aura database instances through the Neo4j Aura API.
