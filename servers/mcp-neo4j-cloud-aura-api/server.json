@@ -12,7 +12,7 @@
     {
       "registryType": "pypi",
       "identifier": "mcp-neo4j-aura-manager",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "transport": {
         "type": "stdio"
       },
