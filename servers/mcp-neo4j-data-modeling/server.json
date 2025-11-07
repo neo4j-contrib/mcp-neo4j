@@ -12,7 +12,7 @@
     {
       "registryType": "pypi",
       "identifier": "mcp-neo4j-data-modeling",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "transport": {
         "type": "stdio"
       },

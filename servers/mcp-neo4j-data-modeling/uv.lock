@@ -874,7 +874,7 @@ wheels = [
 
 [[package]]
 name = "mcp-neo4j-data-modeling"
-version = "0.6.0"
+version = "0.6.1"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
