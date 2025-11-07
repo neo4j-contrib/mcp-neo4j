@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
-  "name": "io.github.neo4j-contrib/mcp-neo4j-cloud-aura-api",
+  "name": "io.github.neo4j-contrib/mcp-neo4j-aura-manager",
   "description": "MCP server for Neo4j Aura Database Instance Manager.",
   "repository": {
     "url": "https://github.com/neo4j-contrib/mcp-neo4j",
