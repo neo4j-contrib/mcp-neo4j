@@ -34,8 +34,13 @@ def main():
         default=None,
         help="Allowed hosts for DNS rebinding protection on remote servers(comma-separated list)",
     )
-  
-    
+    parser.add_argument(
+        "--stateless",
+        action="store_true",
+        help="Enable stateless mode for HTTP/SSE transports (default: False)",
+    )
+
+
     args = parser.parse_args()
     
     config = process_config(args)
