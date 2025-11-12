@@ -1,10 +1,12 @@
 ## Next
 
 ### Fixed
+* Fix bug in Dockerfile where build would fail due to `LABEL` statement coming before `FROM` statement
 
 ### Changed
 
 ### Added
+* Add `NEO4J_MCP_SERVER_STATELESS` environment variable and `--stateless` cli flag to configure stateless http deployment options when using http or sse transport
 
 ## v0.4.5
 

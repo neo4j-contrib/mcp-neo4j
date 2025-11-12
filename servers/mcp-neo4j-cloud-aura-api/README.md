@@ -378,13 +378,14 @@ docker run --rm -p 8000:8000 \
 | ---------------------------------- | --------------------------------------- | -------------------------------------------------- |
 | `NEO4J_AURA_CLIENT_ID`             | _(none)_                                | Neo4j Aura API Client ID                          |
 | `NEO4J_AURA_CLIENT_SECRET`         | _(none)_                                | Neo4j Aura API Client Secret                      |
+| `NEO4J_NAMESPACE`                  | _(empty - no prefix)_                   | Namespace prefix for tool names (e.g., `myapp-list_instances`) |
 | `NEO4J_TRANSPORT`                  | `stdio` (local), `http` (remote)        | Transport protocol (`stdio`, `http`, or `sse`)     |
 | `NEO4J_MCP_SERVER_HOST`            | `127.0.0.1` (local)                     | Host to bind to                                    |
 | `NEO4J_MCP_SERVER_PORT`            | `8000`                                  | Port for HTTP/SSE transport                        |
 | `NEO4J_MCP_SERVER_PATH`            | `/mcp/`                                 | Path for accessing MCP server                      |
 | `NEO4J_MCP_SERVER_ALLOW_ORIGINS`   | _(empty - secure by default)_           | Comma-separated list of allowed CORS origins       |
 | `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
-| `NEO4J_NAMESPACE`                  | _(empty - no prefix)_                   | Namespace prefix for tool names (e.g., `myapp-list_instances`) |
+| `NEO4J_MCP_SERVER_STATELESS`       | `false`                                 | Enable stateless mode for HTTP/SSE transports (true/false, has no effect for stdio) |
 
 ### 🌐 SSE Transport for Legacy Web Access
 
