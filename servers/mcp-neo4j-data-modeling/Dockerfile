@@ -1,5 +1,5 @@
-LABEL io.modelcontextprotocol.server.name="io.github.neo4j-contrib/mcp-neo4j-data-modeling"
 FROM python:3.12-slim
+LABEL io.modelcontextprotocol.server.name="io.github.neo4j-contrib/mcp-neo4j-data-modeling"
 
 # Set working directory
 WORKDIR /app
