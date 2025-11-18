@@ -47,8 +47,8 @@ def parse_dict_from_json_string_or_dict(value: Union[str, dict]) -> dict:
         return value
     else:
         raise TypeError(
-            f"Expected str or dict, got {type(value).__name__}. "
-            "Value must be either a JSON string or a dictionary."
+            f"`parse_dict_from_json_string_or_dict` expected str, dict, or BaseModel, got {type(value).__name__}. "
+            "`parse_dict_from_json_string_or_dict` must be called with a JSON string, a dictionary, or a BaseModel as input."
         )
 
 
