@@ -1,11 +1,56 @@
 import argparse
+import json
 import logging
 import os
 from typing import Literal, Union
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
 ALLOWED_TRANSPORTS = ["stdio", "http", "sse"]
+
+
+def parse_dict_from_json_string_or_dict(value: Union[str, dict]) -> dict:
+    """
+    Parse a dictionary from either a JSON string or a dictionary.
+
+    This utility is used in MCP tool functions to handle arguments that can be
+    provided as either JSON strings (via the middleware) or dictionaries.
+
+    Parameters
+    ----------
+    value : Union[str, dict]
+        A JSON string or dictionary to parse.
+
+    Returns
+    -------
+    dict
+        The parsed dictionary.
+
+    Raises
+    ------
+    json.JSONDecodeError
+        If the value is a string but not valid JSON.
+    TypeError
+        If the value is neither a string nor a dictionary.
+
+    Examples
+    --------
+    >>> parse_dict_from_json_string_or_dict('{"key": "value"}')
+    {'key': 'value'}
+    >>> parse_dict_from_json_string_or_dict({"key": "value"})
+    {'key': 'value'}
+    """
+    if isinstance(value, str):
+        return json.loads(value)
+    elif isinstance(value, dict) or isinstance(value, BaseModel):
+        return value
+    else:
+        raise TypeError(
+            f"Expected str or dict, got {type(value).__name__}. "
+            "Value must be either a JSON string or a dictionary."
+        )
+
 
 def format_namespace(namespace: str) -> str:
     """
