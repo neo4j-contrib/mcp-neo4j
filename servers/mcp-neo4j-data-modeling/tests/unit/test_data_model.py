@@ -671,7 +671,9 @@ def test_data_model_to_owl_turtle_str():
                 name="addressId", type="STRING", description="Unique identifier"
             ),
             properties=[
-                Property(name="streetAddress", type="STRING", description="Street address"),
+                Property(
+                    name="streetAddress", type="STRING", description="Street address"
+                ),
             ],
         ),
     ]
@@ -704,6 +706,7 @@ def test_data_model_from_owl_turtle_str():
     """Test converting an OWL Turtle string to a data model."""
     # Read the test TTL file
     import pathlib
+
     ttl_file = pathlib.Path(__file__).parent.parent / "resources" / "blueplaques.ttl"
     with open(ttl_file, "r") as f:
         turtle_str = f.read()
@@ -734,10 +737,16 @@ def test_data_model_from_owl_turtle_str():
     assert person_node.key_property is not None
 
     # Check for expected properties on Person
-    all_person_props = [person_node.key_property.name] + [p.name for p in person_node.properties]
+    all_person_props = [person_node.key_property.name] + [
+        p.name for p in person_node.properties
+    ]
     assert "personId" in all_person_props
-    assert any("name" in prop.lower() or "nationality" in prop.lower() or "profession" in prop.lower()
-               for prop in all_person_props)
+    assert any(
+        "name" in prop.lower()
+        or "nationality" in prop.lower()
+        or "profession" in prop.lower()
+        for prop in all_person_props
+    )
 
 
 def test_data_model_owl_turtle_round_trip():

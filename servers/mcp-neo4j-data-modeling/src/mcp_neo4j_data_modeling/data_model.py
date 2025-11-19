@@ -3,7 +3,7 @@ from collections import Counter
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
-from rdflib import Graph, Namespace, RDF, RDFS, OWL, XSD, Literal, URIRef
+from rdflib import OWL, RDF, RDFS, XSD, Graph, Namespace, URIRef
 
 NODE_COLOR_PALETTE = [
     ("#e3f2fd", "#1976d2"),  # Light Blue / Blue
@@ -552,7 +552,7 @@ class DataModel(BaseModel):
     def to_arrows_json_str(self) -> str:
         "Convert the data model to an Arrows Data Model JSON string."
         return json.dumps(self.to_arrows_dict(), indent=2)
-    
+
     def to_owl_turtle_str(self) -> str:
         """
         Convert the data model to an OWL Turtle string.
@@ -622,7 +622,7 @@ class DataModel(BaseModel):
             g.add((rel_uri, RDFS.domain, base_ns[rel.start_node_label]))
             g.add((rel_uri, RDFS.range, base_ns[rel.end_node_label]))
 
-            # relationships don't have properties in the OWL format. 
+            # relationships don't have properties in the OWL format.
             # This means translation to OWL is lossy.
 
         # Serialize to Turtle format
@@ -671,16 +671,19 @@ class DataModel(BaseModel):
             domains = list(g.objects(prop, RDFS.domain))
             ranges = list(g.objects(prop, RDFS.range))
 
-            domain_name = str(domains[0]).split("#")[-1].split("/")[-1] if domains else None
-            range_type = xsd_to_neo4j.get(str(ranges[0]), "STRING") if ranges else "STRING"
+            domain_name = (
+                str(domains[0]).split("#")[-1].split("/")[-1] if domains else None
+            )
+            range_type = (
+                xsd_to_neo4j.get(str(ranges[0]), "STRING") if ranges else "STRING"
+            )
 
             if domain_name:
                 if domain_name not in datatype_props:
                     datatype_props[domain_name] = []
-                datatype_props[domain_name].append({
-                    "name": prop_name,
-                    "type": range_type
-                })
+                datatype_props[domain_name].append(
+                    {"name": prop_name, "type": range_type}
+                )
 
         # Extract ObjectProperties -> Relationships
         object_props = []
@@ -693,11 +696,13 @@ class DataModel(BaseModel):
                 domain_name = str(domains[0]).split("#")[-1].split("/")[-1]
                 range_name = str(ranges[0]).split("#")[-1].split("/")[-1]
 
-                object_props.append({
-                    "type": prop_name,
-                    "start_node_label": domain_name,
-                    "end_node_label": range_name
-                })
+                object_props.append(
+                    {
+                        "type": prop_name,
+                        "start_node_label": domain_name,
+                        "end_node_label": range_name,
+                    }
+                )
 
         # Create Nodes
         nodes = []
@@ -707,8 +712,7 @@ class DataModel(BaseModel):
             # Use the first property as key property, or create a default one
             if props_for_class:
                 key_prop = Property(
-                    name=props_for_class[0]["name"],
-                    type=props_for_class[0]["type"]
+                    name=props_for_class[0]["name"], type=props_for_class[0]["type"]
                 )
                 other_props = [
                     Property(name=p["name"], type=p["type"])
@@ -719,22 +723,22 @@ class DataModel(BaseModel):
                 key_prop = Property(name=f"{class_name.lower()}Id", type="STRING")
                 other_props = []
 
-            nodes.append(Node(
-                label=class_name,
-                key_property=key_prop,
-                properties=other_props
-            ))
+            nodes.append(
+                Node(label=class_name, key_property=key_prop, properties=other_props)
+            )
 
         # Create Relationships
         relationships = []
         for obj_prop in object_props:
-            relationships.append(Relationship(
-                type=obj_prop["type"],
-                start_node_label=obj_prop["start_node_label"],
-                end_node_label=obj_prop["end_node_label"]
-            ))
+            relationships.append(
+                Relationship(
+                    type=obj_prop["type"],
+                    start_node_label=obj_prop["start_node_label"],
+                    end_node_label=obj_prop["end_node_label"],
+                )
+            )
 
-        return cls(nodes=nodes, relationships=relationships) 
+        return cls(nodes=nodes, relationships=relationships)
 
     def get_node_cypher_ingest_query_for_many_records(self, node_label: str) -> str:
         "Generate a Cypher query to ingest a list of Node records into a Neo4j database."

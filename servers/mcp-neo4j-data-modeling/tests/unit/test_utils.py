@@ -563,7 +563,9 @@ class TestParseNamespace:
         assert result == ""
 
         # Check that info message was logged
-        mock_logger.info.assert_called_once_with("Info: No namespace provided for tools. No namespace will be used.")
+        mock_logger.info.assert_called_once_with(
+            "Info: No namespace provided for tools. No namespace will be used."
+        )
 
     @patch("mcp_neo4j_data_modeling.utils.logger")
     def test_parse_namespace_logs_cli_value(self, mock_logger, clean_env, args_factory):
@@ -573,7 +575,9 @@ class TestParseNamespace:
         assert result == "my-app"
 
         # Check that info message was logged
-        mock_logger.info.assert_called_once_with("Info: Namespace provided for tools: my-app")
+        mock_logger.info.assert_called_once_with(
+            "Info: Namespace provided for tools: my-app"
+        )
 
     @patch("mcp_neo4j_data_modeling.utils.logger")
     def test_parse_namespace_logs_env_value(self, mock_logger, clean_env, args_factory):
@@ -584,7 +588,9 @@ class TestParseNamespace:
         assert result == "env-app"
 
         # Check that info message was logged
-        mock_logger.info.assert_called_once_with("Info: Namespace provided for tools: env-app")
+        mock_logger.info.assert_called_once_with(
+            "Info: Namespace provided for tools: env-app"
+        )
 
 
 class TestNamespaceConfigProcessing:

@@ -4,8 +4,10 @@
 * Fix bug in Dockerfile where build would fail due to `LABEL` statement coming before `FROM` statement
 
 ### Changed
+* Tools that received Pydantic objects as arguments now also accept JSON strings as input. This is for client applications that send JSON strings instead of objects for tool arguments. This is a workaround for client applications that don't adhere to the defined tool schemas and will be removed in the future once it is not needed.
 
 ### Added
+* Added JSON string parsing utils function. This is for client applications that send JSON strings instead of objects for tool arguments. This is a workaround for client applications that don't adhere to the defined tool schemas and will be removed in the future once it is not needed.
 
 ## v0.6.1
 

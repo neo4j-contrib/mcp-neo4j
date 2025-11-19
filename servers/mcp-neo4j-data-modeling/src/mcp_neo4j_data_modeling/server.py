@@ -1,13 +1,12 @@
 import json
 import logging
-from typing import Any, Literal
+from typing import Any, Literal, Union
 
 from fastmcp.server import FastMCP
 from pydantic import Field, ValidationError
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from .utils import format_namespace
 
 from .data_model import (
     DataModel,
@@ -26,6 +25,7 @@ from .static import (
     SOFTWARE_DEPENDENCY_MODEL,
     SUPPLY_CHAIN_MODEL,
 )
+from .utils import format_namespace, parse_dict_from_json_input
 
 logger = logging.getLogger("mcp_neo4j_data_modeling")
 
@@ -113,12 +113,19 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
 
     @mcp.tool(name=namespace_prefix + "validate_node")
     def validate_node(
-        node: Node, return_validated: bool = False
+        node: Union[str, Node], return_validated: bool = False
     ) -> bool | dict[str, Any]:
-        "Validate a single node. Returns True if the node is valid, otherwise raises a ValueError. If return_validated is True, returns the validated node."
+        """
+        Validate a single node.
+        Returns True if the node is valid, otherwise raises a ValueError.
+        If return_validated is True, returns the validated node.
+        Accepts either a Node object or a JSON string of the Node object.
+        """
         logger.info("Validating a single node.")
         try:
-            validated_node = Node.model_validate(node, strict=True)
+            # Parse the node argument (handles both JSON string and dict)
+            node_dict = parse_dict_from_json_input(node)
+            validated_node = Node.model_validate(node_dict, strict=True)
             logger.info("Node validated successfully")
             if return_validated:
                 return validated_node
@@ -130,13 +137,20 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
 
     @mcp.tool(name=namespace_prefix + "validate_relationship")
     def validate_relationship(
-        relationship: Relationship, return_validated: bool = False
+        relationship: Union[str, Relationship], return_validated: bool = False
     ) -> bool | dict[str, Any]:
-        "Validate a single relationship. Returns True if the relationship is valid, otherwise raises a ValueError. If return_validated is True, returns the validated relationship."
+        """
+        Validate a single relationship.
+        Returns True if the relationship is valid, otherwise raises a ValueError.
+        If return_validated is True, returns the validated relationship.
+        Accepts either a Relationship object or a JSON string of the Relationship object.
+        """
         logger.info("Validating a single relationship.")
         try:
+            # Parse the relationship argument (handles both JSON string and dict)
+            relationship_dict = parse_dict_from_json_input(relationship)
             validated_relationship = Relationship.model_validate(
-                relationship, strict=True
+                relationship_dict, strict=True
             )
             logger.info("Relationship validated successfully")
             if return_validated:
@@ -149,15 +163,22 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
 
     @mcp.tool(name=namespace_prefix + "validate_data_model")
     def validate_data_model(
-        data_model: DataModel, return_validated: bool = False
+        data_model: Union[str, DataModel], return_validated: bool = False
     ) -> bool | dict[str, Any]:
-        "Validate the entire data model. Returns True if the data model is valid, otherwise raises a ValueError. If return_validated is True, returns the validated data model."
+        """
+        Validate the entire data model.
+        Returns True if the data model is valid, otherwise raises a ValueError.
+        If return_validated is True, returns the validated data model.
+        Accepts either a DataModel object or a JSON string of the DataModel object.
+        """
         logger.info("Validating the entire data model.")
         try:
-            DataModel.model_validate(data_model, strict=True)
+            # Parse the data_model argument (handles both JSON string and dict)
+            data_model_dict = parse_dict_from_json_input(data_model)
+            validated_model = DataModel.model_validate(data_model_dict, strict=True)
             logger.info("Data model validated successfully")
             if return_validated:
-                return data_model
+                return validated_model
             else:
                 return True
         except ValidationError as e:
@@ -171,17 +192,30 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         return DataModel.from_arrows(arrows_data_model_dict)
 
     @mcp.tool(name=namespace_prefix + "export_to_arrows_json")
-    def export_to_arrows_json(data_model: DataModel) -> str:
-        "Export the data model to the Arrows web application format. Returns a JSON string. This should be presented to the user as an artifact if possible."
+    def export_to_arrows_json(data_model: Union[str, DataModel]) -> str:
+        """
+        Export the data model to the Arrows web application format.
+        Returns a JSON string. This should be presented to the user as an artifact if possible.
+        Accepts either a DataModel object or a JSON string of the DataModel object.
+        """
         logger.info("Exporting the data model to the Arrows web application format.")
-        return data_model.to_arrows_json_str()
+        # Parse the data_model argument (handles both JSON string and dict)
+        data_model_dict = parse_dict_from_json_input(data_model)
+        data_model_obj = DataModel.model_validate(data_model_dict)
+        return data_model_obj.to_arrows_json_str()
 
     @mcp.tool(name=namespace_prefix + "get_mermaid_config_str")
-    def get_mermaid_config_str(data_model: DataModel) -> str:
-        "Get the Mermaid configuration string for the data model. This may be visualized in Claude Desktop and other applications with Mermaid support."
+    def get_mermaid_config_str(data_model: Union[str, DataModel]) -> str:
+        """
+        Get the Mermaid configuration string for the data model.
+        This may be visualized in Claude Desktop and other applications with Mermaid support.
+        Accepts either a DataModel object or a JSON string of the DataModel object.
+        """
         logger.info("Getting the Mermaid configuration string for the data model.")
         try:
-            dm_validated = DataModel.model_validate(data_model, strict=True)
+            # Parse the data_model argument (handles both JSON string and dict)
+            data_model_dict = parse_dict_from_json_input(data_model)
+            dm_validated = DataModel.model_validate(data_model_dict, strict=True)
         except ValidationError as e:
             logger.error(f"Validation error: {e}")
             raise ValueError(f"Validation error: {e}")
@@ -189,22 +223,27 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
 
     @mcp.tool(name=namespace_prefix + "get_node_cypher_ingest_query")
     def get_node_cypher_ingest_query(
-        node: Node = Field(description="The node to get the Cypher query for."),
+        node: Union[str, Node] = Field(
+            description="The node to get the Cypher query for. Accepts either a Node object or a JSON string of the Node object."
+        ),
     ) -> str:
         """
         Get the Cypher query to ingest a list of Node records into a Neo4j database.
         This should be used to ingest data into a Neo4j database.
         This is a parameterized Cypher query that takes a list of records as input to the $records parameter.
         """
+        # Parse the node argument (handles both JSON string and dict)
+        node_dict = parse_dict_from_json_input(node)
+        node_obj = Node.model_validate(node_dict)
         logger.info(
-            f"Getting the Cypher query to ingest a list of Node records into a Neo4j database for node {node.label}."
+            f"Getting the Cypher query to ingest a list of Node records into a Neo4j database for node {node_obj.label}."
         )
-        return node.get_cypher_ingest_query_for_many_records()
+        return node_obj.get_cypher_ingest_query_for_many_records()
 
     @mcp.tool(name=namespace_prefix + "get_relationship_cypher_ingest_query")
     def get_relationship_cypher_ingest_query(
-        data_model: DataModel = Field(
-            description="The data model snippet that contains the relationship, start node and end node."
+        data_model: Union[str, DataModel] = Field(
+            description="The data model snippet that contains the relationship, start node and end node. Accepts either a DataModel object or a JSON string of the DataModel object."
         ),
         relationship_type: str = Field(
             description="The type of the relationship to get the Cypher query for."
@@ -222,22 +261,32 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         This is a parameterized Cypher query that takes a list of records as input to the $records parameter.
         The records must contain the Relationship properties, if any, as well as the sourceId and targetId properties of the start and end nodes respectively.
         """
+        # Parse the data_model argument (handles both JSON string and dict)
+        data_model_dict = parse_dict_from_json_input(data_model)
+        data_model_obj = DataModel.model_validate(data_model_dict)
         logger.info(
             "Getting the Cypher query to ingest a list of Relationship records into a Neo4j database."
         )
-        return data_model.get_relationship_cypher_ingest_query_for_many_records(
+        return data_model_obj.get_relationship_cypher_ingest_query_for_many_records(
             relationship_type,
             relationship_start_node_label,
             relationship_end_node_label,
         )
 
     @mcp.tool(name=namespace_prefix + "get_constraints_cypher_queries")
-    def get_constraints_cypher_queries(data_model: DataModel) -> list[str]:
-        "Get the Cypher queries to create constraints on the data model. This creates range indexes on the key properties of the nodes and relationships and enforces uniqueness and existence of the key properties."
+    def get_constraints_cypher_queries(data_model: Union[str, DataModel]) -> list[str]:
+        """
+        Get the Cypher queries to create constraints on the data model.
+        This creates range indexes on the key properties of the nodes and relationships and enforces uniqueness and existence of the key properties.
+        Accepts either a DataModel object or a JSON string of the DataModel object.
+        """
+        # Parse the data_model argument (handles both JSON string and dict)
+        data_model_dict = parse_dict_from_json_input(data_model)
+        data_model_obj = DataModel.model_validate(data_model_dict)
         logger.info(
             "Getting the Cypher queries to create constraints on the data model."
         )
-        return data_model.get_cypher_constraints_query()
+        return data_model_obj.get_cypher_constraints_query()
 
     @mcp.tool(name=namespace_prefix + "get_example_data_model")
     def get_example_data_model(
@@ -328,11 +377,11 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
             "total_examples": len(examples),
             "usage": "Use the get_example_data_model tool with any of the example names above to get a specific data model",
         }
-    
+
     @mcp.tool(name=namespace_prefix + "load_from_owl_turtle")
     def load_from_owl_turtle(owl_turtle_str: str) -> DataModel:
         """
-        Load a data model from an OWL Turtle string. 
+        Load a data model from an OWL Turtle string.
         This process is lossy and some components of the ontology may be lost in the data model schema.
         Returns a DataModel object.
         """
@@ -340,14 +389,18 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         return DataModel.from_owl_turtle_str(owl_turtle_str)
 
     @mcp.tool(name=namespace_prefix + "export_to_owl_turtle")
-    def export_to_owl_turtle(data_model: DataModel) -> str:
+    def export_to_owl_turtle(data_model: Union[str, DataModel]) -> str:
         """
-        Export a data model to an OWL Turtle string. 
+        Export a data model to an OWL Turtle string.
         This process is lossy since OWL does not support properties on relationships.
         Returns a string representation of the data model in OWL Turtle format.
+        Accepts either a DataModel object or a JSON string of the DataModel object.
         """
+        # Parse the data_model argument (handles both JSON string and dict)
+        data_model_dict = parse_dict_from_json_input(data_model)
+        data_model_obj = DataModel.model_validate(data_model_dict)
         logger.info("Exporting a data model to an OWL Turtle string.")
-        return data_model.to_owl_turtle_str()
+        return data_model_obj.to_owl_turtle_str()
 
     @mcp.prompt(title="Create New Data Model")
     def create_new_data_model(
