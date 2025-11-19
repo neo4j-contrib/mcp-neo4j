@@ -1,5 +1,7 @@
 FROM python:3.12-slim
 LABEL io.modelcontextprotocol.server.name="io.github.neo4j-contrib/mcp-neo4j-data-modeling"
+LABEL version="0.7.0"
+
 
 # Set working directory
 WORKDIR /app

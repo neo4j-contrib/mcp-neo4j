@@ -1,6 +1,14 @@
 ## Next
 
 ### Fixed
+
+### Changed
+
+### Added
+
+## v0.7.0
+
+### Fixed
 * Fix bug in Dockerfile where build would fail due to `LABEL` statement coming before `FROM` statement
 
 ### Changed
