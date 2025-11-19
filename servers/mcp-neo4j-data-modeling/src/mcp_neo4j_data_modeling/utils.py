@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 ALLOWED_TRANSPORTS = ["stdio", "http", "sse"]
 
 
-def parse_dict_from_json_string_or_dict(value: Union[str, dict]) -> dict:
+def parse_dict_from_json_input(value: Union[str, dict]) -> dict:
     """
     Parse a dictionary from either a JSON string or a dictionary.
 
@@ -36,9 +36,9 @@ def parse_dict_from_json_string_or_dict(value: Union[str, dict]) -> dict:
 
     Examples
     --------
-    >>> parse_dict_from_json_string_or_dict('{"key": "value"}')
+    >>> parse_dict_from_json_input('{"key": "value"}')
     {'key': 'value'}
-    >>> parse_dict_from_json_string_or_dict({"key": "value"})
+    >>> parse_dict_from_json_input({"key": "value"})
     {'key': 'value'}
     """
     if isinstance(value, str):
@@ -47,8 +47,8 @@ def parse_dict_from_json_string_or_dict(value: Union[str, dict]) -> dict:
         return value
     else:
         raise TypeError(
-            f"`parse_dict_from_json_string_or_dict` expected str, dict, or BaseModel, got {type(value).__name__}. "
-            "`parse_dict_from_json_string_or_dict` must be called with a JSON string, a dictionary, or a BaseModel as input."
+            f"`parse_dict_from_json_input` expected str, dict, or BaseModel, got {type(value).__name__}. "
+            "`parse_dict_from_json_input` must be called with a JSON string, a dictionary, or a BaseModel as input."
         )
 
 

@@ -7,7 +7,7 @@ from pydantic import Field, ValidationError
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from .utils import format_namespace, parse_dict_from_json_string_or_dict
+from .utils import format_namespace, parse_dict_from_json_input
 from .data_model import (
     DataModel,
     Node,
@@ -123,7 +123,7 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Validating a single node.")
         try:
             # Parse the node argument (handles both JSON string and dict)
-            node_dict = parse_dict_from_json_string_or_dict(node)
+            node_dict = parse_dict_from_json_input(node)
             validated_node = Node.model_validate(node_dict, strict=True)
             logger.info("Node validated successfully")
             if return_validated:
@@ -147,7 +147,7 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Validating a single relationship.")
         try:
             # Parse the relationship argument (handles both JSON string and dict)
-            relationship_dict = parse_dict_from_json_string_or_dict(relationship)
+            relationship_dict = parse_dict_from_json_input(relationship)
             validated_relationship = Relationship.model_validate(
                 relationship_dict, strict=True
             )
@@ -173,7 +173,7 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Validating the entire data model.")
         try:
             # Parse the data_model argument (handles both JSON string and dict)
-            data_model_dict = parse_dict_from_json_string_or_dict(data_model)
+            data_model_dict = parse_dict_from_json_input(data_model)
             validated_model = DataModel.model_validate(data_model_dict, strict=True)
             logger.info("Data model validated successfully")
             if return_validated:
@@ -199,7 +199,7 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         """
         logger.info("Exporting the data model to the Arrows web application format.")
         # Parse the data_model argument (handles both JSON string and dict)
-        data_model_dict = parse_dict_from_json_string_or_dict(data_model)
+        data_model_dict = parse_dict_from_json_input(data_model)
         data_model_obj = DataModel.model_validate(data_model_dict)
         return data_model_obj.to_arrows_json_str()
 
@@ -213,7 +213,7 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Getting the Mermaid configuration string for the data model.")
         try:
             # Parse the data_model argument (handles both JSON string and dict)
-            data_model_dict = parse_dict_from_json_string_or_dict(data_model)
+            data_model_dict = parse_dict_from_json_input(data_model)
             dm_validated = DataModel.model_validate(data_model_dict, strict=True)
         except ValidationError as e:
             logger.error(f"Validation error: {e}")
@@ -230,7 +230,7 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         This is a parameterized Cypher query that takes a list of records as input to the $records parameter.
         """
         # Parse the node argument (handles both JSON string and dict)
-        node_dict = parse_dict_from_json_string_or_dict(node)
+        node_dict = parse_dict_from_json_input(node)
         node_obj = Node.model_validate(node_dict)
         logger.info(
             f"Getting the Cypher query to ingest a list of Node records into a Neo4j database for node {node_obj.label}."
@@ -259,7 +259,7 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         The records must contain the Relationship properties, if any, as well as the sourceId and targetId properties of the start and end nodes respectively.
         """
         # Parse the data_model argument (handles both JSON string and dict)
-        data_model_dict = parse_dict_from_json_string_or_dict(data_model)
+        data_model_dict = parse_dict_from_json_input(data_model)
         data_model_obj = DataModel.model_validate(data_model_dict)
         logger.info(
             "Getting the Cypher query to ingest a list of Relationship records into a Neo4j database."
@@ -278,7 +278,7 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         Accepts either a DataModel object or a JSON string of the DataModel object.
         """
         # Parse the data_model argument (handles both JSON string and dict)
-        data_model_dict = parse_dict_from_json_string_or_dict(data_model)
+        data_model_dict = parse_dict_from_json_input(data_model)
         data_model_obj = DataModel.model_validate(data_model_dict)
         logger.info(
             "Getting the Cypher queries to create constraints on the data model."
@@ -394,7 +394,7 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         Accepts either a DataModel object or a JSON string of the DataModel object.
         """
         # Parse the data_model argument (handles both JSON string and dict)
-        data_model_dict = parse_dict_from_json_string_or_dict(data_model)
+        data_model_dict = parse_dict_from_json_input(data_model)
         data_model_obj = DataModel.model_validate(data_model_dict)
         logger.info("Exporting a data model to an OWL Turtle string.")
         return data_model_obj.to_owl_turtle_str()
