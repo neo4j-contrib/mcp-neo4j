@@ -217,11 +217,11 @@ The server supports namespacing the server tools:
 "mcpServers": {
   "neo4j-data-modeling-app1": {
     "command": "uvx",
-    "args": [ "mcp-neo4j-data-modeling@0.4.0", "--transport", "stdio", "--namespace", "app1" ]
+    "args": [ "mcp-neo4j-data-modeling@0.7.0", "--transport", "stdio", "--namespace", "app1" ]
   },
   "neo4j-data-modeling-app2": {
     "command": "uvx", 
-    "args": [ "mcp-neo4j-data-modeling@0.4.0", "--transport", "stdio", "--namespace", "app2" ]
+    "args": [ "mcp-neo4j-data-modeling@0.7.0", "--transport", "stdio", "--namespace", "app2" ]
   }
 }
 ```
