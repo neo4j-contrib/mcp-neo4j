@@ -7,7 +7,7 @@ from pydantic import Field, ValidationError
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from .utils import format_namespace, parse_dict_from_json_input
+
 from .data_model import (
     DataModel,
     Node,
@@ -25,6 +25,7 @@ from .static import (
     SOFTWARE_DEPENDENCY_MODEL,
     SUPPLY_CHAIN_MODEL,
 )
+from .utils import format_namespace, parse_dict_from_json_input
 
 logger = logging.getLogger("mcp_neo4j_data_modeling")
 
@@ -222,7 +223,9 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
 
     @mcp.tool(name=namespace_prefix + "get_node_cypher_ingest_query")
     def get_node_cypher_ingest_query(
-        node: Union[str, Node] = Field(description="The node to get the Cypher query for. Accepts either a Node object or a JSON string of the Node object."),
+        node: Union[str, Node] = Field(
+            description="The node to get the Cypher query for. Accepts either a Node object or a JSON string of the Node object."
+        ),
     ) -> str:
         """
         Get the Cypher query to ingest a list of Node records into a Neo4j database.
@@ -374,11 +377,11 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
             "total_examples": len(examples),
             "usage": "Use the get_example_data_model tool with any of the example names above to get a specific data model",
         }
-    
+
     @mcp.tool(name=namespace_prefix + "load_from_owl_turtle")
     def load_from_owl_turtle(owl_turtle_str: str) -> DataModel:
         """
-        Load a data model from an OWL Turtle string. 
+        Load a data model from an OWL Turtle string.
         This process is lossy and some components of the ontology may be lost in the data model schema.
         Returns a DataModel object.
         """

@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from typing import Literal, Union
+
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -73,7 +74,8 @@ def format_namespace(namespace: str) -> str:
             return namespace + "-"
     else:
         return ""
-    
+
+
 def parse_transport(args: argparse.Namespace) -> Literal["stdio", "http", "sse"]:
     """
     Parse the transport from the command line arguments or environment variables.
@@ -331,21 +333,27 @@ def parse_allowed_hosts(args: argparse.Namespace) -> list[str]:
             )
             return ["localhost", "127.0.0.1"]
 
+
 def parse_namespace(args: argparse.Namespace) -> str:
     """
     Parse the namespace from the command line arguments or environment variables.
     """
-        # namespace configuration
+    # namespace configuration
     if args.namespace is not None:
         logger.info(f"Info: Namespace provided for tools: {args.namespace}")
         return args.namespace
     else:
         if os.getenv("NEO4J_NAMESPACE") is not None:
-            logger.info(f"Info: Namespace provided for tools: {os.getenv('NEO4J_NAMESPACE')}")
+            logger.info(
+                f"Info: Namespace provided for tools: {os.getenv('NEO4J_NAMESPACE')}"
+            )
             return os.getenv("NEO4J_NAMESPACE")
         else:
-            logger.info("Info: No namespace provided for tools. No namespace will be used.")
+            logger.info(
+                "Info: No namespace provided for tools. No namespace will be used."
+            )
             return ""
+
 
 def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]:
     """
@@ -378,7 +386,5 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
     # middleware configuration
     config["allow_origins"] = parse_allow_origins(args)
     config["allowed_hosts"] = parse_allowed_hosts(args)
-
-
 
     return config
