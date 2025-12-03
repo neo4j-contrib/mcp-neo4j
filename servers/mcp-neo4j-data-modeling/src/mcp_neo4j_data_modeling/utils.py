@@ -11,6 +11,47 @@ logger = logging.getLogger(__name__)
 ALLOWED_TRANSPORTS = ["stdio", "http", "sse"]
 
 
+def convert_neo4j_type_to_python_type(neo4j_type: str) -> str:
+    "Convert a Neo4j type to a Python type. Defaults to `str` if the type is not recognized."
+
+    match neo4j_type:
+        case "STRING":
+            return "str"
+        case "INTEGER":
+            return "int"
+        case "FLOAT":
+            return "float"
+        case "BOOLEAN":
+            return "bool"
+        case "DATE":
+            return "datetime"
+        case "DATETIME":
+            return "datetime"
+        case "TIME":
+            return "time"
+        case "DURATION":
+            return "timedelta"
+        case "LIST":
+            return "list"
+        case "LOCAL DATETIME":
+            return "datetime"
+        case "POINT":
+            return "tuple[float, float]"
+        case "VECTOR":
+            return "list[float]"
+        case "ZONED DATETIME":
+            return "datetime"
+        case "ZONED TIME":
+            return "datetime"
+        case _:
+            return "str"
+
+
+def convert_screaming_snake_case_to_pascal_case(screaming_snake_case: str) -> str:
+    "Convert a screaming snake case string to a Pascal case string."
+    return screaming_snake_case.replace("_", " ").title().replace(" ", "")
+
+
 def parse_dict_from_json_input(value: Union[str, dict]) -> dict:
     """
     Parse a dictionary from either a JSON string or a dictionary.

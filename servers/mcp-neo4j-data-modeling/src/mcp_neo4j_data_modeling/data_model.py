@@ -5,6 +5,11 @@ from typing import Any
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from rdflib import OWL, RDF, RDFS, XSD, Graph, Namespace, URIRef
 
+from .utils import (
+    convert_neo4j_type_to_python_type,
+    convert_screaming_snake_case_to_pascal_case,
+)
+
 NODE_COLOR_PALETTE = [
     ("#e3f2fd", "#1976d2"),  # Light Blue / Blue
     ("#f3e5f5", "#7b1fa2"),  # Light Purple / Purple
@@ -101,6 +106,29 @@ class Property(BaseModel):
         return {
             self.name: value,
         }
+
+    def to_pydantic_model_str(self) -> str:
+        """
+        Convert a Property to a Pydantic model field line.
+
+        Returns
+        -------
+        str
+            The Pydantic model field line.
+
+        Examples
+        --------
+        >>> Property(name="name", type="STRING", description="The name of the property").to_pydantic_model_str()
+        "name: str = Field(..., description='The name of the property')"
+        """
+
+        base = f"{self.name}: {convert_neo4j_type_to_python_type(self.type)}"
+        desc = (
+            f" = Field(..., description='{self.description}')"
+            if self.description
+            else ""
+        )
+        return base + desc
 
 
 class Node(BaseModel):
@@ -222,6 +250,28 @@ SET n += {{{formatted_props}}}"""
         This creates a range index on the key property of the node and enforces uniqueness and existence of the key property.
         """
         return f"CREATE CONSTRAINT {self.label}_constraint IF NOT EXISTS FOR (n:{self.label}) REQUIRE (n.{self.key_property.name}) IS NODE KEY"
+
+    def to_pydantic_model_str(self) -> str:
+        """
+            Convert a Node to a Pydantic model class string.
+
+            Returns
+            -------
+            str
+                The Pydantic model class as a string.
+
+            Examples
+            --------
+            >>> Node(label="Person", key_property=Property(name="id", type="STRING", description="The ID of the person"), properties=[Property(name="name", type="STRING", description="The name of the person")]).to_pydantic_model_str()
+            "class Person(BaseModel):
+        id: str = Field(..., description='The ID of the person')
+        name: str = Field(..., description='The name of the person')"
+        """
+        props = [self.key_property.to_pydantic_model_str()] + [
+            p.to_pydantic_model_str() for p in self.properties
+        ]
+        return f"""class {self.label}(BaseModel):
+    {"\n    ".join(props)}"""
 
 
 class Relationship(BaseModel):
@@ -381,6 +431,55 @@ SET end += {{{formatted_props}}}"""
             return f"CREATE CONSTRAINT {self.type}_constraint IF NOT EXISTS FOR ()-[r:{self.type}]->() REQUIRE (r.{self.key_property.name}) IS RELATIONSHIP KEY"
         else:
             return None
+
+    def to_pydantic_model_str(
+        self, start_node_key_property: Property, end_node_key_property: Property
+    ) -> str:
+        """
+        Convert a Relationship to a Pydantic model class string.
+
+        Parameters
+        ----------
+        start_node_key_property : Property
+            The key property of the start node.
+        end_node_key_property : Property
+            The key property of the end node.
+
+        Returns
+        -------
+        str
+            The Pydantic model class as a string.
+        """
+        key_prop_list = (
+            [self.key_property.to_pydantic_model_str()] if self.key_property else []
+        )
+        props = key_prop_list + [p.to_pydantic_model_str() for p in self.properties]
+
+        start_node_key_prop_field = (
+            f"source_{start_node_key_property.to_pydantic_model_str()}"
+        )
+        end_node_key_prop_field = (
+            f"target_{end_node_key_property.to_pydantic_model_str()}"
+        )
+
+        type_pascal_case = convert_screaming_snake_case_to_pascal_case(self.type)
+
+        # Build properties section with proper indentation
+        if props:
+            props_section = f"\n    {'\n    '.join(props)}\n"
+        else:
+            props_section = "\n\n"
+
+        return f"""class {type_pascal_case}(BaseModel):
+    {start_node_key_prop_field}
+    {end_node_key_prop_field}{props_section}
+    @classmethod
+    def start_node_label(cls) -> str:
+        return {self.start_node_label}
+
+    @classmethod
+    def end_node_label(cls) -> str:
+        return {self.end_node_label}"""
 
 
 class DataModel(BaseModel):
