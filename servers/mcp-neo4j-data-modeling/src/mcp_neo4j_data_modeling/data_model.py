@@ -475,11 +475,11 @@ SET end += {{{formatted_props}}}"""
     {end_node_key_prop_field}{props_section}
     @classmethod
     def start_node_label(cls) -> str:
-        return {self.start_node_label}
+        return \"{self.start_node_label}\"
 
     @classmethod
     def end_node_label(cls) -> str:
-        return {self.end_node_label}"""
+        return \"{self.end_node_label}\""""
 
 
 class DataModel(BaseModel):
@@ -875,3 +875,54 @@ class DataModel(BaseModel):
             if r.key_property is not None
         ]
         return node_queries + relationship_queries
+
+    def to_pydantic_model_str(self) -> str:
+        """
+        Convert the entire DataModel to a Pydantic models Python file string.
+
+        This generates a complete Python file containing:
+        - Import statements for Pydantic
+        - All Node models as Pydantic BaseModel classes
+        - All Relationship models as Pydantic BaseModel classes
+
+        Returns
+        -------
+        str
+            A complete Python file string with all Pydantic model definitions.
+
+        Examples
+        --------
+        >>> dm = DataModel(
+        ...     nodes=[Node(label="Person", key_property=Property(name="id", type="STRING"))],
+        ...     relationships=[]
+        ... )
+        >>> print(dm.to_pydantic_model_str())
+        from pydantic import BaseModel, Field
+        from datetime import datetime, time, timedelta
+        <BLANKLINE>
+        <BLANKLINE>
+        class Person(BaseModel):
+            id: str
+        """
+        # Import statements
+        imports = """from pydantic import BaseModel, Field
+from datetime import datetime, time, timedelta"""
+
+        # Generate Node models
+        node_models = [node.to_pydantic_model_str() for node in self.nodes]
+
+        # Generate Relationship models
+        relationship_models = []
+        for rel in self.relationships:
+            start_node = self.nodes_dict[rel.start_node_label]
+            end_node = self.nodes_dict[rel.end_node_label]
+            rel_model = rel.to_pydantic_model_str(
+                start_node.key_property, end_node.key_property
+            )
+            relationship_models.append(rel_model)
+
+        # Combine all parts with double newlines between models
+        all_models = node_models + relationship_models
+        models_str = "\n\n\n".join(all_models) if all_models else ""
+
+        return f"{imports}\n\n\n{models_str}"

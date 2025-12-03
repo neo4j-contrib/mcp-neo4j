@@ -945,11 +945,11 @@ def test_relationship_to_pydantic_model_str_simple():
 
     @classmethod
     def start_node_label(cls) -> str:
-        return User
+        return "User"
 
     @classmethod
     def end_node_label(cls) -> str:
-        return User"""
+        return "User\""""
     assert result == expected
 
 
@@ -976,11 +976,11 @@ def test_relationship_to_pydantic_model_str_with_key_property():
 
     @classmethod
     def start_node_label(cls) -> str:
-        return Person
+        return "Person"
 
     @classmethod
     def end_node_label(cls) -> str:
-        return Company"""
+        return \"Company\""""
     assert result == expected
 
 
@@ -1012,11 +1012,11 @@ def test_relationship_to_pydantic_model_str_with_properties():
 
     @classmethod
     def start_node_label(cls) -> str:
-        return Customer
+        return "Customer"
 
     @classmethod
     def end_node_label(cls) -> str:
-        return Product"""
+        return \"Product\""""
     assert result == expected
 
 
@@ -1052,11 +1052,11 @@ def test_relationship_to_pydantic_model_str_with_key_and_properties():
 
     @classmethod
     def start_node_label(cls) -> str:
-        return User
+        return "User"
 
     @classmethod
     def end_node_label(cls) -> str:
-        return Item"""
+        return \"Item\""""
     assert result == expected
 
 
@@ -1080,11 +1080,11 @@ def test_relationship_to_pydantic_model_str_screaming_to_pascal():
 
     @classmethod
     def start_node_label(cls) -> str:
-        return Member
+        return "Member"
 
     @classmethod
     def end_node_label(cls) -> str:
-        return Group"""
+        return \"Group\""""
     assert result == expected
 
 
@@ -1108,11 +1108,11 @@ def test_relationship_to_pydantic_model_str_different_node_types():
 
     @classmethod
     def start_node_label(cls) -> str:
-        return Person
+        return "Person"
 
     @classmethod
     def end_node_label(cls) -> str:
-        return City"""
+        return \"City\""""
     assert result == expected
 
 
@@ -1138,9 +1138,203 @@ def test_relationship_to_pydantic_model_str_self_referential():
 
     @classmethod
     def start_node_label(cls) -> str:
-        return Employee
+        return "Employee"
 
     @classmethod
     def end_node_label(cls) -> str:
-        return Employee"""
+        return \"Employee\""""
+    assert result == expected
+
+
+def test_data_model_to_pydantic_model_str_nodes_only():
+    """Test DataModel.to_pydantic_model_str() with nodes only - validates exact format."""
+    data_model = DataModel(
+        nodes=[
+            Node(
+                label="User",
+                key_property=Property(name="userId", type="STRING", description="User ID"),
+                properties=[
+                    Property(name="name", type="STRING", description="User name"),
+                ],
+            ),
+            Node(
+                label="Product",
+                key_property=Property(name="productId", type="STRING", description="Product ID"),
+                properties=[],
+            ),
+        ],
+        relationships=[],
+    )
+
+    result = data_model.to_pydantic_model_str()
+
+    expected = """from pydantic import BaseModel, Field
+from datetime import datetime, time, timedelta
+
+
+class User(BaseModel):
+    userId: str = Field(..., description='User ID')
+    name: str = Field(..., description='User name')
+
+
+class Product(BaseModel):
+    productId: str = Field(..., description='Product ID')"""
+    assert result == expected
+
+
+def test_data_model_to_pydantic_model_str_with_relationships():
+    """Test DataModel.to_pydantic_model_str() with nodes and relationships - validates exact format."""
+    data_model = DataModel(
+        nodes=[
+            Node(
+                label="Person",
+                key_property=Property(name="personId", type="STRING", description="Person ID"),
+                properties=[],
+            ),
+            Node(
+                label="Company",
+                key_property=Property(name="companyId", type="STRING", description="Company ID"),
+                properties=[],
+            ),
+        ],
+        relationships=[
+            Relationship(
+                type="WORKS_FOR",
+                start_node_label="Person",
+                end_node_label="Company",
+                properties=[
+                    Property(name="since", type="DATE", description="Employment start date"),
+                ],
+            ),
+        ],
+    )
+
+    result = data_model.to_pydantic_model_str()
+
+    expected = """from pydantic import BaseModel, Field
+from datetime import datetime, time, timedelta
+
+
+class Person(BaseModel):
+    personId: str = Field(..., description='Person ID')
+
+
+class Company(BaseModel):
+    companyId: str = Field(..., description='Company ID')
+
+
+class WorksFor(BaseModel):
+    source_personId: str = Field(..., description='Person ID')
+    target_companyId: str = Field(..., description='Company ID')
+    since: datetime = Field(..., description='Employment start date')
+
+    @classmethod
+    def start_node_label(cls) -> str:
+        return "Person"
+
+    @classmethod
+    def end_node_label(cls) -> str:
+        return \"Company\""""
+    assert result == expected
+
+
+def test_data_model_to_pydantic_model_str_complex():
+    """Test DataModel.to_pydantic_model_str() with complex model - validates exact format."""
+    data_model = DataModel(
+        nodes=[
+            Node(
+                label="User",
+                key_property=Property(name="userId", type="STRING", description="User ID"),
+                properties=[
+                    Property(name="email", type="STRING", description="Email address"),
+                    Property(name="age", type="INTEGER", description="User age"),
+                ],
+            ),
+            Node(
+                label="Post",
+                key_property=Property(name="postId", type="STRING", description="Post ID"),
+                properties=[
+                    Property(name="title", type="STRING", description="Post title"),
+                    Property(name="createdAt", type="DATETIME", description="Creation time"),
+                ],
+            ),
+        ],
+        relationships=[
+            Relationship(
+                type="AUTHORED",
+                start_node_label="User",
+                end_node_label="Post",
+                key_property=Property(name="authorshipId", type="STRING", description="Authorship ID"),
+                properties=[
+                    Property(name="publishedAt", type="DATETIME", description="Publish timestamp"),
+                ],
+            ),
+            Relationship(
+                type="LIKES",
+                start_node_label="User",
+                end_node_label="Post",
+                properties=[],
+            ),
+        ],
+    )
+
+    result = data_model.to_pydantic_model_str()
+
+    expected = """from pydantic import BaseModel, Field
+from datetime import datetime, time, timedelta
+
+
+class User(BaseModel):
+    userId: str = Field(..., description='User ID')
+    email: str = Field(..., description='Email address')
+    age: int = Field(..., description='User age')
+
+
+class Post(BaseModel):
+    postId: str = Field(..., description='Post ID')
+    title: str = Field(..., description='Post title')
+    createdAt: datetime = Field(..., description='Creation time')
+
+
+class Authored(BaseModel):
+    source_userId: str = Field(..., description='User ID')
+    target_postId: str = Field(..., description='Post ID')
+    authorshipId: str = Field(..., description='Authorship ID')
+    publishedAt: datetime = Field(..., description='Publish timestamp')
+
+    @classmethod
+    def start_node_label(cls) -> str:
+        return "User"
+
+    @classmethod
+    def end_node_label(cls) -> str:
+        return "Post"
+
+
+class Likes(BaseModel):
+    source_userId: str = Field(..., description='User ID')
+    target_postId: str = Field(..., description='Post ID')
+
+
+    @classmethod
+    def start_node_label(cls) -> str:
+        return "User"
+
+    @classmethod
+    def end_node_label(cls) -> str:
+        return \"Post\""""
+    assert result == expected
+
+
+def test_data_model_to_pydantic_model_str_empty():
+    """Test DataModel.to_pydantic_model_str() with empty model - validates exact format."""
+    data_model = DataModel(nodes=[], relationships=[])
+
+    result = data_model.to_pydantic_model_str()
+
+    expected = """from pydantic import BaseModel, Field
+from datetime import datetime, time, timedelta
+
+
+"""
     assert result == expected
