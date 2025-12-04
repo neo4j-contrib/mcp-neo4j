@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import ClassVar
 
 from pydantic import BaseModel, Field
 
@@ -159,281 +160,197 @@ class Speciality(BaseModel):
 
 
 class HasEncounter(BaseModel):
-    source_id: str
-    target_id: str
+    start_node_Patient_id: str
+    end_node_Encounter_id: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Patient"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Encounter"
+    start_node_label: ClassVar[str] = "Patient"
+    end_node_label: ClassVar[str] = "Encounter"
+    pattern: ClassVar[str] = "(:Patient)-[:HAS_ENCOUNTER]->(:Encounter)"
 
 
 class First(BaseModel):
-    source_id: str
-    target_id: str
+    start_node_Patient_id: str
+    end_node_Encounter_id: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Patient"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Encounter"
+    start_node_label: ClassVar[str] = "Patient"
+    end_node_label: ClassVar[str] = "Encounter"
+    pattern: ClassVar[str] = "(:Patient)-[:FIRST]->(:Encounter)"
 
 
 class Last(BaseModel):
-    source_id: str
-    target_id: str
+    start_node_Patient_id: str
+    end_node_Encounter_id: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Patient"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Encounter"
+    start_node_label: ClassVar[str] = "Patient"
+    end_node_label: ClassVar[str] = "Encounter"
+    pattern: ClassVar[str] = "(:Patient)-[:LAST]->(:Encounter)"
 
 
 class Next(BaseModel):
-    source_id: str
-    target_id: str
+    start_node_Encounter_id: str
+    end_node_Encounter_id: str
     amount: int
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Encounter"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Encounter"
+    start_node_label: ClassVar[str] = "Encounter"
+    end_node_label: ClassVar[str] = "Encounter"
+    pattern: ClassVar[str] = "(:Encounter)-[:NEXT]->(:Encounter)"
 
 
 class HasProvider(BaseModel):
-    source_id: str
-    target_id: str
+    start_node_Encounter_id: str
+    end_node_Provider_id: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Encounter"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Provider"
+    start_node_label: ClassVar[str] = "Encounter"
+    end_node_label: ClassVar[str] = "Provider"
+    pattern: ClassVar[str] = "(:Encounter)-[:HAS_PROVIDER]->(:Provider)"
 
 
 class AtOrganization(BaseModel):
-    source_id: str
-    target_id: str
+    start_node_Encounter_id: str
+    end_node_Organization_id: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Encounter"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Organization"
+    start_node_label: ClassVar[str] = "Encounter"
+    end_node_label: ClassVar[str] = "Organization"
+    pattern: ClassVar[str] = "(:Encounter)-[:AT_ORGANIZATION]->(:Organization)"
 
 
 class BelongsTo(BaseModel):
-    source_id: str
-    target_id: str
+    start_node_Provider_id: str
+    end_node_Organization_id: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Provider"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Organization"
+    start_node_label: ClassVar[str] = "Provider"
+    end_node_label: ClassVar[str] = "Organization"
+    pattern: ClassVar[str] = "(:Provider)-[:BELONGS_TO]->(:Organization)"
 
 
 class HasSpeciality(BaseModel):
-    source_id: str
-    target_name: str
+    start_node_Provider_id: str
+    end_node_Speciality_name: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Provider"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Speciality"
+    start_node_label: ClassVar[str] = "Provider"
+    end_node_label: ClassVar[str] = "Speciality"
+    pattern: ClassVar[str] = "(:Provider)-[:HAS_SPECIALITY]->(:Speciality)"
 
 
 class HasCondition(BaseModel):
-    source_id: str
-    target_code: str
+    start_node_Encounter_id: str
+    end_node_Condition_code: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Encounter"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Condition"
+    start_node_label: ClassVar[str] = "Encounter"
+    end_node_label: ClassVar[str] = "Condition"
+    pattern: ClassVar[str] = "(:Encounter)-[:HAS_CONDITION]->(:Condition)"
 
 
 class HasDrug(BaseModel):
-    source_id: str
-    target_code: str
+    start_node_Encounter_id: str
+    end_node_Drug_code: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Encounter"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Drug"
+    start_node_label: ClassVar[str] = "Encounter"
+    end_node_label: ClassVar[str] = "Drug"
+    pattern: ClassVar[str] = "(:Encounter)-[:HAS_DRUG]->(:Drug)"
 
 
 class HasProcedure(BaseModel):
-    source_id: str
-    target_code: str
+    start_node_Encounter_id: str
+    end_node_Procedure_code: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Encounter"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Procedure"
+    start_node_label: ClassVar[str] = "Encounter"
+    end_node_label: ClassVar[str] = "Procedure"
+    pattern: ClassVar[str] = "(:Encounter)-[:HAS_PROCEDURE]->(:Procedure)"
 
 
 class HasObservation(BaseModel):
-    source_id: str
-    target_code: str
+    start_node_Encounter_id: str
+    end_node_Observation_code: str
     date: str = Field(..., description="Date when observation was recorded")
     value: str = Field(..., description="Observation value or result")
     unit: str = Field(..., description="Unit of measurement for the observation")
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Encounter"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Observation"
+    start_node_label: ClassVar[str] = "Encounter"
+    end_node_label: ClassVar[str] = "Observation"
+    pattern: ClassVar[str] = "(:Encounter)-[:HAS_OBSERVATION]->(:Observation)"
 
 
 class DeviceUsed(BaseModel):
-    source_id: str
-    target_code: str
+    start_node_Encounter_id: str
+    end_node_Device_code: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Encounter"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Device"
+    start_node_label: ClassVar[str] = "Encounter"
+    end_node_label: ClassVar[str] = "Device"
+    pattern: ClassVar[str] = "(:Encounter)-[:DEVICE_USED]->(:Device)"
 
 
 class HasCarePlan(BaseModel):
-    source_id: str
-    target_id: str
+    start_node_Encounter_id: str
+    end_node_CarePlan_id: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Encounter"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "CarePlan"
+    start_node_label: ClassVar[str] = "Encounter"
+    end_node_label: ClassVar[str] = "CarePlan"
+    pattern: ClassVar[str] = "(:Encounter)-[:HAS_CARE_PLAN]->(:CarePlan)"
 
 
 class HasAllergy(BaseModel):
-    source_id: str
-    target_code: str
+    start_node_Patient_id: str
+    end_node_Allergy_code: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Patient"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Allergy"
+    start_node_label: ClassVar[str] = "Patient"
+    end_node_label: ClassVar[str] = "Allergy"
+    pattern: ClassVar[str] = "(:Patient)-[:HAS_ALLERGY]->(:Allergy)"
 
 
 class AllergyDetected(BaseModel):
-    source_id: str
-    target_code: str
+    start_node_Encounter_id: str
+    end_node_Allergy_code: str
     start: str = Field(
         ..., description="Date when allergy was detected during encounter"
     )
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Encounter"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Allergy"
+    start_node_label: ClassVar[str] = "Encounter"
+    end_node_label: ClassVar[str] = "Allergy"
+    pattern: ClassVar[str] = "(:Encounter)-[:ALLERGY_DETECTED]->(:Allergy)"
 
 
 class CausesReaction(BaseModel):
-    source_code: str
-    target_id: str
+    start_node_Allergy_code: str
+    end_node_Reaction_id: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Allergy"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Reaction"
+    start_node_label: ClassVar[str] = "Allergy"
+    end_node_label: ClassVar[str] = "Reaction"
+    pattern: ClassVar[str] = "(:Allergy)-[:CAUSES_REACTION]->(:Reaction)"
 
 
 class HasReaction(BaseModel):
-    source_id: str
-    target_id: str
+    start_node_Patient_id: str
+    end_node_Reaction_id: str
     severity: str = Field(..., description="Severity level of the allergic reaction")
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Patient"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Reaction"
+    start_node_label: ClassVar[str] = "Patient"
+    end_node_label: ClassVar[str] = "Reaction"
+    pattern: ClassVar[str] = "(:Patient)-[:HAS_REACTION]->(:Reaction)"
 
 
 class HasPayer(BaseModel):
-    source_id: str
-    target_id: str
+    start_node_Encounter_id: str
+    end_node_Payer_id: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Encounter"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Payer"
+    start_node_label: ClassVar[str] = "Encounter"
+    end_node_label: ClassVar[str] = "Payer"
+    pattern: ClassVar[str] = "(:Encounter)-[:HAS_PAYER]->(:Payer)"
 
 
 class InsuranceStart(BaseModel):
-    source_id: str
-    target_id: str
+    start_node_Patient_id: str
+    end_node_Payer_id: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Patient"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Payer"
+    start_node_label: ClassVar[str] = "Patient"
+    end_node_label: ClassVar[str] = "Payer"
+    pattern: ClassVar[str] = "(:Patient)-[:INSURANCE_START]->(:Payer)"
 
 
 class InsuranceEnd(BaseModel):
-    source_id: str
-    target_id: str
+    start_node_Patient_id: str
+    end_node_Payer_id: str
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Patient"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Payer"
+    start_node_label: ClassVar[str] = "Patient"
+    end_node_label: ClassVar[str] = "Payer"
+    pattern: ClassVar[str] = "(:Patient)-[:INSURANCE_END]->(:Payer)"

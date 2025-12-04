@@ -342,7 +342,8 @@ def test_generated_empty_model():
         # Verify imports are present
         assert hasattr(models, "BaseModel")
         assert hasattr(models, "Field")
-        assert hasattr(models, "datetime")
+        # Empty model should not import datetime since no datetime types are used
+        assert not hasattr(models, "datetime")
 
 
 def test_generated_models_screaming_snake_case_conversion():

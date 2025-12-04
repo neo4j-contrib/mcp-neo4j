@@ -486,7 +486,7 @@ SET end += {{{formatted_props}}}"""
         type_pascal_case = convert_screaming_snake_case_to_pascal_case(self.type)
 
         # Build properties section with proper indentation
-        props_section = f"\n    {'\n    '.join(props)}\n" if props else "\n\n"
+        props_section = f"\n    {'\n    '.join(props)}\n" if props else "\n"
 
         return f"""class {type_pascal_case}(BaseModel):
     {start_node_key_prop_field}
@@ -918,10 +918,6 @@ class DataModel(BaseModel):
         class Person(BaseModel):
             id: str
         """
-        # Import statements
-        imports = """from pydantic import BaseModel, Field
-from datetime import datetime, time, timedelta
-from typing import ClassVar"""
 
         # Generate Node models
         node_models = [node.to_pydantic_model_str() for node in self.nodes]
@@ -939,5 +935,26 @@ from typing import ClassVar"""
         # Combine all parts with double newlines between models
         all_models = node_models + relationship_models
         models_str = "\n\n\n".join(all_models) if all_models else ""
+
+        # Construct Import statements
+        imports_base = "from pydantic import BaseModel, Field"
+
+        if (
+            ": datetime" in models_str
+            or ": time" in models_str
+            or ": timedelta" in models_str
+        ):
+            imports_base += "\nfrom datetime import "
+            datetime_imports = []
+            if ": datetime" in models_str:
+                datetime_imports.append("datetime")
+            if ": time" in models_str:
+                datetime_imports.append("time")
+            if ": timedelta" in models_str:
+                datetime_imports.append("timedelta")
+            imports_base += ", ".join(datetime_imports)
+
+        imports_base += "\nfrom typing import ClassVar"
+        imports = f"{imports_base}"
 
         return f"{imports}\n\n\n{models_str}"

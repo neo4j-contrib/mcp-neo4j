@@ -942,7 +942,6 @@ def test_relationship_to_pydantic_model_str_simple():
     start_node_User_userId: str = Field(..., description="User ID")
     end_node_User_userId: str = Field(..., description="User ID")
 
-
     start_node_label: ClassVar[str] = "User"
     end_node_label: ClassVar[str] = "User"
     pattern: ClassVar[str] = "(:User)-[:FOLLOWS]->(:User)\""""
@@ -1061,7 +1060,6 @@ def test_relationship_to_pydantic_model_str_screaming_to_pascal():
     start_node_Member_memberId: str = Field(..., description="Member ID")
     end_node_Group_groupId: str = Field(..., description="Group ID")
 
-
     start_node_label: ClassVar[str] = "Member"
     end_node_label: ClassVar[str] = "Group"
     pattern: ClassVar[str] = \"(:Member)-[:BELONGS_TO_GROUP]->(:Group)\""""
@@ -1145,7 +1143,6 @@ def test_data_model_to_pydantic_model_str_nodes_only():
     result = data_model.to_pydantic_model_str()
 
     expected = """from pydantic import BaseModel, Field
-from datetime import datetime, time, timedelta
 from typing import ClassVar
 
 
@@ -1195,7 +1192,7 @@ def test_data_model_to_pydantic_model_str_with_relationships():
     result = data_model.to_pydantic_model_str()
 
     expected = """from pydantic import BaseModel, Field
-from datetime import datetime, time, timedelta
+from datetime import datetime
 from typing import ClassVar
 
 
@@ -1273,7 +1270,7 @@ def test_data_model_to_pydantic_model_str_complex():
     result = data_model.to_pydantic_model_str()
 
     expected = """from pydantic import BaseModel, Field
-from datetime import datetime, time, timedelta
+from datetime import datetime
 from typing import ClassVar
 
 
@@ -1304,7 +1301,6 @@ class Likes(BaseModel):
     start_node_User_userId: str = Field(..., description="User ID")
     end_node_Post_postId: str = Field(..., description="Post ID")
 
-
     start_node_label: ClassVar[str] = "User"
     end_node_label: ClassVar[str] = "Post"
     pattern: ClassVar[str] = \"(:User)-[:LIKES]->(:Post)\""""
@@ -1318,7 +1314,6 @@ def test_data_model_to_pydantic_model_str_empty():
     result = data_model.to_pydantic_model_str()
 
     expected = """from pydantic import BaseModel, Field
-from datetime import datetime, time, timedelta
 from typing import ClassVar
 
 
