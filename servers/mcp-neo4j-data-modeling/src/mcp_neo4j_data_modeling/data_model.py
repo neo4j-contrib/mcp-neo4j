@@ -277,6 +277,7 @@ SET n += {{{formatted_props}}}"""
     def to_pydantic_model_str(self) -> str:
         """
             Convert a Node to a Pydantic model class string.
+            `node_label` is a class variable and not exported when calling `.model_dump()` or `.model_dump_json()`
 
             Returns
             -------
@@ -463,7 +464,11 @@ SET end += {{{formatted_props}}}"""
         """
         Convert a Relationship to a Pydantic model class string.
         This model contains the start and end node key properties and any properties of the relationship as fields.
-        The start and end node labels as well as the relationship pattern are accessible as class variables and not exported when calling `.model_dump()` or `.model_dump_json()`.
+        Class variables are also included and not exported when calling `.model_dump()` or `.model_dump_json()`
+        * start_node_label
+        * end_node_label
+        * pattern
+        * relationship_type
 
         Parameters
         ----------
@@ -896,9 +901,9 @@ class DataModel(BaseModel):
 
     def to_pydantic_model_str(self) -> str:
         """
-        Convert the entire DataModel to a Pydantic models Python file string.
+        Convert the entire DataModel to a Pydantic models Python file string representation.
 
-        This generates a complete Python file containing:
+        This generates a complete Python file as a string containing:
         - Import statements for Pydantic
         - All Node models as Pydantic BaseModel classes
         - All Relationship models as Pydantic BaseModel classes
@@ -927,7 +932,7 @@ class DataModel(BaseModel):
         >>> print(dm.to_pydantic_model_str())
         from pydantic import BaseModel, Field
         from typing import ClassVar
-        from datetime import datetime, date, time, timedelta
+        from datetime import date
 
         
         class Person(BaseModel):
@@ -950,7 +955,7 @@ class DataModel(BaseModel):
       
             start_node_Person_id: str
             end_node_Company_companyId: str
-            startDate: date
+            startDate: datetime
         """
 
         # Generate Node models
