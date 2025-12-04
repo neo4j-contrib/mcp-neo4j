@@ -1,6 +1,7 @@
 ## Next
 
 ### Fixed
+* Remove `stateless_http` flag from server constructor. This is a deprecated feature of FastMCP and has no effect on the server.
 
 ### Changed
 
