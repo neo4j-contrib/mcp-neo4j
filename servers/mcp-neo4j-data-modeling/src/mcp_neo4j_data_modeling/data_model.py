@@ -1,4 +1,5 @@
 import json
+import keyword
 from collections import Counter
 from typing import Any
 
@@ -119,15 +120,37 @@ class Property(BaseModel):
         Examples
         --------
         >>> Property(name="name", type="STRING", description="The name of the property").to_pydantic_model_str()
-        "name: str = Field(..., description='The name of the property')"
+        'name: str = Field(..., description="The name of the property")'
         """
 
-        base = f"{self.name}: {convert_neo4j_type_to_python_type(self.type)}"
-        desc = (
-            f" = Field(..., description='{self.description}')"
-            if self.description
-            else ""
-        )
+        # Check if property name is a Python reserved keyword
+        field_name = self.name
+        is_keyword = keyword.iskeyword(self.name)
+
+        # If it's a reserved keyword, append underscore to field name
+        if is_keyword:
+            field_name = f"{self.name}_"
+
+        base = f"{field_name}: {convert_neo4j_type_to_python_type(self.type)}"
+
+        if self.description or is_keyword:
+            # Escape double quotes in description
+            escaped_desc = (
+                self.description.replace('"', '\\"') if self.description else ""
+            )
+
+            # Build Field parameters
+            field_params = []
+            field_params.append("...")
+            if self.description:
+                field_params.append(f'description="{escaped_desc}"')
+            if is_keyword:
+                field_params.append(f'alias="{self.name}"')
+
+            desc = f" = Field({', '.join(field_params)})"
+        else:
+            desc = ""
+
         return base + desc
 
 
@@ -437,6 +460,8 @@ SET end += {{{formatted_props}}}"""
     ) -> str:
         """
         Convert a Relationship to a Pydantic model class string.
+        This model contains the start and end node key properties and any properties of the relationship as fields.
+        The start and end node labels as well as the relationship pattern are accessible as class variables and not exported when calling `.model_dump()` or `.model_dump_json()`.
 
         Parameters
         ----------
@@ -455,31 +480,20 @@ SET end += {{{formatted_props}}}"""
         )
         props = key_prop_list + [p.to_pydantic_model_str() for p in self.properties]
 
-        start_node_key_prop_field = (
-            f"source_{start_node_key_property.to_pydantic_model_str()}"
-        )
-        end_node_key_prop_field = (
-            f"target_{end_node_key_property.to_pydantic_model_str()}"
-        )
+        start_node_key_prop_field = f"start_node_{self.start_node_label}_{start_node_key_property.to_pydantic_model_str()}"
+        end_node_key_prop_field = f"end_node_{self.end_node_label}_{end_node_key_property.to_pydantic_model_str()}"
 
         type_pascal_case = convert_screaming_snake_case_to_pascal_case(self.type)
 
         # Build properties section with proper indentation
-        if props:
-            props_section = f"\n    {'\n    '.join(props)}\n"
-        else:
-            props_section = "\n\n"
+        props_section = f"\n    {'\n    '.join(props)}\n" if props else "\n\n"
 
         return f"""class {type_pascal_case}(BaseModel):
     {start_node_key_prop_field}
     {end_node_key_prop_field}{props_section}
-    @classmethod
-    def start_node_label(cls) -> str:
-        return \"{self.start_node_label}\"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return \"{self.end_node_label}\""""
+    start_node_label: ClassVar[str] = \"{self.start_node_label}\"
+    end_node_label: ClassVar[str] = \"{self.end_node_label}\"
+    pattern: ClassVar[str] = \"{self.pattern}\""""
 
 
 class DataModel(BaseModel):
@@ -906,7 +920,8 @@ class DataModel(BaseModel):
         """
         # Import statements
         imports = """from pydantic import BaseModel, Field
-from datetime import datetime, time, timedelta"""
+from datetime import datetime, time, timedelta
+from typing import ClassVar"""
 
         # Generate Node models
         node_models = [node.to_pydantic_model_str() for node in self.nodes]

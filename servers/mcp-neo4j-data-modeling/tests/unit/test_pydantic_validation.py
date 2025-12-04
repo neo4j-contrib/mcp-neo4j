@@ -19,7 +19,9 @@ def test_generated_node_models_are_valid():
         nodes=[
             Node(
                 label="User",
-                key_property=Property(name="userId", type="STRING", description="User ID"),
+                key_property=Property(
+                    name="userId", type="STRING", description="User ID"
+                ),
                 properties=[
                     Property(name="name", type="STRING", description="User name"),
                     Property(name="email", type="STRING", description="Email address"),
@@ -74,7 +76,7 @@ def test_generated_node_models_are_valid():
         assert product.productId == "prod456"
         assert product.title == "Widget"
         assert product.price == 29.99
-        assert product.inStock is True
+        assert product.inStock
 
 
 def test_generated_relationship_models_are_valid():
@@ -106,7 +108,9 @@ def test_generated_relationship_models_are_valid():
                     Property(
                         name="since", type="DATE", description="Employment start date"
                     ),
-                    Property(name="position", type="STRING", description="Job position"),
+                    Property(
+                        name="position", type="STRING", description="Job position"
+                    ),
                 ],
             ),
         ],
@@ -130,19 +134,19 @@ def test_generated_relationship_models_are_valid():
 
         # Test WorksFor relationship model instantiation
         works_for = models.WorksFor(
-            source_personId="person123",
-            target_companyId="company456",
+            start_node_Person_personId="person123",
+            end_node_Company_companyId="company456",
             since=datetime(2020, 1, 15),
             position="Software Engineer",
         )
-        assert works_for.source_personId == "person123"
-        assert works_for.target_companyId == "company456"
+        assert works_for.start_node_Person_personId == "person123"
+        assert works_for.end_node_Company_companyId == "company456"
         assert works_for.since == datetime(2020, 1, 15)
         assert works_for.position == "Software Engineer"
 
-        # Test class methods
-        assert models.WorksFor.start_node_label() == "Person"
-        assert models.WorksFor.end_node_label() == "Company"
+        # Test ClassVar attributes
+        assert models.WorksFor.start_node_label == "Person"
+        assert models.WorksFor.end_node_label == "Company"
 
 
 def test_generated_models_with_key_properties():
@@ -151,12 +155,16 @@ def test_generated_models_with_key_properties():
         nodes=[
             Node(
                 label="User",
-                key_property=Property(name="userId", type="STRING", description="User ID"),
+                key_property=Property(
+                    name="userId", type="STRING", description="User ID"
+                ),
                 properties=[],
             ),
             Node(
                 label="Post",
-                key_property=Property(name="postId", type="STRING", description="Post ID"),
+                key_property=Property(
+                    name="postId", type="STRING", description="Post ID"
+                ),
                 properties=[],
             ),
         ],
@@ -197,13 +205,13 @@ def test_generated_models_with_key_properties():
 
         # Test Authored relationship model with key property
         authored = models.Authored(
-            source_userId="user123",
-            target_postId="post456",
+            start_node_User_userId="user123",
+            end_node_Post_postId="post456",
             authorshipId="auth789",
             publishedAt=datetime(2024, 1, 1, 12, 0, 0),
         )
-        assert authored.source_userId == "user123"
-        assert authored.target_postId == "post456"
+        assert authored.start_node_User_userId == "user123"
+        assert authored.end_node_Post_postId == "post456"
         assert authored.authorshipId == "auth789"
         assert authored.publishedAt == datetime(2024, 1, 1, 12, 0, 0)
 
@@ -219,7 +227,9 @@ def test_generated_models_with_various_types():
                 ),
                 properties=[
                     Property(
-                        name="attendees", type="INTEGER", description="Number of attendees"
+                        name="attendees",
+                        type="INTEGER",
+                        description="Number of attendees",
                     ),
                     Property(name="rating", type="FLOAT", description="Event rating"),
                     Property(name="active", type="BOOLEAN", description="Is active"),
@@ -261,7 +271,7 @@ def test_generated_models_with_various_types():
         assert event.eventId == "event123"
         assert event.attendees == 150
         assert event.rating == 4.5
-        assert event.active is True
+        assert event.active
         assert event.startTime == datetime(2024, 6, 15, 18, 30)
         assert event.tags == ["conference", "tech", "networking"]
 
@@ -293,6 +303,7 @@ def test_generated_models_validation():
 
         # Import the module dynamically
         import importlib.util
+
         from pydantic import ValidationError
 
         spec = importlib.util.spec_from_file_location("models", model_file)
@@ -340,7 +351,9 @@ def test_generated_models_screaming_snake_case_conversion():
         nodes=[
             Node(
                 label="User",
-                key_property=Property(name="userId", type="STRING", description="User ID"),
+                key_property=Property(
+                    name="userId", type="STRING", description="User ID"
+                ),
                 properties=[],
             ),
         ],
@@ -374,7 +387,190 @@ def test_generated_models_screaming_snake_case_conversion():
 
         # Test instantiation
         belongs_to_group = models.BelongsToGroup(
-            source_userId="user123", target_userId="user456"
+            start_node_User_userId="user123", end_node_User_userId="user456"
         )
-        assert belongs_to_group.source_userId == "user123"
-        assert belongs_to_group.target_userId == "user456"
+        assert belongs_to_group.start_node_User_userId == "user123"
+        assert belongs_to_group.end_node_User_userId == "user456"
+
+
+def test_generated_models_with_reserved_keywords():
+    """Test that generated models with Python reserved keywords work correctly."""
+    data_model = DataModel(
+        nodes=[
+            Node(
+                label="Item",
+                key_property=Property(name="id", type="STRING", description="Item ID"),
+                properties=[
+                    Property(name="class", type="STRING", description="Item class"),
+                    Property(name="global", type="BOOLEAN", description="Is global"),
+                    Property(name="from", type="STRING", description="Source location"),
+                    Property(
+                        name="for", type="STRING", description="Intended recipient"
+                    ),
+                ],
+            ),
+            Node(
+                label="Resource",
+                key_property=Property(
+                    name="resourceId", type="STRING", description="Resource ID"
+                ),
+                properties=[],
+            ),
+        ],
+        relationships=[
+            Relationship(
+                type="RESERVED_FOR",
+                start_node_label="Item",
+                end_node_label="Resource",
+                properties=[
+                    Property(name="if", type="BOOLEAN", description="Conditional flag"),
+                    Property(name="while", type="INTEGER", description="Duration"),
+                ],
+            ),
+        ],
+    )
+
+    # Generate Pydantic models string
+    pydantic_code = data_model.to_pydantic_model_str()
+
+    # Write to a temporary file and try to import it
+    with tempfile.TemporaryDirectory() as tmpdir:
+        model_file = Path(tmpdir) / "models.py"
+        model_file.write_text(pydantic_code)
+
+        # Import the module dynamically
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("models", model_file)
+        models = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(models)
+
+        # Test Item model instantiation with reserved keywords using aliases
+        item = models.Item(
+            id="item123",
+            **{
+                "class": "premium",
+                "global": True,
+                "from": "warehouse",
+                "for": "customer",
+            },
+        )
+
+        # Verify the model has underscore-suffixed attributes internally
+        assert item.class_ == "premium"
+        assert item.global_
+        assert item.from_ == "warehouse"
+        assert item.for_ == "customer"
+
+        # Verify aliases work correctly in serialization
+        dumped = item.model_dump(by_alias=True)
+        assert dumped["class"] == "premium"
+        assert dumped["global"]
+        assert dumped["from"] == "warehouse"
+        assert dumped["for"] == "customer"
+
+        # Test ReservedFor relationship model with reserved keywords
+        reserved_for = models.ReservedFor(
+            start_node_Item_id="item123",
+            end_node_Resource_resourceId="resource456",
+            **{"if": True, "while": 30},
+        )
+
+        # Verify underscore-suffixed attributes
+        assert reserved_for.if_
+        assert reserved_for.while_ == 30
+
+        # Verify aliases in serialization
+        dumped_rel = reserved_for.model_dump(by_alias=True)
+        assert dumped_rel["if"]
+        assert dumped_rel["while"] == 30
+
+
+def test_generated_relationship_pattern_class_method():
+    """Test that generated relationship models have working pattern() class method."""
+    data_model = DataModel(
+        nodes=[
+            Node(
+                label="Person",
+                key_property=Property(
+                    name="personId", type="STRING", description="Person ID"
+                ),
+                properties=[],
+            ),
+            Node(
+                label="Company",
+                key_property=Property(
+                    name="companyId", type="STRING", description="Company ID"
+                ),
+                properties=[],
+            ),
+        ],
+        relationships=[
+            Relationship(
+                type="WORKS_FOR",
+                start_node_label="Person",
+                end_node_label="Company",
+                properties=[
+                    Property(
+                        name="since", type="DATE", description="Employment start date"
+                    ),
+                ],
+            ),
+            Relationship(
+                type="MANAGES",
+                start_node_label="Person",
+                end_node_label="Person",
+                properties=[],
+            ),
+        ],
+    )
+
+    # Generate Pydantic models string
+    pydantic_code = data_model.to_pydantic_model_str()
+
+    # Write to a temporary file and try to import it
+    with tempfile.TemporaryDirectory() as tmpdir:
+        model_file = Path(tmpdir) / "models.py"
+        model_file.write_text(pydantic_code)
+
+        # Import the module dynamically
+        import importlib.util
+        from datetime import datetime
+
+        spec = importlib.util.spec_from_file_location("models", model_file)
+        models = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(models)
+
+        # Test WorksFor relationship pattern ClassVar attribute
+        assert hasattr(models.WorksFor, "pattern")
+        pattern = models.WorksFor.pattern
+        assert pattern == "(:Person)-[:WORKS_FOR]->(:Company)"
+
+        # Test Manages relationship pattern ClassVar attribute (self-referential)
+        assert hasattr(models.Manages, "pattern")
+        pattern = models.Manages.pattern
+        assert pattern == "(:Person)-[:MANAGES]->(:Person)"
+
+        # Verify pattern is consistent with start_node_label and end_node_label
+        works_for_start = models.WorksFor.start_node_label
+        works_for_end = models.WorksFor.end_node_label
+        works_for_pattern = models.WorksFor.pattern
+        assert f"(:{works_for_start})" in works_for_pattern
+        assert f"(:{works_for_end})" in works_for_pattern
+        assert "[:WORKS_FOR]" in works_for_pattern
+
+        # Verify ClassVar attributes are NOT exported in model_dump()
+        works_for = models.WorksFor(
+            start_node_Person_personId="person123",
+            end_node_Company_companyId="company456",
+            since=datetime(2020, 1, 15),
+        )
+        dumped = works_for.model_dump()
+        # ClassVar attributes should not be in the dump
+        assert "start_node_label" not in dumped
+        assert "end_node_label" not in dumped
+        assert "pattern" not in dumped
+        # Only instance fields should be in the dump
+        assert "start_node_Person_personId" in dumped
+        assert "end_node_Company_companyId" in dumped
+        assert "since" in dumped

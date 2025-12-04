@@ -5,6 +5,8 @@
 ### Changed
 
 ### Added
+* Add methods to export schema as Pydantic models for `Node`, `Relationship` and `DataModel`
+* Add tool that exports data model as a Python file containing imports and Pydantic models
 
 ## v0.7.0
 

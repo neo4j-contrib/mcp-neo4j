@@ -803,7 +803,7 @@ def test_property_to_pydantic_model_str_with_description():
     prop = Property(name="userName", type="STRING", description="The user's name")
     result = prop.to_pydantic_model_str()
 
-    expected = "userName: str = Field(..., description='The user's name')"
+    expected = 'userName: str = Field(..., description="The user\'s name")'
     assert result == expected
 
 
@@ -821,7 +821,7 @@ def test_property_to_pydantic_model_str_integer_type():
     prop = Property(name="count", type="INTEGER", description="Item count")
     result = prop.to_pydantic_model_str()
 
-    expected = "count: int = Field(..., description='Item count')"
+    expected = 'count: int = Field(..., description="Item count")'
     assert result == expected
 
 
@@ -830,7 +830,7 @@ def test_property_to_pydantic_model_str_float_type():
     prop = Property(name="amount", type="FLOAT", description="Dollar amount")
     result = prop.to_pydantic_model_str()
 
-    expected = "amount: float = Field(..., description='Dollar amount')"
+    expected = 'amount: float = Field(..., description="Dollar amount")'
     assert result == expected
 
 
@@ -839,7 +839,7 @@ def test_property_to_pydantic_model_str_boolean_type():
     prop = Property(name="active", type="BOOLEAN", description="Is active")
     result = prop.to_pydantic_model_str()
 
-    expected = "active: bool = Field(..., description='Is active')"
+    expected = 'active: bool = Field(..., description="Is active")'
     assert result == expected
 
 
@@ -848,7 +848,7 @@ def test_property_to_pydantic_model_str_datetime_type():
     prop = Property(name="createdAt", type="DATETIME", description="Creation timestamp")
     result = prop.to_pydantic_model_str()
 
-    expected = "createdAt: datetime = Field(..., description='Creation timestamp')"
+    expected = 'createdAt: datetime = Field(..., description="Creation timestamp")'
     assert result == expected
 
 
@@ -862,7 +862,7 @@ def test_node_to_pydantic_model_str_simple():
     result = node.to_pydantic_model_str()
 
     expected = """class User(BaseModel):
-    userId: str = Field(..., description='User ID')"""
+    userId: str = Field(..., description="User ID")"""
     assert result == expected
 
 
@@ -882,10 +882,10 @@ def test_node_to_pydantic_model_str_with_properties():
     result = node.to_pydantic_model_str()
 
     expected = """class Product(BaseModel):
-    productId: str = Field(..., description='Product identifier')
-    name: str = Field(..., description='Product name')
-    price: float = Field(..., description='Product price')
-    inStock: bool = Field(..., description='Availability')"""
+    productId: str = Field(..., description="Product identifier")
+    name: str = Field(..., description="Product name")
+    price: float = Field(..., description="Product price")
+    inStock: bool = Field(..., description="Availability")"""
     assert result == expected
 
 
@@ -905,10 +905,10 @@ def test_node_to_pydantic_model_str_various_types():
     result = node.to_pydantic_model_str()
 
     expected = """class Event(BaseModel):
-    eventId: str = Field(..., description='Event ID')
-    attendees: int = Field(..., description='Number of attendees')
-    startTime: datetime = Field(..., description='Start time')
-    tags: list = Field(..., description='Event tags')"""
+    eventId: str = Field(..., description="Event ID")
+    attendees: int = Field(..., description="Number of attendees")
+    startTime: datetime = Field(..., description="Start time")
+    tags: list = Field(..., description="Event tags")"""
     assert result == expected
 
 
@@ -924,7 +924,7 @@ def test_node_to_pydantic_model_str_pascal_case_label():
     result = node.to_pydantic_model_str()
 
     expected = """class CustomerAccount(BaseModel):
-    accountId: str = Field(..., description='Account ID')"""
+    accountId: str = Field(..., description="Account ID")"""
     assert result == expected
 
 
@@ -939,17 +939,13 @@ def test_relationship_to_pydantic_model_str_simple():
     result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
 
     expected = """class Follows(BaseModel):
-    source_userId: str = Field(..., description='User ID')
-    target_userId: str = Field(..., description='User ID')
+    start_node_User_userId: str = Field(..., description="User ID")
+    end_node_User_userId: str = Field(..., description="User ID")
 
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "User"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "User\""""
+    start_node_label: ClassVar[str] = "User"
+    end_node_label: ClassVar[str] = "User"
+    pattern: ClassVar[str] = "(:User)-[:FOLLOWS]->(:User)\""""
     assert result == expected
 
 
@@ -970,17 +966,13 @@ def test_relationship_to_pydantic_model_str_with_key_property():
     result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
 
     expected = """class EmployedBy(BaseModel):
-    source_personId: str = Field(..., description='Person ID')
-    target_companyId: str = Field(..., description='Company ID')
-    employmentId: str = Field(..., description='Employment record ID')
+    start_node_Person_personId: str = Field(..., description="Person ID")
+    end_node_Company_companyId: str = Field(..., description="Company ID")
+    employmentId: str = Field(..., description="Employment record ID")
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Person"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return \"Company\""""
+    start_node_label: ClassVar[str] = "Person"
+    end_node_label: ClassVar[str] = "Company"
+    pattern: ClassVar[str] = \"(:Person)-[:EMPLOYED_BY]->(:Company)\""""
     assert result == expected
 
 
@@ -1004,19 +996,15 @@ def test_relationship_to_pydantic_model_str_with_properties():
     result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
 
     expected = """class Reviewed(BaseModel):
-    source_customerId: str = Field(..., description='Customer ID')
-    target_productId: str = Field(..., description='Product ID')
-    rating: int = Field(..., description='Star rating')
-    comment: str = Field(..., description='Review text')
-    reviewDate: datetime = Field(..., description='Date of review')
+    start_node_Customer_customerId: str = Field(..., description="Customer ID")
+    end_node_Product_productId: str = Field(..., description="Product ID")
+    rating: int = Field(..., description="Star rating")
+    comment: str = Field(..., description="Review text")
+    reviewDate: datetime = Field(..., description="Date of review")
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Customer"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return \"Product\""""
+    start_node_label: ClassVar[str] = "Customer"
+    end_node_label: ClassVar[str] = "Product"
+    pattern: ClassVar[str] = \"(:Customer)-[:REVIEWED]->(:Product)\""""
     assert result == expected
 
 
@@ -1043,20 +1031,16 @@ def test_relationship_to_pydantic_model_str_with_key_and_properties():
     result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
 
     expected = """class Purchased(BaseModel):
-    source_userId: str = Field(..., description='User ID')
-    target_itemId: str = Field(..., description='Item ID')
-    transactionId: str = Field(..., description='Transaction ID')
-    quantity: int = Field(..., description='Quantity purchased')
-    totalPrice: float = Field(..., description='Total price')
-    purchaseDate: datetime = Field(..., description='Purchase timestamp')
+    start_node_User_userId: str = Field(..., description="User ID")
+    end_node_Item_itemId: str = Field(..., description="Item ID")
+    transactionId: str = Field(..., description="Transaction ID")
+    quantity: int = Field(..., description="Quantity purchased")
+    totalPrice: float = Field(..., description="Total price")
+    purchaseDate: datetime = Field(..., description="Purchase timestamp")
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "User"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return \"Item\""""
+    start_node_label: ClassVar[str] = "User"
+    end_node_label: ClassVar[str] = "Item"
+    pattern: ClassVar[str] = \"(:User)-[:PURCHASED]->(:Item)\""""
     assert result == expected
 
 
@@ -1074,17 +1058,13 @@ def test_relationship_to_pydantic_model_str_screaming_to_pascal():
     result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
 
     expected = """class BelongsToGroup(BaseModel):
-    source_memberId: str = Field(..., description='Member ID')
-    target_groupId: str = Field(..., description='Group ID')
+    start_node_Member_memberId: str = Field(..., description="Member ID")
+    end_node_Group_groupId: str = Field(..., description="Group ID")
 
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Member"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return \"Group\""""
+    start_node_label: ClassVar[str] = "Member"
+    end_node_label: ClassVar[str] = "Group"
+    pattern: ClassVar[str] = \"(:Member)-[:BELONGS_TO_GROUP]->(:Group)\""""
     assert result == expected
 
 
@@ -1102,17 +1082,13 @@ def test_relationship_to_pydantic_model_str_different_node_types():
     result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
 
     expected = """class LivesIn(BaseModel):
-    source_personId: str = Field(..., description='Person ID')
-    target_cityId: int = Field(..., description='City ID')
-    since: datetime = Field(..., description='Resident since')
+    start_node_Person_personId: str = Field(..., description="Person ID")
+    end_node_City_cityId: int = Field(..., description="City ID")
+    since: datetime = Field(..., description="Resident since")
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Person"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return \"City\""""
+    start_node_label: ClassVar[str] = "Person"
+    end_node_label: ClassVar[str] = "City"
+    pattern: ClassVar[str] = \"(:Person)-[:LIVES_IN]->(:City)\""""
     assert result == expected
 
 
@@ -1132,17 +1108,13 @@ def test_relationship_to_pydantic_model_str_self_referential():
     result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
 
     expected = """class Manages(BaseModel):
-    source_employeeId: str = Field(..., description='Employee ID')
-    target_employeeId: str = Field(..., description='Employee ID')
-    since: datetime = Field(..., description='Managing since')
+    start_node_Employee_employeeId: str = Field(..., description="Employee ID")
+    end_node_Employee_employeeId: str = Field(..., description="Employee ID")
+    since: datetime = Field(..., description="Managing since")
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Employee"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return \"Employee\""""
+    start_node_label: ClassVar[str] = "Employee"
+    end_node_label: ClassVar[str] = "Employee"
+    pattern: ClassVar[str] = \"(:Employee)-[:MANAGES]->(:Employee)\""""
     assert result == expected
 
 
@@ -1152,14 +1124,18 @@ def test_data_model_to_pydantic_model_str_nodes_only():
         nodes=[
             Node(
                 label="User",
-                key_property=Property(name="userId", type="STRING", description="User ID"),
+                key_property=Property(
+                    name="userId", type="STRING", description="User ID"
+                ),
                 properties=[
                     Property(name="name", type="STRING", description="User name"),
                 ],
             ),
             Node(
                 label="Product",
-                key_property=Property(name="productId", type="STRING", description="Product ID"),
+                key_property=Property(
+                    name="productId", type="STRING", description="Product ID"
+                ),
                 properties=[],
             ),
         ],
@@ -1170,15 +1146,16 @@ def test_data_model_to_pydantic_model_str_nodes_only():
 
     expected = """from pydantic import BaseModel, Field
 from datetime import datetime, time, timedelta
+from typing import ClassVar
 
 
 class User(BaseModel):
-    userId: str = Field(..., description='User ID')
-    name: str = Field(..., description='User name')
+    userId: str = Field(..., description="User ID")
+    name: str = Field(..., description="User name")
 
 
 class Product(BaseModel):
-    productId: str = Field(..., description='Product ID')"""
+    productId: str = Field(..., description="Product ID")"""
     assert result == expected
 
 
@@ -1188,12 +1165,16 @@ def test_data_model_to_pydantic_model_str_with_relationships():
         nodes=[
             Node(
                 label="Person",
-                key_property=Property(name="personId", type="STRING", description="Person ID"),
+                key_property=Property(
+                    name="personId", type="STRING", description="Person ID"
+                ),
                 properties=[],
             ),
             Node(
                 label="Company",
-                key_property=Property(name="companyId", type="STRING", description="Company ID"),
+                key_property=Property(
+                    name="companyId", type="STRING", description="Company ID"
+                ),
                 properties=[],
             ),
         ],
@@ -1203,7 +1184,9 @@ def test_data_model_to_pydantic_model_str_with_relationships():
                 start_node_label="Person",
                 end_node_label="Company",
                 properties=[
-                    Property(name="since", type="DATE", description="Employment start date"),
+                    Property(
+                        name="since", type="DATE", description="Employment start date"
+                    ),
                 ],
             ),
         ],
@@ -1213,28 +1196,25 @@ def test_data_model_to_pydantic_model_str_with_relationships():
 
     expected = """from pydantic import BaseModel, Field
 from datetime import datetime, time, timedelta
+from typing import ClassVar
 
 
 class Person(BaseModel):
-    personId: str = Field(..., description='Person ID')
+    personId: str = Field(..., description="Person ID")
 
 
 class Company(BaseModel):
-    companyId: str = Field(..., description='Company ID')
+    companyId: str = Field(..., description="Company ID")
 
 
 class WorksFor(BaseModel):
-    source_personId: str = Field(..., description='Person ID')
-    target_companyId: str = Field(..., description='Company ID')
-    since: datetime = Field(..., description='Employment start date')
+    start_node_Person_personId: str = Field(..., description="Person ID")
+    end_node_Company_companyId: str = Field(..., description="Company ID")
+    since: datetime = Field(..., description="Employment start date")
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "Person"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return \"Company\""""
+    start_node_label: ClassVar[str] = "Person"
+    end_node_label: ClassVar[str] = "Company"
+    pattern: ClassVar[str] = \"(:Person)-[:WORKS_FOR]->(:Company)\""""
     assert result == expected
 
 
@@ -1244,7 +1224,9 @@ def test_data_model_to_pydantic_model_str_complex():
         nodes=[
             Node(
                 label="User",
-                key_property=Property(name="userId", type="STRING", description="User ID"),
+                key_property=Property(
+                    name="userId", type="STRING", description="User ID"
+                ),
                 properties=[
                     Property(name="email", type="STRING", description="Email address"),
                     Property(name="age", type="INTEGER", description="User age"),
@@ -1252,10 +1234,14 @@ def test_data_model_to_pydantic_model_str_complex():
             ),
             Node(
                 label="Post",
-                key_property=Property(name="postId", type="STRING", description="Post ID"),
+                key_property=Property(
+                    name="postId", type="STRING", description="Post ID"
+                ),
                 properties=[
                     Property(name="title", type="STRING", description="Post title"),
-                    Property(name="createdAt", type="DATETIME", description="Creation time"),
+                    Property(
+                        name="createdAt", type="DATETIME", description="Creation time"
+                    ),
                 ],
             ),
         ],
@@ -1264,9 +1250,15 @@ def test_data_model_to_pydantic_model_str_complex():
                 type="AUTHORED",
                 start_node_label="User",
                 end_node_label="Post",
-                key_property=Property(name="authorshipId", type="STRING", description="Authorship ID"),
+                key_property=Property(
+                    name="authorshipId", type="STRING", description="Authorship ID"
+                ),
                 properties=[
-                    Property(name="publishedAt", type="DATETIME", description="Publish timestamp"),
+                    Property(
+                        name="publishedAt",
+                        type="DATETIME",
+                        description="Publish timestamp",
+                    ),
                 ],
             ),
             Relationship(
@@ -1282,47 +1274,40 @@ def test_data_model_to_pydantic_model_str_complex():
 
     expected = """from pydantic import BaseModel, Field
 from datetime import datetime, time, timedelta
+from typing import ClassVar
 
 
 class User(BaseModel):
-    userId: str = Field(..., description='User ID')
-    email: str = Field(..., description='Email address')
-    age: int = Field(..., description='User age')
+    userId: str = Field(..., description="User ID")
+    email: str = Field(..., description="Email address")
+    age: int = Field(..., description="User age")
 
 
 class Post(BaseModel):
-    postId: str = Field(..., description='Post ID')
-    title: str = Field(..., description='Post title')
-    createdAt: datetime = Field(..., description='Creation time')
+    postId: str = Field(..., description="Post ID")
+    title: str = Field(..., description="Post title")
+    createdAt: datetime = Field(..., description="Creation time")
 
 
 class Authored(BaseModel):
-    source_userId: str = Field(..., description='User ID')
-    target_postId: str = Field(..., description='Post ID')
-    authorshipId: str = Field(..., description='Authorship ID')
-    publishedAt: datetime = Field(..., description='Publish timestamp')
+    start_node_User_userId: str = Field(..., description="User ID")
+    end_node_Post_postId: str = Field(..., description="Post ID")
+    authorshipId: str = Field(..., description="Authorship ID")
+    publishedAt: datetime = Field(..., description="Publish timestamp")
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "User"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return "Post"
+    start_node_label: ClassVar[str] = "User"
+    end_node_label: ClassVar[str] = "Post"
+    pattern: ClassVar[str] = \"(:User)-[:AUTHORED]->(:Post)\"
 
 
 class Likes(BaseModel):
-    source_userId: str = Field(..., description='User ID')
-    target_postId: str = Field(..., description='Post ID')
+    start_node_User_userId: str = Field(..., description="User ID")
+    end_node_Post_postId: str = Field(..., description="Post ID")
 
 
-    @classmethod
-    def start_node_label(cls) -> str:
-        return "User"
-
-    @classmethod
-    def end_node_label(cls) -> str:
-        return \"Post\""""
+    start_node_label: ClassVar[str] = "User"
+    end_node_label: ClassVar[str] = "Post"
+    pattern: ClassVar[str] = \"(:User)-[:LIKES]->(:Post)\""""
     assert result == expected
 
 
@@ -1334,6 +1319,7 @@ def test_data_model_to_pydantic_model_str_empty():
 
     expected = """from pydantic import BaseModel, Field
 from datetime import datetime, time, timedelta
+from typing import ClassVar
 
 
 """

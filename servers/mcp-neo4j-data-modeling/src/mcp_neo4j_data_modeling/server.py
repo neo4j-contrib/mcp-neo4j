@@ -403,17 +403,17 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         return data_model_obj.to_owl_turtle_str()
 
     @mcp.tool(name=namespace_prefix + "export_to_pydantic_models")
-    def export_to_pydantic_models(data_model: Union[str, DataModel]) -> dict[str, Any]:
+    def export_to_pydantic_models(data_model: Union[str, DataModel]) -> str:
         """
         Export a data model to Pydantic models.
-        Returns a string representation of the Pydantic models for the data model.
+        Returns a string representation of the Pydantic models for the data model as a Python file.
         Accepts either a DataModel object or a JSON string of the DataModel object.
         """
         # Parse the data_model argument (handles both JSON string and dict)
         data_model_dict = parse_dict_from_json_input(data_model)
         data_model_obj = DataModel.model_validate(data_model_dict)
         logger.info("Exporting a data model to Pydantic models.")
-        return data_model_obj.to_pydantic_models()
+        return data_model_obj.to_pydantic_model_str()
 
     @mcp.prompt(title="Create New Data Model")
     def create_new_data_model(
