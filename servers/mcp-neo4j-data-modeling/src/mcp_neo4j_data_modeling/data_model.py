@@ -294,9 +294,9 @@ SET n += {{{formatted_props}}}"""
             p.to_pydantic_model_str() for p in self.properties
         ]
         return f"""class {self.label}(BaseModel):
-    {"\n    ".join(props)}
+    node_label: ClassVar[str] = \"{self.label}\"
 
-    node_label: ClassVar[str] = \"{self.label}\""""
+    {"\n    ".join(props)}"""
 
 
 class Relationship(BaseModel):
@@ -488,15 +488,16 @@ SET end += {{{formatted_props}}}"""
         type_pascal_case = convert_screaming_snake_case_to_pascal_case(self.type)
 
         # Build properties section with proper indentation
-        props_section = f"\n    {'\n    '.join(props)}\n" if props else "\n"
+        props_section = f"\n    {'\n    '.join(props)}\n" if props else ""
 
         return f"""class {type_pascal_case}(BaseModel):
-    {start_node_key_prop_field}
-    {end_node_key_prop_field}{props_section}
     relationship_type: ClassVar[str] = \"{self.type}\"
     start_node_label: ClassVar[str] = \"{self.start_node_label}\"
     end_node_label: ClassVar[str] = \"{self.end_node_label}\"
-    pattern: ClassVar[str] = \"{self.pattern}\""""
+    pattern: ClassVar[str] = \"{self.pattern}\"
+
+    {start_node_key_prop_field}
+    {end_node_key_prop_field}{props_section}"""
 
 
 class DataModel(BaseModel):
@@ -910,16 +911,46 @@ class DataModel(BaseModel):
         Examples
         --------
         >>> dm = DataModel(
-        ...     nodes=[Node(label="Person", key_property=Property(name="id", type="STRING"))],
-        ...     relationships=[]
+        ...     nodes=[
+        ...         Node(label="Person", key_property=Property(name="id", type="STRING")),
+        ...         Node(label="Company", key_property=Property(name="companyId", type="STRING"))
+        ...     ],
+        ...     relationships=[
+        ...         Relationship(
+        ...             type="WORKS_FOR",
+        ...             start_node_label="Person",
+        ...             end_node_label="Company",
+        ...             properties=[Property(name="startDate", type="DATE")]
+        ...         )
+        ...     ]
         ... )
         >>> print(dm.to_pydantic_model_str())
         from pydantic import BaseModel, Field
-        from datetime import datetime, time, timedelta
-        <BLANKLINE>
-        <BLANKLINE>
+        from typing import ClassVar
+        from datetime import datetime, date, time, timedelta
+
+        
         class Person(BaseModel):
+            node_label: ClassVar[str] = "Person"
+
             id: str
+
+                        
+        class Company(BaseModel):
+            node_label: ClassVar[str] = "Company"
+      
+            companyId: str
+     
+       
+        class WorksFor(BaseModel):
+            relationship_type: ClassVar[str] = "WORKS_FOR"
+            start_node_label: ClassVar[str] = "Person"
+            end_node_label: ClassVar[str] = "Company"
+            pattern: ClassVar[str] = "(Person)-[WORKS_FOR]->(Company)"
+      
+            start_node_Person_id: str
+            end_node_Company_companyId: str
+            startDate: date
         """
 
         # Generate Node models
