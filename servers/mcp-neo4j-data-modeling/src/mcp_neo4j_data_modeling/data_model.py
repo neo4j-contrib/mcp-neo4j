@@ -1,9 +1,15 @@
 import json
+import keyword
 from collections import Counter
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from rdflib import OWL, RDF, RDFS, XSD, Graph, Namespace, URIRef
+
+from .utils import (
+    convert_neo4j_type_to_python_type,
+    convert_screaming_snake_case_to_pascal_case,
+)
 
 NODE_COLOR_PALETTE = [
     ("#e3f2fd", "#1976d2"),  # Light Blue / Blue
@@ -101,6 +107,51 @@ class Property(BaseModel):
         return {
             self.name: value,
         }
+
+    def to_pydantic_model_str(self) -> str:
+        """
+        Convert a Property to a Pydantic model field line.
+
+        Returns
+        -------
+        str
+            The Pydantic model field line.
+
+        Examples
+        --------
+        >>> Property(name="name", type="STRING", description="The name of the property").to_pydantic_model_str()
+        'name: str = Field(..., description="The name of the property")'
+        """
+
+        # Check if property name is a Python reserved keyword
+        field_name = self.name
+        is_keyword = keyword.iskeyword(self.name)
+
+        # If it's a reserved keyword, append underscore to field name
+        if is_keyword:
+            field_name = f"{self.name}_"
+
+        base = f"{field_name}: {convert_neo4j_type_to_python_type(self.type)}"
+
+        if self.description or is_keyword:
+            # Escape double quotes in description
+            escaped_desc = (
+                self.description.replace('"', '\\"') if self.description else ""
+            )
+
+            # Build Field parameters
+            field_params = []
+            field_params.append("...")
+            if self.description:
+                field_params.append(f'description="{escaped_desc}"')
+            if is_keyword:
+                field_params.append(f'alias="{self.name}"')
+
+            desc = f" = Field({', '.join(field_params)})"
+        else:
+            desc = ""
+
+        return base + desc
 
 
 class Node(BaseModel):
@@ -222,6 +273,31 @@ SET n += {{{formatted_props}}}"""
         This creates a range index on the key property of the node and enforces uniqueness and existence of the key property.
         """
         return f"CREATE CONSTRAINT {self.label}_constraint IF NOT EXISTS FOR (n:{self.label}) REQUIRE (n.{self.key_property.name}) IS NODE KEY"
+
+    def to_pydantic_model_str(self) -> str:
+        """
+            Convert a Node to a Pydantic model class string.
+            `node_label` is a class variable and not exported when calling `.model_dump()` or `.model_dump_json()`
+
+            Returns
+            -------
+            str
+                The Pydantic model class as a string.
+
+            Examples
+            --------
+            >>> Node(label="Person", key_property=Property(name="id", type="STRING", description="The ID of the person"), properties=[Property(name="name", type="STRING", description="The name of the person")]).to_pydantic_model_str()
+            "class Person(BaseModel):
+        id: str = Field(..., description='The ID of the person')
+        name: str = Field(..., description='The name of the person')"
+        """
+        props = [self.key_property.to_pydantic_model_str()] + [
+            p.to_pydantic_model_str() for p in self.properties
+        ]
+        return f"""class {self.label}(BaseModel):
+    node_label: ClassVar[str] = \"{self.label}\"
+
+    {"\n    ".join(props)}"""
 
 
 class Relationship(BaseModel):
@@ -381,6 +457,52 @@ SET end += {{{formatted_props}}}"""
             return f"CREATE CONSTRAINT {self.type}_constraint IF NOT EXISTS FOR ()-[r:{self.type}]->() REQUIRE (r.{self.key_property.name}) IS RELATIONSHIP KEY"
         else:
             return None
+
+    def to_pydantic_model_str(
+        self, start_node_key_property: Property, end_node_key_property: Property
+    ) -> str:
+        """
+        Convert a Relationship to a Pydantic model class string.
+        This model contains the start and end node key properties and any properties of the relationship as fields.
+        Class variables are also included and not exported when calling `.model_dump()` or `.model_dump_json()`
+        * start_node_label
+        * end_node_label
+        * pattern
+        * relationship_type
+
+        Parameters
+        ----------
+        start_node_key_property : Property
+            The key property of the start node.
+        end_node_key_property : Property
+            The key property of the end node.
+
+        Returns
+        -------
+        str
+            The Pydantic model class as a string.
+        """
+        key_prop_list = (
+            [self.key_property.to_pydantic_model_str()] if self.key_property else []
+        )
+        props = key_prop_list + [p.to_pydantic_model_str() for p in self.properties]
+
+        start_node_key_prop_field = f"start_node_{self.start_node_label}_{start_node_key_property.to_pydantic_model_str()}"
+        end_node_key_prop_field = f"end_node_{self.end_node_label}_{end_node_key_property.to_pydantic_model_str()}"
+
+        type_pascal_case = convert_screaming_snake_case_to_pascal_case(self.type)
+
+        # Build properties section with proper indentation
+        props_section = f"\n    {'\n    '.join(props)}\n" if props else ""
+
+        return f"""class {type_pascal_case}(BaseModel):
+    relationship_type: ClassVar[str] = \"{self.type}\"
+    start_node_label: ClassVar[str] = \"{self.start_node_label}\"
+    end_node_label: ClassVar[str] = \"{self.end_node_label}\"
+    pattern: ClassVar[str] = \"{self.pattern}\"
+
+    {start_node_key_prop_field}
+    {end_node_key_prop_field}{props_section}"""
 
 
 class DataModel(BaseModel):
@@ -776,3 +898,102 @@ class DataModel(BaseModel):
             if r.key_property is not None
         ]
         return node_queries + relationship_queries
+
+    def to_pydantic_model_str(self) -> str:
+        """
+        Convert the entire DataModel to a Pydantic models Python file string representation.
+
+        This generates a complete Python file as a string containing:
+        - Import statements for Pydantic
+        - All Node models as Pydantic BaseModel classes
+        - All Relationship models as Pydantic BaseModel classes
+
+        Returns
+        -------
+        str
+            A complete Python file string with all Pydantic model definitions.
+
+        Examples
+        --------
+        >>> dm = DataModel(
+        ...     nodes=[
+        ...         Node(label="Person", key_property=Property(name="id", type="STRING")),
+        ...         Node(label="Company", key_property=Property(name="companyId", type="STRING"))
+        ...     ],
+        ...     relationships=[
+        ...         Relationship(
+        ...             type="WORKS_FOR",
+        ...             start_node_label="Person",
+        ...             end_node_label="Company",
+        ...             properties=[Property(name="startDate", type="DATE")]
+        ...         )
+        ...     ]
+        ... )
+        >>> print(dm.to_pydantic_model_str())
+        from pydantic import BaseModel, Field
+        from typing import ClassVar
+        from datetime import date
+
+        
+        class Person(BaseModel):
+            node_label: ClassVar[str] = "Person"
+
+            id: str
+
+                        
+        class Company(BaseModel):
+            node_label: ClassVar[str] = "Company"
+      
+            companyId: str
+     
+       
+        class WorksFor(BaseModel):
+            relationship_type: ClassVar[str] = "WORKS_FOR"
+            start_node_label: ClassVar[str] = "Person"
+            end_node_label: ClassVar[str] = "Company"
+            pattern: ClassVar[str] = "(Person)-[WORKS_FOR]->(Company)"
+      
+            start_node_Person_id: str
+            end_node_Company_companyId: str
+            startDate: datetime
+        """
+
+        # Generate Node models
+        node_models = [node.to_pydantic_model_str() for node in self.nodes]
+
+        # Generate Relationship models
+        relationship_models = []
+        for rel in self.relationships:
+            start_node = self.nodes_dict[rel.start_node_label]
+            end_node = self.nodes_dict[rel.end_node_label]
+            rel_model = rel.to_pydantic_model_str(
+                start_node.key_property, end_node.key_property
+            )
+            relationship_models.append(rel_model)
+
+        # Combine all parts with double newlines between models
+        all_models = node_models + relationship_models
+        models_str = "\n\n\n".join(all_models) if all_models else ""
+
+        # Construct Import statements
+        imports_base = "from pydantic import BaseModel, Field"
+
+        if (
+            ": datetime" in models_str
+            or ": time" in models_str
+            or ": timedelta" in models_str
+        ):
+            imports_base += "\nfrom datetime import "
+            datetime_imports = []
+            if ": datetime" in models_str:
+                datetime_imports.append("datetime")
+            if ": time" in models_str:
+                datetime_imports.append("time")
+            if ": timedelta" in models_str:
+                datetime_imports.append("timedelta")
+            imports_base += ", ".join(datetime_imports)
+
+        imports_base += "\nfrom typing import ClassVar"
+        imports = f"{imports_base}"
+
+        return f"{imports}\n\n\n{models_str}"

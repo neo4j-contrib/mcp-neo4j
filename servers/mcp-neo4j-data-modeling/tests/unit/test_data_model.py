@@ -796,3 +796,557 @@ def test_data_model_owl_turtle_round_trip():
     restored_rel_types = {r.type for r in restored_model.relationships}
     original_rel_types = {r.type for r in original_model.relationships}
     assert restored_rel_types == original_rel_types
+
+
+def test_property_to_pydantic_model_str_with_description():
+    """Test Property.to_pydantic_model_str() with description - validates exact format."""
+    prop = Property(name="userName", type="STRING", description="The user's name")
+    result = prop.to_pydantic_model_str()
+
+    expected = 'userName: str = Field(..., description="The user\'s name")'
+    assert result == expected
+
+
+def test_property_to_pydantic_model_str_without_description():
+    """Test Property.to_pydantic_model_str() without description - validates exact format."""
+    prop = Property(name="userId", type="STRING")
+    result = prop.to_pydantic_model_str()
+
+    expected = "userId: str"
+    assert result == expected
+
+
+def test_property_to_pydantic_model_str_integer_type():
+    """Test Property.to_pydantic_model_str() with INTEGER type - validates exact format."""
+    prop = Property(name="count", type="INTEGER", description="Item count")
+    result = prop.to_pydantic_model_str()
+
+    expected = 'count: int = Field(..., description="Item count")'
+    assert result == expected
+
+
+def test_property_to_pydantic_model_str_float_type():
+    """Test Property.to_pydantic_model_str() with FLOAT type - validates exact format."""
+    prop = Property(name="amount", type="FLOAT", description="Dollar amount")
+    result = prop.to_pydantic_model_str()
+
+    expected = 'amount: float = Field(..., description="Dollar amount")'
+    assert result == expected
+
+
+def test_property_to_pydantic_model_str_boolean_type():
+    """Test Property.to_pydantic_model_str() with BOOLEAN type - validates exact format."""
+    prop = Property(name="active", type="BOOLEAN", description="Is active")
+    result = prop.to_pydantic_model_str()
+
+    expected = 'active: bool = Field(..., description="Is active")'
+    assert result == expected
+
+
+def test_property_to_pydantic_model_str_datetime_type():
+    """Test Property.to_pydantic_model_str() with DATETIME type - validates exact format."""
+    prop = Property(name="createdAt", type="DATETIME", description="Creation timestamp")
+    result = prop.to_pydantic_model_str()
+
+    expected = 'createdAt: datetime = Field(..., description="Creation timestamp")'
+    assert result == expected
+
+
+def test_node_to_pydantic_model_str_simple():
+    """Test Node.to_pydantic_model_str() with simple node - validates exact format."""
+    node = Node(
+        label="User",
+        key_property=Property(name="userId", type="STRING", description="User ID"),
+        properties=[],
+    )
+    result = node.to_pydantic_model_str()
+
+    expected = """class User(BaseModel):
+    node_label: ClassVar[str] = "User"
+
+    userId: str = Field(..., description="User ID")""".strip()
+    assert result == expected
+
+
+def test_node_to_pydantic_model_str_with_properties():
+    """Test Node.to_pydantic_model_str() with multiple properties - validates exact format."""
+    node = Node(
+        label="Product",
+        key_property=Property(
+            name="productId", type="STRING", description="Product identifier"
+        ),
+        properties=[
+            Property(name="name", type="STRING", description="Product name"),
+            Property(name="price", type="FLOAT", description="Product price"),
+            Property(name="inStock", type="BOOLEAN", description="Availability"),
+        ],
+    )
+    result = node.to_pydantic_model_str()
+
+    expected = """class Product(BaseModel):
+    node_label: ClassVar[str] = "Product"
+
+    productId: str = Field(..., description="Product identifier")
+    name: str = Field(..., description="Product name")
+    price: float = Field(..., description="Product price")
+    inStock: bool = Field(..., description="Availability")""".strip()
+    assert result == expected
+
+
+def test_node_to_pydantic_model_str_various_types():
+    """Test Node.to_pydantic_model_str() with various property types - validates exact format."""
+    node = Node(
+        label="Event",
+        key_property=Property(name="eventId", type="STRING", description="Event ID"),
+        properties=[
+            Property(
+                name="attendees", type="INTEGER", description="Number of attendees"
+            ),
+            Property(name="startTime", type="DATETIME", description="Start time"),
+            Property(name="tags", type="LIST", description="Event tags"),
+        ],
+    )
+    result = node.to_pydantic_model_str()
+
+    expected = """class Event(BaseModel):
+    node_label: ClassVar[str] = "Event"
+
+    eventId: str = Field(..., description="Event ID")
+    attendees: int = Field(..., description="Number of attendees")
+    startTime: datetime = Field(..., description="Start time")
+    tags: list = Field(..., description="Event tags")""".strip()
+    assert result == expected
+
+
+def test_node_to_pydantic_model_str_pascal_case_label():
+    """Test Node.to_pydantic_model_str() maintains PascalCase label - validates exact format."""
+    node = Node(
+        label="CustomerAccount",
+        key_property=Property(
+            name="accountId", type="STRING", description="Account ID"
+        ),
+        properties=[],
+    )
+    result = node.to_pydantic_model_str()
+
+    expected = """class CustomerAccount(BaseModel):
+    node_label: ClassVar[str] = "CustomerAccount"
+
+    accountId: str = Field(..., description="Account ID")""".strip()
+    assert result == expected
+
+
+def test_relationship_to_pydantic_model_str_simple():
+    """Test Relationship.to_pydantic_model_str() with simple relationship - validates exact format."""
+    relationship = Relationship(
+        type="FOLLOWS", start_node_label="User", end_node_label="User", properties=[]
+    )
+    start_key_prop = Property(name="userId", type="STRING", description="User ID")
+    end_key_prop = Property(name="userId", type="STRING", description="User ID")
+
+    result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
+
+    expected = """class Follows(BaseModel):
+    relationship_type: ClassVar[str] = "FOLLOWS"
+    start_node_label: ClassVar[str] = "User"
+    end_node_label: ClassVar[str] = "User"
+    pattern: ClassVar[str] = "(:User)-[:FOLLOWS]->(:User)"
+
+    start_node_User_userId: str = Field(..., description="User ID")
+    end_node_User_userId: str = Field(..., description="User ID")"""
+    assert result == expected
+
+
+def test_relationship_to_pydantic_model_str_with_key_property():
+    """Test Relationship.to_pydantic_model_str() with relationship key property - validates exact format."""
+    relationship = Relationship(
+        type="EMPLOYED_BY",
+        start_node_label="Person",
+        end_node_label="Company",
+        key_property=Property(
+            name="employmentId", type="STRING", description="Employment record ID"
+        ),
+        properties=[],
+    )
+    start_key_prop = Property(name="personId", type="STRING", description="Person ID")
+    end_key_prop = Property(name="companyId", type="STRING", description="Company ID")
+
+    result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
+
+    expected = """class EmployedBy(BaseModel):
+    relationship_type: ClassVar[str] = "EMPLOYED_BY"
+    start_node_label: ClassVar[str] = "Person"
+    end_node_label: ClassVar[str] = "Company"
+    pattern: ClassVar[str] = \"(:Person)-[:EMPLOYED_BY]->(:Company)\"
+
+    start_node_Person_personId: str = Field(..., description="Person ID")
+    end_node_Company_companyId: str = Field(..., description="Company ID")
+    employmentId: str = Field(..., description="Employment record ID")""".strip()
+    assert result.strip() == expected
+
+
+def test_relationship_to_pydantic_model_str_with_properties():
+    """Test Relationship.to_pydantic_model_str() with relationship properties - validates exact format."""
+    relationship = Relationship(
+        type="REVIEWED",
+        start_node_label="Customer",
+        end_node_label="Product",
+        properties=[
+            Property(name="rating", type="INTEGER", description="Star rating"),
+            Property(name="comment", type="STRING", description="Review text"),
+            Property(name="reviewDate", type="DATE", description="Date of review"),
+        ],
+    )
+    start_key_prop = Property(
+        name="customerId", type="STRING", description="Customer ID"
+    )
+    end_key_prop = Property(name="productId", type="STRING", description="Product ID")
+
+    result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
+
+    expected = """class Reviewed(BaseModel):
+    relationship_type: ClassVar[str] = "REVIEWED"
+    start_node_label: ClassVar[str] = "Customer"
+    end_node_label: ClassVar[str] = "Product"
+    pattern: ClassVar[str] = \"(:Customer)-[:REVIEWED]->(:Product)\"
+
+    start_node_Customer_customerId: str = Field(..., description="Customer ID")
+    end_node_Product_productId: str = Field(..., description="Product ID")
+    rating: int = Field(..., description="Star rating")
+    comment: str = Field(..., description="Review text")
+    reviewDate: datetime = Field(..., description="Date of review")""".strip()
+    assert result.strip() == expected
+
+
+def test_relationship_to_pydantic_model_str_with_key_and_properties():
+    """Test Relationship.to_pydantic_model_str() with both key property and properties - validates exact format."""
+    relationship = Relationship(
+        type="PURCHASED",
+        start_node_label="User",
+        end_node_label="Item",
+        key_property=Property(
+            name="transactionId", type="STRING", description="Transaction ID"
+        ),
+        properties=[
+            Property(name="quantity", type="INTEGER", description="Quantity purchased"),
+            Property(name="totalPrice", type="FLOAT", description="Total price"),
+            Property(
+                name="purchaseDate", type="DATETIME", description="Purchase timestamp"
+            ),
+        ],
+    )
+    start_key_prop = Property(name="userId", type="STRING", description="User ID")
+    end_key_prop = Property(name="itemId", type="STRING", description="Item ID")
+
+    result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
+
+    expected = """class Purchased(BaseModel):
+    relationship_type: ClassVar[str] = "PURCHASED"
+    start_node_label: ClassVar[str] = "User"
+    end_node_label: ClassVar[str] = "Item"
+    pattern: ClassVar[str] = \"(:User)-[:PURCHASED]->(:Item)\"
+
+    start_node_User_userId: str = Field(..., description="User ID")
+    end_node_Item_itemId: str = Field(..., description="Item ID")
+    transactionId: str = Field(..., description="Transaction ID")
+    quantity: int = Field(..., description="Quantity purchased")
+    totalPrice: float = Field(..., description="Total price")
+    purchaseDate: datetime = Field(..., description="Purchase timestamp")""".strip()
+    assert result.strip() == expected
+
+
+def test_relationship_to_pydantic_model_str_screaming_to_pascal():
+    """Test Relationship.to_pydantic_model_str() converts SCREAMING_SNAKE_CASE to PascalCase - validates exact format."""
+    relationship = Relationship(
+        type="BELONGS_TO_GROUP",
+        start_node_label="Member",
+        end_node_label="Group",
+        properties=[],
+    )
+    start_key_prop = Property(name="memberId", type="STRING", description="Member ID")
+    end_key_prop = Property(name="groupId", type="STRING", description="Group ID")
+
+    result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
+
+    expected = """class BelongsToGroup(BaseModel):
+    relationship_type: ClassVar[str] = "BELONGS_TO_GROUP"
+    start_node_label: ClassVar[str] = "Member"
+    end_node_label: ClassVar[str] = "Group"
+    pattern: ClassVar[str] = \"(:Member)-[:BELONGS_TO_GROUP]->(:Group)\"
+
+    start_node_Member_memberId: str = Field(..., description="Member ID")
+    end_node_Group_groupId: str = Field(..., description="Group ID")"""
+    assert result == expected
+
+
+def test_relationship_to_pydantic_model_str_different_node_types():
+    """Test Relationship.to_pydantic_model_str() with different start and end node types - validates exact format."""
+    relationship = Relationship(
+        type="LIVES_IN",
+        start_node_label="Person",
+        end_node_label="City",
+        properties=[Property(name="since", type="DATE", description="Resident since")],
+    )
+    start_key_prop = Property(name="personId", type="STRING", description="Person ID")
+    end_key_prop = Property(name="cityId", type="INTEGER", description="City ID")
+
+    result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
+
+    expected = """class LivesIn(BaseModel):
+    relationship_type: ClassVar[str] = "LIVES_IN"
+    start_node_label: ClassVar[str] = "Person"
+    end_node_label: ClassVar[str] = "City"
+    pattern: ClassVar[str] = \"(:Person)-[:LIVES_IN]->(:City)\"
+
+    start_node_Person_personId: str = Field(..., description="Person ID")
+    end_node_City_cityId: int = Field(..., description="City ID")
+    since: datetime = Field(..., description="Resident since")""".strip()
+    assert result.strip() == expected
+
+
+def test_relationship_to_pydantic_model_str_self_referential():
+    """Test Relationship.to_pydantic_model_str() with self-referential relationship - validates exact format."""
+    relationship = Relationship(
+        type="MANAGES",
+        start_node_label="Employee",
+        end_node_label="Employee",
+        properties=[Property(name="since", type="DATE", description="Managing since")],
+    )
+    start_key_prop = Property(
+        name="employeeId", type="STRING", description="Employee ID"
+    )
+    end_key_prop = Property(name="employeeId", type="STRING", description="Employee ID")
+
+    result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
+
+    expected = """class Manages(BaseModel):
+    relationship_type: ClassVar[str] = "MANAGES"
+    start_node_label: ClassVar[str] = "Employee"
+    end_node_label: ClassVar[str] = "Employee"
+    pattern: ClassVar[str] = \"(:Employee)-[:MANAGES]->(:Employee)\"
+
+    start_node_Employee_employeeId: str = Field(..., description="Employee ID")
+    end_node_Employee_employeeId: str = Field(..., description="Employee ID")
+    since: datetime = Field(..., description="Managing since")""".strip()
+    assert result.strip() == expected
+
+
+def test_data_model_to_pydantic_model_str_nodes_only():
+    """Test DataModel.to_pydantic_model_str() with nodes only - validates exact format."""
+    data_model = DataModel(
+        nodes=[
+            Node(
+                label="User",
+                key_property=Property(
+                    name="userId", type="STRING", description="User ID"
+                ),
+                properties=[
+                    Property(name="name", type="STRING", description="User name"),
+                ],
+            ),
+            Node(
+                label="Product",
+                key_property=Property(
+                    name="productId", type="STRING", description="Product ID"
+                ),
+                properties=[],
+            ),
+        ],
+        relationships=[],
+    )
+
+    result = data_model.to_pydantic_model_str()
+
+    expected = """from pydantic import BaseModel, Field
+from typing import ClassVar
+
+
+class User(BaseModel):
+    node_label: ClassVar[str] = "User"
+
+    userId: str = Field(..., description="User ID")
+    name: str = Field(..., description="User name")
+
+
+class Product(BaseModel):
+    node_label: ClassVar[str] = "Product"
+
+    productId: str = Field(..., description="Product ID")"""
+    assert result == expected
+
+
+def test_data_model_to_pydantic_model_str_with_relationships():
+    """Test DataModel.to_pydantic_model_str() with nodes and relationships - validates exact format."""
+    data_model = DataModel(
+        nodes=[
+            Node(
+                label="Person",
+                key_property=Property(
+                    name="personId", type="STRING", description="Person ID"
+                ),
+                properties=[],
+            ),
+            Node(
+                label="Company",
+                key_property=Property(
+                    name="companyId", type="STRING", description="Company ID"
+                ),
+                properties=[],
+            ),
+        ],
+        relationships=[
+            Relationship(
+                type="WORKS_FOR",
+                start_node_label="Person",
+                end_node_label="Company",
+                properties=[
+                    Property(
+                        name="since", type="DATE", description="Employment start date"
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    result = data_model.to_pydantic_model_str()
+
+    expected = """from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import ClassVar
+
+
+class Person(BaseModel):
+    node_label: ClassVar[str] = "Person"
+
+    personId: str = Field(..., description="Person ID")
+
+
+class Company(BaseModel):
+    node_label: ClassVar[str] = "Company"
+
+    companyId: str = Field(..., description="Company ID")
+
+
+class WorksFor(BaseModel):
+    relationship_type: ClassVar[str] = "WORKS_FOR"
+    start_node_label: ClassVar[str] = "Person"
+    end_node_label: ClassVar[str] = "Company"
+    pattern: ClassVar[str] = \"(:Person)-[:WORKS_FOR]->(:Company)\"
+
+    start_node_Person_personId: str = Field(..., description="Person ID")
+    end_node_Company_companyId: str = Field(..., description="Company ID")
+    since: datetime = Field(..., description="Employment start date")""".strip()
+    assert result.strip() == expected
+
+
+def test_data_model_to_pydantic_model_str_complex():
+    """Test DataModel.to_pydantic_model_str() with complex model - validates exact format."""
+    data_model = DataModel(
+        nodes=[
+            Node(
+                label="User",
+                key_property=Property(
+                    name="userId", type="STRING", description="User ID"
+                ),
+                properties=[
+                    Property(name="email", type="STRING", description="Email address"),
+                    Property(name="age", type="INTEGER", description="User age"),
+                ],
+            ),
+            Node(
+                label="Post",
+                key_property=Property(
+                    name="postId", type="STRING", description="Post ID"
+                ),
+                properties=[
+                    Property(name="title", type="STRING", description="Post title"),
+                    Property(
+                        name="createdAt", type="DATETIME", description="Creation time"
+                    ),
+                ],
+            ),
+        ],
+        relationships=[
+            Relationship(
+                type="AUTHORED",
+                start_node_label="User",
+                end_node_label="Post",
+                key_property=Property(
+                    name="authorshipId", type="STRING", description="Authorship ID"
+                ),
+                properties=[
+                    Property(
+                        name="publishedAt",
+                        type="DATETIME",
+                        description="Publish timestamp",
+                    ),
+                ],
+            ),
+            Relationship(
+                type="LIKES",
+                start_node_label="User",
+                end_node_label="Post",
+                properties=[],
+            ),
+        ],
+    )
+
+    result = data_model.to_pydantic_model_str()
+
+    expected = """from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import ClassVar
+
+
+class User(BaseModel):
+    node_label: ClassVar[str] = "User"
+
+    userId: str = Field(..., description="User ID")
+    email: str = Field(..., description="Email address")
+    age: int = Field(..., description="User age")
+
+
+class Post(BaseModel):
+    node_label: ClassVar[str] = "Post"
+
+    postId: str = Field(..., description="Post ID")
+    title: str = Field(..., description="Post title")
+    createdAt: datetime = Field(..., description="Creation time")
+
+
+class Authored(BaseModel):
+    relationship_type: ClassVar[str] = "AUTHORED"
+    start_node_label: ClassVar[str] = "User"
+    end_node_label: ClassVar[str] = "Post"
+    pattern: ClassVar[str] = \"(:User)-[:AUTHORED]->(:Post)\"
+
+    start_node_User_userId: str = Field(..., description="User ID")
+    end_node_Post_postId: str = Field(..., description="Post ID")
+    authorshipId: str = Field(..., description="Authorship ID")
+    publishedAt: datetime = Field(..., description="Publish timestamp")
+
+
+
+class Likes(BaseModel):
+    relationship_type: ClassVar[str] = "LIKES"
+    start_node_label: ClassVar[str] = "User"
+    end_node_label: ClassVar[str] = "Post"
+    pattern: ClassVar[str] = \"(:User)-[:LIKES]->(:Post)\"
+
+    start_node_User_userId: str = Field(..., description="User ID")
+    end_node_Post_postId: str = Field(..., description="Post ID")""".strip()
+    assert result.strip() == expected
+
+
+def test_data_model_to_pydantic_model_str_empty():
+    """Test DataModel.to_pydantic_model_str() with empty model - validates exact format."""
+    data_model = DataModel(nodes=[], relationships=[])
+
+    result = data_model.to_pydantic_model_str()
+
+    expected = """from pydantic import BaseModel, Field
+from typing import ClassVar
+
+
+"""
+    assert result == expected
