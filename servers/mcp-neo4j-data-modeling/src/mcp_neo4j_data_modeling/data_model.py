@@ -294,7 +294,9 @@ SET n += {{{formatted_props}}}"""
             p.to_pydantic_model_str() for p in self.properties
         ]
         return f"""class {self.label}(BaseModel):
-    {"\n    ".join(props)}"""
+    {"\n    ".join(props)}
+
+    node_label: ClassVar[str] = \"{self.label}\""""
 
 
 class Relationship(BaseModel):
@@ -491,6 +493,7 @@ SET end += {{{formatted_props}}}"""
         return f"""class {type_pascal_case}(BaseModel):
     {start_node_key_prop_field}
     {end_node_key_prop_field}{props_section}
+    relationship_type: ClassVar[str] = \"{self.type}\"
     start_node_label: ClassVar[str] = \"{self.start_node_label}\"
     end_node_label: ClassVar[str] = \"{self.end_node_label}\"
     pattern: ClassVar[str] = \"{self.pattern}\""""
