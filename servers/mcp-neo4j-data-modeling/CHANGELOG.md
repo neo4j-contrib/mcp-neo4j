@@ -1,7 +1,7 @@
 ## Next
 
 ### Fixed
-* Remove `stateless_http` flag from server constructor. This is a deprecated feature of FastMCP and has no effect on the server.
+* Remove `stateless_http` flag on MCP server constructor and move to the appropriate `run_...` function for http and sse transport. The constructor flag is deprecated by FastMCP.
 
 ### Changed
 
