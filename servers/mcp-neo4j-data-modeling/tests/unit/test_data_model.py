@@ -1388,7 +1388,9 @@ def test_property_to_neo4j_graphrag_python_package_property_dict_not_required():
 def test_property_to_neo4j_graphrag_python_package_property_dict_no_description():
     """Test Property.to_neo4j_graphrag_python_package_property_dict() without description."""
     prop = Property(name="age", type="INTEGER")
-    result = prop.to_neo4j_graphrag_python_package_property_dict(required_property=False)
+    result = prop.to_neo4j_graphrag_python_package_property_dict(
+        required_property=False
+    )
 
     expected = {"name": "age", "type": "INTEGER", "description": "", "required": False}
     assert result == expected
@@ -1411,7 +1413,9 @@ def test_property_to_neo4j_graphrag_python_package_property_dict_various_types()
     assert result_bool["type"] == "BOOLEAN"
 
     # DATETIME type converts to ZONED_DATETIME
-    prop_datetime = Property(name="createdAt", type="DATETIME", description="Created at")
+    prop_datetime = Property(
+        name="createdAt", type="DATETIME", description="Created at"
+    )
     result_datetime = prop_datetime.to_neo4j_graphrag_python_package_property_dict(
         required_property=False
     )
@@ -1431,7 +1435,12 @@ def test_node_to_neo4j_graphrag_python_package_node_dict_simple():
         "label": "Person",
         "description": "",
         "properties": [
-            {"name": "id", "type": "STRING", "description": "Person ID", "required": True}
+            {
+                "name": "id",
+                "type": "STRING",
+                "description": "Person ID",
+                "required": True,
+            }
         ],
     }
     assert result == expected
@@ -1461,9 +1470,13 @@ def test_node_to_neo4j_graphrag_python_package_node_dict_with_properties():
     """Test Node.to_neo4j_graphrag_python_package_node_dict() with additional properties."""
     node = Node(
         label="Planet",
-        key_property=Property(name="name", type="STRING", description="Name of the planet"),
+        key_property=Property(
+            name="name", type="STRING", description="Name of the planet"
+        ),
         properties=[
-            Property(name="weather", type="STRING", description="Weather of the planet"),
+            Property(
+                name="weather", type="STRING", description="Weather of the planet"
+            ),
         ],
     )
     result = node.to_neo4j_graphrag_python_package_node_dict()
@@ -1493,7 +1506,9 @@ def test_node_to_neo4j_graphrag_python_package_node_dict_multiple_properties():
     """Test Node.to_neo4j_graphrag_python_package_node_dict() with multiple properties."""
     node = Node(
         label="Product",
-        key_property=Property(name="productId", type="STRING", description="Product ID"),
+        key_property=Property(
+            name="productId", type="STRING", description="Product ID"
+        ),
         properties=[
             Property(name="name", type="STRING", description="Product name"),
             Property(name="price", type="FLOAT", description="Product price"),
@@ -1506,10 +1521,30 @@ def test_node_to_neo4j_graphrag_python_package_node_dict_multiple_properties():
         "label": "Product",
         "description": "",
         "properties": [
-            {"name": "name", "type": "STRING", "description": "Product name", "required": False},
-            {"name": "price", "type": "FLOAT", "description": "Product price", "required": False},
-            {"name": "inStock", "type": "BOOLEAN", "description": "In stock flag", "required": False},
-            {"name": "productId", "type": "STRING", "description": "Product ID", "required": True},
+            {
+                "name": "name",
+                "type": "STRING",
+                "description": "Product name",
+                "required": False,
+            },
+            {
+                "name": "price",
+                "type": "FLOAT",
+                "description": "Product price",
+                "required": False,
+            },
+            {
+                "name": "inStock",
+                "type": "BOOLEAN",
+                "description": "In stock flag",
+                "required": False,
+            },
+            {
+                "name": "productId",
+                "type": "STRING",
+                "description": "Product ID",
+                "required": True,
+            },
         ],
     }
     assert result == expected
@@ -1539,7 +1574,9 @@ def test_relationship_to_neo4j_graphrag_python_package_relationship_dict_with_me
         type="HEIR_OF",
         start_node_label="Person",
         end_node_label="House",
-        metadata={"description": "Used for inheritor relationship between father and sons"},
+        metadata={
+            "description": "Used for inheritor relationship between father and sons"
+        },
         properties=[],
     )
     result = relationship.to_neo4j_graphrag_python_package_relationship_dict()
@@ -1600,8 +1637,18 @@ def test_relationship_to_neo4j_graphrag_python_package_relationship_dict_with_ke
         "label": "RATED",
         "description": "",
         "properties": [
-            {"name": "score", "type": "FLOAT", "description": "Rating score", "required": False},
-            {"name": "ratingId", "type": "STRING", "description": "Rating ID", "required": True},
+            {
+                "name": "score",
+                "type": "FLOAT",
+                "description": "Rating score",
+                "required": False,
+            },
+            {
+                "name": "ratingId",
+                "type": "STRING",
+                "description": "Rating ID",
+                "required": True,
+            },
         ],
     }
     assert result == expected
@@ -1623,16 +1670,32 @@ def test_relationship_to_neo4j_graphrag_python_package_relationship_pattern_simp
 def test_relationship_to_neo4j_graphrag_python_package_relationship_pattern_various():
     """Test Relationship.to_neo4j_graphrag_python_package_relationship_pattern() with various relationships."""
     # Self-referential
-    rel1 = Relationship(type="PARENT_OF", start_node_label="Person", end_node_label="Person")
-    assert rel1.to_neo4j_graphrag_python_package_relationship_pattern() == ("Person", "PARENT_OF", "Person")
+    rel1 = Relationship(
+        type="PARENT_OF", start_node_label="Person", end_node_label="Person"
+    )
+    assert rel1.to_neo4j_graphrag_python_package_relationship_pattern() == (
+        "Person",
+        "PARENT_OF",
+        "Person",
+    )
 
     # Different nodes
-    rel2 = Relationship(type="HEIR_OF", start_node_label="Person", end_node_label="House")
-    assert rel2.to_neo4j_graphrag_python_package_relationship_pattern() == ("Person", "HEIR_OF", "House")
+    rel2 = Relationship(
+        type="HEIR_OF", start_node_label="Person", end_node_label="House"
+    )
+    assert rel2.to_neo4j_graphrag_python_package_relationship_pattern() == (
+        "Person",
+        "HEIR_OF",
+        "House",
+    )
 
     # Another combination
     rel3 = Relationship(type="RULES", start_node_label="House", end_node_label="Planet")
-    assert rel3.to_neo4j_graphrag_python_package_relationship_pattern() == ("House", "RULES", "Planet")
+    assert rel3.to_neo4j_graphrag_python_package_relationship_pattern() == (
+        "House",
+        "RULES",
+        "Planet",
+    )
 
 
 def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_empty():
@@ -1683,14 +1746,24 @@ def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_simple():
                     "label": "Person",
                     "description": "",
                     "properties": [
-                        {"name": "id", "type": "STRING", "description": "", "required": True}
+                        {
+                            "name": "id",
+                            "type": "STRING",
+                            "description": "",
+                            "required": True,
+                        }
                     ],
                 },
                 {
                     "label": "City",
                     "description": "",
                     "properties": [
-                        {"name": "name", "type": "STRING", "description": "", "required": True}
+                        {
+                            "name": "name",
+                            "type": "STRING",
+                            "description": "",
+                            "required": True,
+                        }
                     ],
                 },
             ],
@@ -1701,9 +1774,7 @@ def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_simple():
                     "properties": [],
                 }
             ],
-            "patterns": [
-                ("Person", "LIVES_IN", "City")
-            ],
+            "patterns": [("Person", "LIVES_IN", "City")],
         }
     }
     assert result == expected
@@ -1725,9 +1796,15 @@ def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_complex():
             ),
             Node(
                 label="Planet",
-                key_property=Property(name="name", type="STRING", description="Name of the planet"),
+                key_property=Property(
+                    name="name", type="STRING", description="Name of the planet"
+                ),
                 properties=[
-                    Property(name="weather", type="STRING", description="Weather of the planet"),
+                    Property(
+                        name="weather",
+                        type="STRING",
+                        description="Weather of the planet",
+                    ),
                 ],
             ),
         ],
@@ -1767,14 +1844,24 @@ def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_complex():
                     "label": "Person",
                     "description": "",
                     "properties": [
-                        {"name": "id", "type": "STRING", "description": "", "required": True}
+                        {
+                            "name": "id",
+                            "type": "STRING",
+                            "description": "",
+                            "required": True,
+                        }
                     ],
                 },
                 {
                     "label": "House",
                     "description": "",
                     "properties": [
-                        {"name": "name", "type": "STRING", "description": "", "required": True}
+                        {
+                            "name": "name",
+                            "type": "STRING",
+                            "description": "",
+                            "required": True,
+                        }
                     ],
                 },
                 {

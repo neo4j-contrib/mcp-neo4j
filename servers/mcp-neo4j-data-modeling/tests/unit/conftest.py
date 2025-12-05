@@ -231,70 +231,38 @@ def valid_data_model() -> DataModel:
 
 
 @pytest.fixture(scope="function")
-def valid_neo4j_graphrag_python_package_schema_dictionary() -> dict[str, Any]:
-    return {
-        "schema": {
-            "node_types": [
-                "Person",
-                {
-                    "label": "House",
-                    "description": "Family the person belongs to",
-                    "properties": [
-                        {
-                            "name": "name",
-                            "type": "STRING"
-                        }
-                    ]
-                },
-                {
-                    "label": "Planet",
-                    "properties": [
-                        {
-                            "name": "name",
-                            "type": "STRING",
-                            "description": "Name of the planet"
-                        },
-                        {
-                            "name": "weather",
-                            "type": "STRING",
-                            "description": "Weather of the planet"
-                        }
-                    ]
-                }
-            ],
-            "relationship_types": [
-                "PARENT_OF",
-                {
-                    "label": "HEIR_OF",
-                    "description": "Used for inheritor relationship between father and sons"
-                },
-                {
-                    "label": "RULES",
-                    "properties": [
-                        {
-                            "name": "fromYear",
-                            "type": "INTEGER",
-                            "description": "Year from which the rules are in effect"
-                        }
-                    ]
-                }
-            ],
-            "patterns": [
-                [
-                    "Person",
-                    "PARENT_OF",
-                    "Person"
+def test_data_model_for_graphrag_package() -> DataModel:
+    return DataModel(
+        nodes=[
+            Node(
+                label="Person",
+                key_property=Property(
+                    name="id", type="STRING", description="The ID of the person"
+                ),
+                properties=[
+                    Property(
+                        name="name", type="STRING", description="The name of the person"
+                    )
                 ],
-                [
-                    "Person",
-                    "HEIR_OF",
-                    "House"
+            ),
+            Node(
+                label="City",
+                key_property=Property(name="name", type="STRING"),
+                properties=[],
+            ),
+        ],
+        relationships=[
+            Relationship(
+                type="LIVES_IN",
+                start_node_label="Person",
+                end_node_label="City",
+                properties=[
+                    Property(
+                        name="since",
+                        type="INTEGER",
+                        description="The number of years the person has lived in the city",
+                    ),
                 ],
-                [
-                    "House",
-                    "RULES",
-                    "Planet"
-                ]
-            ]
-        }
-    }
+            ),
+        ],
+    )

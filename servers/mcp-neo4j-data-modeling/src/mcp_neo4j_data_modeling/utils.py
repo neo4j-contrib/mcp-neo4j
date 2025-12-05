@@ -10,7 +10,10 @@ logger = logging.getLogger(__name__)
 
 ALLOWED_TRANSPORTS = ["stdio", "http", "sse"]
 
-def convert_data_modeling_mcp_property_type_to_neo4j_graphrag_python_package_schema_property_type(data_modeling_mcp_property_type: str) -> str:
+
+def convert_data_modeling_mcp_property_type_to_neo4j_graphrag_python_package_schema_property_type(
+    data_modeling_mcp_property_type: str,
+) -> str:
     allowed_types = [
         "BOOLEAN",
         "DATE",
@@ -39,14 +42,15 @@ def convert_data_modeling_mcp_property_type_to_neo4j_graphrag_python_package_sch
             case "LOCAL DATETIME":
                 return "LOCAL_DATETIME"
             case "VECTOR":
-                return "LIST" # vector not supported in Neo4j Graphrag Python Package Schema yet
+                return "LIST"  # vector not supported in Neo4j Graphrag Python Package Schema yet
             case "ZONED DATETIME":
                 return "ZONED_DATETIME"
             case "ZONED TIME":
                 return "ZONED_TIME"
             case _:
                 return "STRING"
-    
+
+
 def convert_neo4j_type_to_python_type(neo4j_type: str) -> str:
     "Convert a Neo4j type to a Python type. Defaults to `str` if the type is not recognized."
 
