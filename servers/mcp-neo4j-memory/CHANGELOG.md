@@ -4,6 +4,7 @@
 * Fix bug in Dockerfile where build would fail due to `LABEL` statement coming before `FROM` statement
 
 ### Changed
+* Updated `Entity.type` and `Relation.relationType` Pydantic model fields to have regex checks.
 
 ### Added
 
