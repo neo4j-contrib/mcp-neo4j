@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from rdflib import OWL, RDF, RDFS, XSD, Graph, Namespace, URIRef
 
 from .utils import (
+    convert_data_modeling_mcp_property_type_to_neo4j_graphrag_python_package_schema_property_type,
     convert_neo4j_type_to_python_type,
     convert_screaming_snake_case_to_pascal_case,
 )
@@ -152,6 +153,32 @@ class Property(BaseModel):
             desc = ""
 
         return base + desc
+    
+    def to_neo4j_graphrag_python_package_property_dict(self, required_property: bool = False) -> dict[str, str]:
+        """
+        Convert a Property to a Neo4j Graphrag Python Package Property dictionary.
+
+        Parameters
+        ----------
+        required_property : bool
+            Whether the property is required.
+
+        Returns
+        -------
+        dict[str, str]
+            The Neo4j Graphrag Python Package Property dictionary.
+
+        Examples
+        --------
+        >>> Property(name="id", type="STRING", description="The ID of the person").to_neo4j_graphrag_python_package_property_dict()
+        {'name': 'id', 'type': 'STRING', 'description': 'The ID of the person', 'required': True}
+        """
+        return {
+            "name": self.name,
+            "type": convert_data_modeling_mcp_property_type_to_neo4j_graphrag_python_package_schema_property_type(self.type),
+            "description": self.description if self.description else "",
+            "required": required_property,
+        }
 
 
 class Node(BaseModel):
@@ -298,6 +325,28 @@ SET n += {{{formatted_props}}}"""
     node_label: ClassVar[str] = \"{self.label}\"
 
     {"\n    ".join(props)}"""
+
+    def to_neo4j_graphrag_python_package_node_dict(self) -> dict[str, str]:
+        """
+        Convert a Node to a Neo4j Graphrag Python Package Node dictionary.
+
+        Returns
+        -------
+        dict[str, str]
+            The Neo4j Graphrag Python Package Node dictionary.
+
+        Examples
+        --------
+        >>> Node(label="Person", key_property=Property(name="id", type="STRING", description="The ID of the person"), properties=[Property(name="name", type="STRING", description="The name of the person")]).to_neo4j_graphrag_python_package_node_dict()
+        {'label': 'Person', 'description': '', 'properties': [{'name': 'id', 'type': 'STRING', 'description': 'The ID of the person', 'required': True}, {'name': 'name', 'type': 'STRING', 'description': 'The name of the person', 'required': False}]}
+        """
+        props = [p.to_neo4j_graphrag_python_package_property_dict(required_property=False) for p in self.properties]
+        props.append(self.key_property.to_neo4j_graphrag_python_package_property_dict(required_property=True))
+        return {
+            "label": self.label,
+            "description": "",
+            "properties": props,
+        }
 
 
 class Relationship(BaseModel):
@@ -503,6 +552,40 @@ SET end += {{{formatted_props}}}"""
 
     {start_node_key_prop_field}
     {end_node_key_prop_field}{props_section}"""
+
+    def to_neo4j_graphrag_python_package_relationship_dict(self) -> dict[str, str]:
+        """
+        Convert a Relationship to a Neo4j Graphrag Python Package Relationship dictionary.
+
+        Returns
+        -------
+        dict[str, str]
+            The Neo4j Graphrag Python Package Relationship dictionary.
+        """
+        props = [p.to_neo4j_graphrag_python_package_property_dict(required_property=False) for p in self.properties] if self.properties else []
+        if self.key_property:
+            props.append(self.key_property.to_neo4j_graphrag_python_package_property_dict(required_property=True))
+        return {
+            "label": self.type,
+            "description": "",
+            "properties": props,
+        }
+    
+    def to_neo4j_graphrag_python_package_relationship_pattern(self) -> tuple[str, str, str]:
+        """
+        Convert a Relationship to a Neo4j Graphrag Python Package Relationship pattern tuple.
+        
+        Returns
+        -------
+        tuple[str, str, str]
+            The Neo4j Graphrag Python Package Relationship pattern tuple.
+
+        Examples
+        --------
+        >>> Relationship(type="LIVES_IN", start_node_label="Person", end_node_label="City").to_neo4j_graphrag_python_package_data_model_pattern()
+        ('Person', 'LIVES_IN', 'City')
+        """
+        return (self.start_node_label, self.type, self.end_node_label)
 
 
 class DataModel(BaseModel):
@@ -997,3 +1080,24 @@ class DataModel(BaseModel):
         imports = f"{imports_base}"
 
         return f"{imports}\n\n\n{models_str}"
+    
+    def to_neo4j_graphrag_python_package_data_model_dict(self) -> dict[str, str]:
+        """
+        Convert a DataModel to a Neo4j Graphrag Python Package Data Model dictionary.
+
+        Returns
+        -------
+        dict[str, str]
+            The Neo4j Graphrag Python Package Data Model dictionary.
+        """
+
+        nodes = [n.to_neo4j_graphrag_python_package_node_dict() for n in self.nodes]
+        relationships = [r.to_neo4j_graphrag_python_package_relationship_dict() for r in self.relationships]
+        patterns = [r.to_neo4j_graphrag_python_package_relationship_pattern() for r in self.relationships]
+        return {
+            "schema": {
+                "node_types": nodes,
+                "relationship_types": relationships,
+                "patterns": patterns,
+            }
+        }

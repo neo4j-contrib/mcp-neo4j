@@ -228,3 +228,73 @@ def valid_data_model() -> DataModel:
         end_node_label="Place",
     )
     return DataModel(nodes=nodes, relationships=[relationship])
+
+
+@pytest.fixture(scope="function")
+def valid_neo4j_graphrag_python_package_schema_dictionary() -> dict[str, Any]:
+    return {
+        "schema": {
+            "node_types": [
+                "Person",
+                {
+                    "label": "House",
+                    "description": "Family the person belongs to",
+                    "properties": [
+                        {
+                            "name": "name",
+                            "type": "STRING"
+                        }
+                    ]
+                },
+                {
+                    "label": "Planet",
+                    "properties": [
+                        {
+                            "name": "name",
+                            "type": "STRING",
+                            "description": "Name of the planet"
+                        },
+                        {
+                            "name": "weather",
+                            "type": "STRING",
+                            "description": "Weather of the planet"
+                        }
+                    ]
+                }
+            ],
+            "relationship_types": [
+                "PARENT_OF",
+                {
+                    "label": "HEIR_OF",
+                    "description": "Used for inheritor relationship between father and sons"
+                },
+                {
+                    "label": "RULES",
+                    "properties": [
+                        {
+                            "name": "fromYear",
+                            "type": "INTEGER",
+                            "description": "Year from which the rules are in effect"
+                        }
+                    ]
+                }
+            ],
+            "patterns": [
+                [
+                    "Person",
+                    "PARENT_OF",
+                    "Person"
+                ],
+                [
+                    "Person",
+                    "HEIR_OF",
+                    "House"
+                ],
+                [
+                    "House",
+                    "RULES",
+                    "Planet"
+                ]
+            ]
+        }
+    }
