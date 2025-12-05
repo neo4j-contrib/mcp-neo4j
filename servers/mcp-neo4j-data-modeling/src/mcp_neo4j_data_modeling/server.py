@@ -34,7 +34,7 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
     """Create an MCP server instance for data modeling."""
 
     mcp: FastMCP = FastMCP(
-        "mcp-neo4j-data-modeling", dependencies=["pydantic"], stateless_http=True
+        "mcp-neo4j-data-modeling", dependencies=["pydantic"]
     )
 
     namespace_prefix = format_namespace(namespace)
@@ -517,7 +517,7 @@ async def main(
                 f"Running Neo4j Data Modeling MCP Server with HTTP transport on {host}:{port}..."
             )
             await mcp.run_http_async(
-                host=host, port=port, path=path, middleware=custom_middleware
+                host=host, port=port, path=path, middleware=custom_middleware, stateless_http=True
             )
         case "stdio":
             logger.info(
@@ -534,6 +534,7 @@ async def main(
                 path=path,
                 middleware=custom_middleware,
                 transport="sse",
+                stateless_http=True,
             )
 
 
