@@ -1,6 +1,7 @@
 {
-  "name": "mcp-neo4j",
+  "name": "neo4j",
   "version": "1.0.0",
+  "description": "Interact with Neo4j graph databases through natural language.",
   "mcpServers": {
     "mcp-neo4j-cloud-aura-api": {
       "command": "uvx",
