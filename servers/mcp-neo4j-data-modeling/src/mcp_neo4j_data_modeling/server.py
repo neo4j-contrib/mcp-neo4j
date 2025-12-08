@@ -438,7 +438,9 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         Accepts a Neo4j Graphrag Python Package schema dictionary.
         """
         logger.info("Loading a data model from a Neo4j Graphrag Python Package schema.")
-        return DataModel.from_neo4j_graphrag_python_package_schema(neo4j_graphrag_python_package_schema)
+        return DataModel.from_neo4j_graphrag_python_package_schema(
+            neo4j_graphrag_python_package_schema
+        )
 
     @mcp.prompt(title="Create New Data Model")
     def create_new_data_model(

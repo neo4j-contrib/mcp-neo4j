@@ -365,7 +365,7 @@ SET n += {{{formatted_props}}}"""
         docstring = ""
         if self.description:
             # Escape triple quotes in description
-            escaped_desc = self.description.replace('"""', r'\"\"\"')
+            escaped_desc = self.description.replace('"""', r"\"\"\"")
             docstring = f'\n    """{escaped_desc}"""'
 
         return f"""class {self.label}(BaseModel):{docstring}
@@ -657,7 +657,7 @@ SET end += {{{formatted_props}}}"""
         docstring = ""
         if self.description:
             # Escape triple quotes in description
-            escaped_desc = self.description.replace('"""', r'\"\"\"')
+            escaped_desc = self.description.replace('"""', r"\"\"\"")
             docstring = f'\n    """{escaped_desc}"""'
 
         # Build properties section with proper indentation

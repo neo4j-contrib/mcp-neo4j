@@ -211,6 +211,53 @@ class TestNodeToPydanticModelStr:
         assert "field1:" in result
         assert "field2:" in result
 
+    def test_node_with_description(self):
+        """Test converting a Node with description to Pydantic model string with docstring."""
+        node = Node(
+            label="Person",
+            key_property=Property(
+                name="id", type="STRING", description="The ID of the person"
+            ),
+            properties=[
+                Property(
+                    name="name", type="STRING", description="The name of the person"
+                ),
+            ],
+            description="Represents a person in the system",
+        )
+        result = node.to_pydantic_model_str()
+
+        assert "class Person(BaseModel):" in result
+        assert '"""Represents a person in the system"""' in result
+        assert "id:" in result
+        assert "name:" in result
+
+    def test_node_without_description(self):
+        """Test converting a Node without description has no docstring."""
+        node = Node(
+            label="Person",
+            key_property=Property(name="id", type="STRING"),
+            properties=[],
+        )
+        result = node.to_pydantic_model_str()
+
+        assert "class Person(BaseModel):" in result
+        assert '"""' not in result
+
+    def test_node_with_description_containing_triple_quotes(self):
+        """Test converting a Node with description containing triple quotes."""
+        node = Node(
+            label="Person",
+            key_property=Property(name="id", type="STRING"),
+            properties=[],
+            description='This is a """special""" description',
+        )
+        result = node.to_pydantic_model_str()
+
+        assert "class Person(BaseModel):" in result
+        # Should escape the triple quotes
+        assert r"\"\"\"" in result or "special" in result
+
 
 class TestRelationshipToPydanticModelStr:
     """Test Relationship.to_pydantic_model_str() method."""
@@ -395,6 +442,62 @@ class TestRelationshipToPydanticModelStr:
         assert "isActive:" in result
         assert "start_node_Researcher_researcherId:" in result
         assert "end_node_Project_projectId:" in result
+
+    def test_relationship_with_description(self):
+        """Test converting a Relationship with description to Pydantic model string with docstring."""
+        relationship = Relationship(
+            type="WORKS_FOR",
+            start_node_label="Person",
+            end_node_label="Company",
+            properties=[
+                Property(
+                    name="startDate", type="DATE", description="Employment start date"
+                ),
+            ],
+            description="Represents an employment relationship between a person and a company",
+        )
+        start_key_prop = Property(name="personId", type="STRING")
+        end_key_prop = Property(name="companyId", type="STRING")
+        result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
+
+        assert "class WorksFor(BaseModel):" in result
+        assert (
+            '"""Represents an employment relationship between a person and a company"""'
+            in result
+        )
+        assert "startDate:" in result
+
+    def test_relationship_without_description(self):
+        """Test converting a Relationship without description has no docstring."""
+        relationship = Relationship(
+            type="KNOWS",
+            start_node_label="Person",
+            end_node_label="Person",
+            properties=[],
+        )
+        start_key_prop = Property(name="personId", type="STRING")
+        end_key_prop = Property(name="personId", type="STRING")
+        result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
+
+        assert "class Knows(BaseModel):" in result
+        assert '"""' not in result
+
+    def test_relationship_with_description_containing_triple_quotes(self):
+        """Test converting a Relationship with description containing triple quotes."""
+        relationship = Relationship(
+            type="RELATED_TO",
+            start_node_label="Node",
+            end_node_label="Node",
+            properties=[],
+            description='A """special""" relationship type',
+        )
+        start_key_prop = Property(name="id", type="STRING")
+        end_key_prop = Property(name="id", type="STRING")
+        result = relationship.to_pydantic_model_str(start_key_prop, end_key_prop)
+
+        assert "class RelatedTo(BaseModel):" in result
+        # Should escape the triple quotes
+        assert r"\"\"\"" in result or "special" in result
 
 
 class TestPydanticStringConversionEdgeCases:
