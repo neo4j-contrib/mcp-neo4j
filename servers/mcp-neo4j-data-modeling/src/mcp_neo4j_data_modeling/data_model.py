@@ -277,7 +277,7 @@ class Node(BaseModel):
         "Get the Mermaid configuration string for the node."
         props = [f"<br/>{self.key_property.name}: {self.key_property.type} | KEY"]
         props.extend([f"<br/>{p.name}: {p.type}" for p in self.properties])
-        return f'{self.label}["{self.label}{"".join(props)}"]'
+        return f'{self.label}("{self.label}{"".join(props)}")'
 
     @classmethod
     def from_arrows(cls, arrows_node_dict: dict[str, Any]) -> "Node":
