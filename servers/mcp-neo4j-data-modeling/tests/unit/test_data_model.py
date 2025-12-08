@@ -1486,16 +1486,16 @@ def test_node_to_neo4j_graphrag_python_package_node_dict_with_properties():
         "description": "",
         "properties": [
             {
-                "name": "weather",
-                "type": "STRING",
-                "description": "Weather of the planet",
-                "required": False,
-            },
-            {
                 "name": "name",
                 "type": "STRING",
                 "description": "Name of the planet",
                 "required": True,
+            },
+            {
+                "name": "weather",
+                "type": "STRING",
+                "description": "Weather of the planet",
+                "required": False,
             },
         ],
     }
@@ -1522,6 +1522,12 @@ def test_node_to_neo4j_graphrag_python_package_node_dict_multiple_properties():
         "description": "",
         "properties": [
             {
+                "name": "productId",
+                "type": "STRING",
+                "description": "Product ID",
+                "required": True,
+            },
+            {
                 "name": "name",
                 "type": "STRING",
                 "description": "Product name",
@@ -1538,12 +1544,6 @@ def test_node_to_neo4j_graphrag_python_package_node_dict_multiple_properties():
                 "type": "BOOLEAN",
                 "description": "In stock flag",
                 "required": False,
-            },
-            {
-                "name": "productId",
-                "type": "STRING",
-                "description": "Product ID",
-                "required": True,
             },
         ],
     }
@@ -1638,16 +1638,16 @@ def test_relationship_to_neo4j_graphrag_python_package_relationship_dict_with_ke
         "description": "",
         "properties": [
             {
-                "name": "score",
-                "type": "FLOAT",
-                "description": "Rating score",
-                "required": False,
-            },
-            {
                 "name": "ratingId",
                 "type": "STRING",
                 "description": "Rating ID",
                 "required": True,
+            },
+            {
+                "name": "score",
+                "type": "FLOAT",
+                "description": "Rating score",
+                "required": False,
             },
         ],
     }
@@ -1698,10 +1698,10 @@ def test_relationship_to_neo4j_graphrag_python_package_relationship_pattern_vari
     )
 
 
-def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_empty():
-    """Test DataModel.to_neo4j_graphrag_python_package_data_model_dict() with empty model."""
+def test_data_model_to_neo4j_graphrag_python_package_schema_empty():
+    """Test DataModel.to_neo4j_graphrag_python_package_schema() with empty model."""
     data_model = DataModel(nodes=[], relationships=[])
-    result = data_model.to_neo4j_graphrag_python_package_data_model_dict()
+    result = data_model.to_neo4j_graphrag_python_package_schema()
 
     expected = {
         "schema": {
@@ -1713,8 +1713,8 @@ def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_empty():
     assert result == expected
 
 
-def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_simple():
-    """Test DataModel.to_neo4j_graphrag_python_package_data_model_dict() with simple model."""
+def test_data_model_to_neo4j_graphrag_python_package_schema_simple():
+    """Test DataModel.to_neo4j_graphrag_python_package_schema() with simple model."""
     data_model = DataModel(
         nodes=[
             Node(
@@ -1737,7 +1737,7 @@ def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_simple():
             )
         ],
     )
-    result = data_model.to_neo4j_graphrag_python_package_data_model_dict()
+    result = data_model.to_neo4j_graphrag_python_package_schema()
 
     expected = {
         "schema": {
@@ -1780,8 +1780,8 @@ def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_simple():
     assert result == expected
 
 
-def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_complex():
-    """Test DataModel.to_neo4j_graphrag_python_package_data_model_dict() with complex model."""
+def test_data_model_to_neo4j_graphrag_python_package_schema_complex():
+    """Test DataModel.to_neo4j_graphrag_python_package_schema() with complex model."""
     data_model = DataModel(
         nodes=[
             Node(
@@ -1835,7 +1835,7 @@ def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_complex():
             ),
         ],
     )
-    result = data_model.to_neo4j_graphrag_python_package_data_model_dict()
+    result = data_model.to_neo4j_graphrag_python_package_schema()
 
     expected = {
         "schema": {
@@ -1869,16 +1869,16 @@ def test_data_model_to_neo4j_graphrag_python_package_data_model_dict_complex():
                     "description": "",
                     "properties": [
                         {
-                            "name": "weather",
-                            "type": "STRING",
-                            "description": "Weather of the planet",
-                            "required": False,
-                        },
-                        {
                             "name": "name",
                             "type": "STRING",
                             "description": "Name of the planet",
                             "required": True,
+                        },
+                        {
+                            "name": "weather",
+                            "type": "STRING",
+                            "description": "Weather of the planet",
+                            "required": False,
                         },
                     ],
                 },

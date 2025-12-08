@@ -574,6 +574,16 @@ SET end += {{{formatted_props}}}"""
         """
         props = (
             [
+                self.key_property.to_neo4j_graphrag_python_package_property_dict(
+                    required_property=True
+                )
+            ]
+            if self.key_property
+            else []
+        )
+
+        props += (
+            [
                 p.to_neo4j_graphrag_python_package_property_dict(
                     required_property=False
                 )
@@ -582,12 +592,7 @@ SET end += {{{formatted_props}}}"""
             if self.properties
             else []
         )
-        if self.key_property:
-            props.append(
-                self.key_property.to_neo4j_graphrag_python_package_property_dict(
-                    required_property=True
-                )
-            )
+
         return {
             "label": self.type,
             "description": "",
@@ -1106,7 +1111,7 @@ class DataModel(BaseModel):
 
         return f"{imports}\n\n\n{models_str}"
 
-    def to_neo4j_graphrag_python_package_data_model_dict(self) -> dict[str, str]:
+    def to_neo4j_graphrag_python_package_schema(self) -> dict[str, str]:
         """
         Convert a DataModel to a Neo4j Graphrag Python Package Data Model dictionary.
 

@@ -11,11 +11,13 @@ from mcp_neo4j_data_modeling.data_model import DataModel
 
 
 @pytest.mark.asyncio
-async def test_data_model_for_graphrag_package_to_neo4j_graphrag_python_package_data_model_dict(
+async def test_data_model_for_graphrag_package_to_neo4j_graphrag_python_package_schema(
     test_data_model_for_graphrag_package: DataModel,
 ):
     """Test the data model conversion for the Neo4j Graphrag Python Package."""
-    result = test_data_model_for_graphrag_package.to_neo4j_graphrag_python_package_data_model_dict()
+    result = (
+        test_data_model_for_graphrag_package.to_neo4j_graphrag_python_package_schema()
+    )
 
     assert result is not None
 
@@ -96,5 +98,3 @@ async def test_data_model_for_graphrag_package_to_neo4j_graphrag_python_package_
         == "The number of years the person has lived in the city"
     )
     assert not graphrag_schema.relationship_types[0].properties[0].required
-
-    print(graphrag_schema)
