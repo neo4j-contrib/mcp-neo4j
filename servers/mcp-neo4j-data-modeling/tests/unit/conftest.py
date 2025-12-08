@@ -236,6 +236,7 @@ def test_data_model_for_graphrag_package() -> DataModel:
         nodes=[
             Node(
                 label="Person",
+                description="The person node",
                 key_property=Property(
                     name="id", type="STRING", description="The ID of the person"
                 ),
@@ -256,6 +257,7 @@ def test_data_model_for_graphrag_package() -> DataModel:
                 type="LIVES_IN",
                 start_node_label="Person",
                 end_node_label="City",
+                description="The lives in relationship",
                 properties=[
                     Property(
                         name="since",

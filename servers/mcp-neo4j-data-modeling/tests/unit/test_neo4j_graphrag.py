@@ -39,6 +39,10 @@ async def test_data_model_for_graphrag_package_to_neo4j_graphrag_python_package_
         == test_data_model_for_graphrag_package.nodes[0].label
     )
     assert (
+        graphrag_schema.node_types[0].description
+        == test_data_model_for_graphrag_package.nodes[0].description
+    )
+    assert (
         graphrag_schema.node_types[0].properties[0].name
         == test_data_model_for_graphrag_package.nodes[0].key_property.name
     )
@@ -71,6 +75,9 @@ async def test_data_model_for_graphrag_package_to_neo4j_graphrag_python_package_
         == test_data_model_for_graphrag_package.nodes[1].label
     )
     assert (
+        graphrag_schema.node_types[1].description == ""  # no description for this node
+    )
+    assert (
         graphrag_schema.node_types[1].properties[0].name
         == test_data_model_for_graphrag_package.nodes[1].key_property.name
     )
@@ -84,6 +91,10 @@ async def test_data_model_for_graphrag_package_to_neo4j_graphrag_python_package_
     assert (
         graphrag_schema.relationship_types[0].label
         == test_data_model_for_graphrag_package.relationships[0].type
+    )
+    assert (
+        graphrag_schema.relationship_types[0].description
+        == test_data_model_for_graphrag_package.relationships[0].description
     )
     assert (
         graphrag_schema.relationship_types[0].properties[0].name
