@@ -228,3 +228,41 @@ def valid_data_model() -> DataModel:
         end_node_label="Place",
     )
     return DataModel(nodes=nodes, relationships=[relationship])
+
+
+@pytest.fixture(scope="function")
+def test_data_model_for_graphrag_package() -> DataModel:
+    return DataModel(
+        nodes=[
+            Node(
+                label="Person",
+                key_property=Property(
+                    name="id", type="STRING", description="The ID of the person"
+                ),
+                properties=[
+                    Property(
+                        name="name", type="STRING", description="The name of the person"
+                    )
+                ],
+            ),
+            Node(
+                label="City",
+                key_property=Property(name="name", type="STRING"),
+                properties=[],
+            ),
+        ],
+        relationships=[
+            Relationship(
+                type="LIVES_IN",
+                start_node_label="Person",
+                end_node_label="City",
+                properties=[
+                    Property(
+                        name="since",
+                        type="INTEGER",
+                        description="The number of years the person has lived in the city",
+                    ),
+                ],
+            ),
+        ],
+    )

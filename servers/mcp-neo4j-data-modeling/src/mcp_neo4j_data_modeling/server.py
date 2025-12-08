@@ -33,9 +33,7 @@ logger = logging.getLogger("mcp_neo4j_data_modeling")
 def create_mcp_server(namespace: str = "") -> FastMCP:
     """Create an MCP server instance for data modeling."""
 
-    mcp: FastMCP = FastMCP(
-        "mcp-neo4j-data-modeling", dependencies=["pydantic"]
-    )
+    mcp: FastMCP = FastMCP("mcp-neo4j-data-modeling", dependencies=["pydantic"])
 
     namespace_prefix = format_namespace(namespace)
 
@@ -415,6 +413,33 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Exporting a data model to Pydantic models.")
         return data_model_obj.to_pydantic_model_str()
 
+    @mcp.tool(name=namespace_prefix + "export_to_neo4j_graphrag_python_package_schema")
+    def export_to_neo4j_graphrag_python_package_schema(
+        data_model: Union[str, DataModel],
+    ) -> dict[str, Any]:
+        """
+        Export a data model to a Neo4j Graphrag Python Package schema.
+        Returns a dictionary containing the Neo4j Graphrag Python Package schema.
+        Accepts either a DataModel object or a JSON string of the DataModel object.
+        """
+        # Parse the data_model argument (handles both JSON string and dict)
+        data_model_dict = parse_dict_from_json_input(data_model)
+        data_model_obj = DataModel.model_validate(data_model_dict)
+        logger.info("Exporting a data model to a Neo4j Graphrag Python Package schema.")
+        return data_model_obj.to_neo4j_graphrag_python_package_schema()
+
+    @mcp.tool(name=namespace_prefix + "load_from_neo4j_graphrag_python_package_schema")
+    def load_from_neo4j_graphrag_python_package_schema(
+        neo4j_graphrag_python_package_schema: dict[str, Any],
+    ) -> DataModel:
+        """
+        Load a data model from a Neo4j Graphrag Python Package schema.
+        Returns a DataModel object.
+        Accepts a Neo4j Graphrag Python Package schema dictionary.
+        """
+        logger.info("Loading a data model from a Neo4j Graphrag Python Package schema.")
+        return DataModel.from_neo4j_graphrag_python_package_schema(neo4j_graphrag_python_package_schema)
+
     @mcp.prompt(title="Create New Data Model")
     def create_new_data_model(
         data_context: str = Field(
@@ -517,7 +542,11 @@ async def main(
                 f"Running Neo4j Data Modeling MCP Server with HTTP transport on {host}:{port}..."
             )
             await mcp.run_http_async(
-                host=host, port=port, path=path, middleware=custom_middleware, stateless_http=True
+                host=host,
+                port=port,
+                path=path,
+                middleware=custom_middleware,
+                stateless_http=True,
             )
         case "stdio":
             logger.info(

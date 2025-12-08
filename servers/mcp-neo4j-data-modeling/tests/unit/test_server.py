@@ -306,3 +306,45 @@ class TestNamespacing:
 
         # Verify they both have the same number of tools (just different prefixes)
         assert len(tools_a) == len(tools_b)
+
+
+@pytest.mark.asyncio
+async def test_load_from_neo4j_graphrag_python_package_schema_with_dict(
+    test_mcp_server: FastMCP,
+):
+    """Test that load_from_neo4j_graphrag_python_package_schema handles dict input."""
+    # Create a test schema as dict
+    schema = {
+        "schema": {
+            "node_types": [
+                {
+                    "label": "City",
+                    "description": "",
+                    "properties": [
+                        {
+                            "name": "name",
+                            "type": "STRING",
+                            "description": "City name",
+                            "required": True,
+                        }
+                    ],
+                }
+            ],
+            "relationship_types": [],
+            "patterns": [],
+        }
+    }
+
+    # Get the tool function
+    tools = await test_mcp_server.get_tools()
+    load_tool = tools.get("load_from_neo4j_graphrag_python_package_schema")
+    assert load_tool is not None
+
+    # Call with dict
+    result = load_tool.fn(neo4j_graphrag_python_package_schema=schema)
+
+    # Verify result
+    assert result is not None
+    assert len(result.nodes) == 1
+    assert result.nodes[0].label == "City"
+    assert result.nodes[0].key_property.name == "name"
