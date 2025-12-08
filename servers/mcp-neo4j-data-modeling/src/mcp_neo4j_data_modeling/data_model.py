@@ -227,6 +227,9 @@ class Node(BaseModel):
     properties: list[Property] = Field(
         default_factory=list, description="The properties of the node"
     )
+    description: str | None = Field(
+        default=None, description="The description of the node"
+    )
     metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="The metadata of the node. This should only be used when converting data models.",
@@ -357,7 +360,15 @@ SET n += {{{formatted_props}}}"""
         props = [self.key_property.to_pydantic_model_str()] + [
             p.to_pydantic_model_str() for p in self.properties
         ]
-        return f"""class {self.label}(BaseModel):
+
+        # Add docstring if description is present
+        docstring = ""
+        if self.description:
+            # Escape triple quotes in description
+            escaped_desc = self.description.replace('"""', r'\"\"\"')
+            docstring = f'\n    """{escaped_desc}"""'
+
+        return f"""class {self.label}(BaseModel):{docstring}
     node_label: ClassVar[str] = \"{self.label}\"
 
     {"\n    ".join(props)}"""
@@ -386,7 +397,7 @@ SET n += {{{formatted_props}}}"""
         ]
         return {
             "label": self.label,
-            "description": "",
+            "description": self.description if self.description else "",
             "properties": props,
         }
 
@@ -435,10 +446,15 @@ SET n += {{{formatted_props}}}"""
             for prop_dict in properties_list
         ]
 
+        description = node_dict.get("description")
+        if description == "":
+            description = None
+
         return cls(
             label=node_dict["label"],
             key_property=key_property,
             properties=properties,
+            description=description,
         )
 
 
@@ -456,6 +472,9 @@ class Relationship(BaseModel):
     )
     properties: list[Property] = Field(
         default_factory=list, description="The properties of the relationship, if any."
+    )
+    description: str | None = Field(
+        default=None, description="The description of the relationship"
     )
     metadata: dict[str, Any] = Field(
         default_factory=dict,
@@ -634,10 +653,17 @@ SET end += {{{formatted_props}}}"""
 
         type_pascal_case = convert_screaming_snake_case_to_pascal_case(self.type)
 
+        # Add docstring if description is present
+        docstring = ""
+        if self.description:
+            # Escape triple quotes in description
+            escaped_desc = self.description.replace('"""', r'\"\"\"')
+            docstring = f'\n    """{escaped_desc}"""'
+
         # Build properties section with proper indentation
         props_section = f"\n    {'\n    '.join(props)}\n" if props else ""
 
-        return f"""class {type_pascal_case}(BaseModel):
+        return f"""class {type_pascal_case}(BaseModel):{docstring}
     relationship_type: ClassVar[str] = \"{self.type}\"
     start_node_label: ClassVar[str] = \"{self.start_node_label}\"
     end_node_label: ClassVar[str] = \"{self.end_node_label}\"
@@ -678,7 +704,7 @@ SET end += {{{formatted_props}}}"""
 
         return {
             "label": self.type,
-            "description": "",
+            "description": self.description if self.description else "",
             "properties": props,
         }
 
@@ -752,12 +778,17 @@ SET end += {{{formatted_props}}}"""
             for prop_dict in other_properties
         ]
 
+        description = relationship_dict.get("description")
+        if description == "":
+            description = None
+
         return cls(
             type=relationship_dict["label"],
             start_node_label=start_node_label,
             end_node_label=end_node_label,
             key_property=key_property,
             properties=properties,
+            description=description,
         )
 
 
