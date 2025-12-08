@@ -8,8 +8,8 @@
 ### Added
 * Add methods to export schema as string representations of Pydantic models for `Node`, `Relationship` and `DataModel`
 * Add tool that exports data model as a string representation of a Python file containing imports and Pydantic models
-* Add methods to export as Neo4j GraphRAG Python Package schema JSON for `Node`, `Relationship` and `DataModel`
-* Add tool that exports data model as Neo4j GraphRAG Python Package schema JSON
+* Add methods to import and export as Neo4j GraphRAG Python Package schema JSON for `Node`, `Relationship` and `DataModel`
+* Add tools that import and export data model as Neo4j GraphRAG Python Package schema JSON
 
 ## v0.7.0
 
