@@ -428,6 +428,18 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Exporting a data model to a Neo4j Graphrag Python Package schema.")
         return data_model_obj.to_neo4j_graphrag_python_package_schema()
 
+    @mcp.tool(name=namespace_prefix + "load_from_neo4j_graphrag_python_package_schema")
+    def load_from_neo4j_graphrag_python_package_schema(
+        neo4j_graphrag_python_package_schema: dict[str, Any],
+    ) -> DataModel:
+        """
+        Load a data model from a Neo4j Graphrag Python Package schema.
+        Returns a DataModel object.
+        Accepts a Neo4j Graphrag Python Package schema dictionary.
+        """
+        logger.info("Loading a data model from a Neo4j Graphrag Python Package schema.")
+        return DataModel.from_neo4j_graphrag_python_package_schema(neo4j_graphrag_python_package_schema)
+
     @mcp.prompt(title="Create New Data Model")
     def create_new_data_model(
         data_context: str = Field(

@@ -184,6 +184,38 @@ class Property(BaseModel):
             "required": required_property,
         }
 
+    @classmethod
+    def from_neo4j_graphrag_python_package_property_dict(
+        cls, property_dict: dict[str, Any]
+    ) -> "Property":
+        """
+        Convert a Neo4j Graphrag Python Package Property dictionary to a Property.
+
+        Parameters
+        ----------
+        property_dict : dict[str, Any]
+            The Neo4j Graphrag Python Package Property dictionary.
+
+        Returns
+        -------
+        Property
+            The Property object.
+
+        Examples
+        --------
+        >>> Property.from_neo4j_graphrag_python_package_property_dict({"name": "id", "type": "STRING", "description": "The ID", "required": True})
+        Property(name='id', type='STRING', description='The ID')
+        """
+        description = property_dict.get("description")
+        if description == "":
+            description = None
+
+        return cls(
+            name=property_dict["name"],
+            type=property_dict["type"].replace("_", " "),
+            description=description,
+        )
+
 
 class Node(BaseModel):
     "A Neo4j Node."
@@ -357,6 +389,57 @@ SET n += {{{formatted_props}}}"""
             "description": "",
             "properties": props,
         }
+
+    @classmethod
+    def from_neo4j_graphrag_python_package_node_dict(
+        cls, node_dict: dict[str, Any]
+    ) -> "Node":
+        """
+        Convert a Neo4j Graphrag Python Package Node dictionary to a Node.
+        If no key property is found (required=True), then the first property in the list is used as the key property.
+
+        Parameters
+        ----------
+        node_dict : dict[str, Any]
+            The Neo4j Graphrag Python Package Node dictionary.
+
+        Returns
+        -------
+        Node
+            The Node object.
+
+        Examples
+        --------
+        >>> Node.from_neo4j_graphrag_python_package_node_dict({"label": "Person", "description": "", "properties": [{"name": "id", "type": "STRING", "description": "The ID", "required": True}, {"name": "name", "type": "STRING", "description": "Name", "required": False}]})
+        Node(label='Person', key_property=Property(name='id', type='STRING', description='The ID'), properties=[Property(name='name', type='STRING', description='Name')])
+        """
+        properties_list = node_dict.get("properties", [])
+        assert len(properties_list) > 0, (
+            f"Node {node_dict.get('label')} must have at least one property. If only one property, it will be used as the key property."
+        )
+
+        key_prop_idx = 0
+        for idx, prop_dict in enumerate(properties_list):
+            # we take the first required property as the key property
+            if prop_dict.get("required", False):
+                key_prop_idx = idx
+                break
+
+        key_property_dict = properties_list.pop(key_prop_idx)
+
+        key_property = Property.from_neo4j_graphrag_python_package_property_dict(
+            key_property_dict
+        )
+        properties = [
+            Property.from_neo4j_graphrag_python_package_property_dict(prop_dict)
+            for prop_dict in properties_list
+        ]
+
+        return cls(
+            label=node_dict["label"],
+            key_property=key_property,
+            properties=properties,
+        )
 
 
 class Relationship(BaseModel):
@@ -616,6 +699,66 @@ SET end += {{{formatted_props}}}"""
         ('Person', 'LIVES_IN', 'City')
         """
         return (self.start_node_label, self.type, self.end_node_label)
+
+    @classmethod
+    def from_neo4j_graphrag_python_package_relationship_dict(
+        cls,
+        relationship_dict: dict[str, Any],
+        start_node_label: str,
+        end_node_label: str,
+    ) -> "Relationship":
+        """
+        Convert a Neo4j Graphrag Python Package Relationship dictionary to a Relationship.
+
+        Parameters
+        ----------
+        relationship_dict : dict[str, Any]
+            The Neo4j Graphrag Python Package Relationship dictionary.
+        start_node_label : str
+            The label of the start node.
+        end_node_label : str
+            The label of the end node.
+
+        Returns
+        -------
+        Relationship
+            The Relationship object.
+
+        Examples
+        --------
+        >>> Relationship.from_neo4j_graphrag_python_package_relationship_dict({"label": "LIVES_IN", "description": "", "properties": []}, "Person", "City")
+        Relationship(type='LIVES_IN', start_node_label='Person', end_node_label='City', properties=[])
+        """
+        properties_list = relationship_dict.get("properties", [])
+
+        # Separate key property (required=True) from other properties
+        key_property_dict = None
+        other_properties = []
+
+        for prop_dict in properties_list:
+            if prop_dict.get("required", False):
+                key_property_dict = prop_dict
+            else:
+                other_properties.append(prop_dict)
+
+        key_property = None
+        if key_property_dict:
+            key_property = Property.from_neo4j_graphrag_python_package_property_dict(
+                key_property_dict
+            )
+
+        properties = [
+            Property.from_neo4j_graphrag_python_package_property_dict(prop_dict)
+            for prop_dict in other_properties
+        ]
+
+        return cls(
+            type=relationship_dict["label"],
+            start_node_label=start_node_label,
+            end_node_label=end_node_label,
+            key_property=key_property,
+            properties=properties,
+        )
 
 
 class DataModel(BaseModel):
@@ -1137,3 +1280,81 @@ class DataModel(BaseModel):
                 "patterns": patterns,
             }
         }
+
+    @classmethod
+    def from_neo4j_graphrag_python_package_schema(
+        cls, schema_dict: dict[str, Any]
+    ) -> "DataModel":
+        """
+        Convert a Neo4j Graphrag Python Package schema dictionary to a DataModel.
+
+        Parameters
+        ----------
+        schema_dict : dict[str, Any]
+            The Neo4j Graphrag Python Package schema dictionary.
+
+        Returns
+        -------
+        DataModel
+            The DataModel object.
+
+        Examples
+        --------
+        >>> schema = {"schema": {"node_types": [{"label": "Person", "description": "", "properties": [{"name": "id", "type": "STRING", "description": "", "required": True}]}], "relationship_types": [{"label": "KNOWS", "description": "", "properties": []}], "patterns": [("Person", "KNOWS", "Person")]}}
+        >>> DataModel.from_neo4j_graphrag_python_package_schema(schema)
+        DataModel(nodes=[Node(label='Person', key_property=Property(name='id', type='STRING'), properties=[])], relationships=[Relationship(type='KNOWS', start_node_label='Person', end_node_label='Person', properties=[])])
+        """
+        schema = schema_dict.get("schema") or schema_dict
+        assert len(schema.keys()) == 3, (
+            f"The schema must contain 'node_types', 'relationship_types' and 'patterns' keys, but got {schema.keys()}"
+        )
+        assert schema.get("node_types") is not None, (
+            f"The schema must contain 'node_types' key, but got {schema.keys()}"
+        )
+        assert schema.get("relationship_types") is not None, (
+            f"The schema must contain 'relationship_types' key, but got {schema.keys()}"
+        )
+        assert schema.get("patterns") is not None, (
+            f"The schema must contain 'patterns' key, but got {schema.keys()}"
+        )
+
+        # Convert nodes
+        nodes = [
+            Node.from_neo4j_graphrag_python_package_node_dict(node_dict)
+            for node_dict in schema.get("node_types", [])
+        ]
+
+        # Convert relationships using patterns to get start/end node labels
+        patterns = schema.get("patterns", [])
+
+        # Create a mapping from relationship type to its pattern
+        relationship_pattern_map = {}
+        for pattern in patterns:
+            start_label, rel_type, end_label = pattern
+            if rel_type not in relationship_pattern_map:
+                relationship_pattern_map[rel_type] = []
+            relationship_pattern_map[rel_type].append((start_label, end_label))
+
+        # Convert relationships
+        relationships = []
+        for rel_dict in schema.get("relationship_types", []):
+            rel_type = rel_dict["label"]
+            # Get all patterns for this relationship type
+            rel_patterns = relationship_pattern_map.get(rel_type, [])
+
+            if not rel_patterns:
+                raise ValueError(
+                    f"No pattern found for relationship type {rel_type}. "
+                    "The schema must include patterns for all relationships."
+                )
+
+            # Create a relationship for each pattern instance
+            for start_label, end_label in rel_patterns:
+                relationship = (
+                    Relationship.from_neo4j_graphrag_python_package_relationship_dict(
+                        rel_dict, start_label, end_label
+                    )
+                )
+                relationships.append(relationship)
+
+        return cls(nodes=nodes, relationships=relationships)

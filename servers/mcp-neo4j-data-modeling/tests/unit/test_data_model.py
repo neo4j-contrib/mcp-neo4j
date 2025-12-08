@@ -1915,3 +1915,245 @@ def test_data_model_to_neo4j_graphrag_python_package_schema_complex():
         }
     }
     assert result == expected
+
+
+# Tests for Neo4j GraphRAG Python Package from methods
+
+
+def test_property_from_neo4j_graphrag_python_package_property_dict():
+    """Test Property.from_neo4j_graphrag_python_package_property_dict()."""
+    property_dict = {
+        "name": "id",
+        "type": "STRING",
+        "description": "The ID of the person",
+        "required": True,
+    }
+    result = Property.from_neo4j_graphrag_python_package_property_dict(property_dict)
+
+    assert result.name == "id"
+    assert result.type == "STRING"
+    assert result.description == "The ID of the person"
+
+
+def test_property_from_neo4j_graphrag_python_package_property_dict_empty_description():
+    """Test Property.from_neo4j_graphrag_python_package_property_dict() with empty description."""
+    property_dict = {
+        "name": "id",
+        "type": "STRING",
+        "description": "",
+        "required": True,
+    }
+    result = Property.from_neo4j_graphrag_python_package_property_dict(property_dict)
+
+    assert result.name == "id"
+    assert result.type == "STRING"
+    assert result.description is None
+
+
+def test_property_from_neo4j_graphrag_python_package_property_dict_with_underscores():
+    """Test Property.from_neo4j_graphrag_python_package_property_dict() converts underscores to spaces."""
+    property_dict = {
+        "name": "createdAt",
+        "type": "ZONED_DATETIME",
+        "description": "Creation timestamp",
+        "required": False,
+    }
+    result = Property.from_neo4j_graphrag_python_package_property_dict(property_dict)
+
+    assert result.name == "createdAt"
+    assert result.type == "ZONED DATETIME"
+    assert result.description == "Creation timestamp"
+
+
+def test_node_from_neo4j_graphrag_python_package_node_dict():
+    """Test Node.from_neo4j_graphrag_python_package_node_dict()."""
+    node_dict = {
+        "label": "Person",
+        "description": "",
+        "properties": [
+            {
+                "name": "id",
+                "type": "STRING",
+                "description": "Person ID",
+                "required": True,
+            },
+            {
+                "name": "name",
+                "type": "STRING",
+                "description": "Name",
+                "required": False,
+            },
+        ],
+    }
+    result = Node.from_neo4j_graphrag_python_package_node_dict(node_dict)
+
+    assert result.label == "Person"
+    assert result.key_property.name == "id"
+    assert result.key_property.type == "STRING"
+    assert result.key_property.description == "Person ID"
+    assert len(result.properties) == 1
+    assert result.properties[0].name == "name"
+
+
+def test_relationship_from_neo4j_graphrag_python_package_relationship_dict():
+    """Test Relationship.from_neo4j_graphrag_python_package_relationship_dict()."""
+    relationship_dict = {
+        "label": "LIVES_IN",
+        "description": "",
+        "properties": [
+            {
+                "name": "since",
+                "type": "DATE",
+                "description": "Since when",
+                "required": False,
+            }
+        ],
+    }
+    result = Relationship.from_neo4j_graphrag_python_package_relationship_dict(
+        relationship_dict, "Person", "City"
+    )
+
+    assert result.type == "LIVES_IN"
+    assert result.start_node_label == "Person"
+    assert result.end_node_label == "City"
+    assert len(result.properties) == 1
+    assert result.properties[0].name == "since"
+    assert result.key_property is None
+
+
+def test_relationship_from_neo4j_graphrag_python_package_relationship_dict_with_key():
+    """Test Relationship.from_neo4j_graphrag_python_package_relationship_dict() with key property."""
+    relationship_dict = {
+        "label": "RATED",
+        "description": "",
+        "properties": [
+            {
+                "name": "ratingId",
+                "type": "STRING",
+                "description": "Rating ID",
+                "required": True,
+            },
+            {
+                "name": "score",
+                "type": "FLOAT",
+                "description": "Score",
+                "required": False,
+            },
+        ],
+    }
+    result = Relationship.from_neo4j_graphrag_python_package_relationship_dict(
+        relationship_dict, "User", "Movie"
+    )
+
+    assert result.type == "RATED"
+    assert result.start_node_label == "User"
+    assert result.end_node_label == "Movie"
+    assert result.key_property is not None
+    assert result.key_property.name == "ratingId"
+    assert len(result.properties) == 1
+    assert result.properties[0].name == "score"
+
+
+def test_data_model_from_neo4j_graphrag_python_package_schema():
+    """Test DataModel.from_neo4j_graphrag_python_package_schema()."""
+    schema_dict = {
+        "schema": {
+            "node_types": [
+                {
+                    "label": "Person",
+                    "description": "",
+                    "properties": [
+                        {
+                            "name": "id",
+                            "type": "STRING",
+                            "description": "",
+                            "required": True,
+                        }
+                    ],
+                },
+                {
+                    "label": "City",
+                    "description": "",
+                    "properties": [
+                        {
+                            "name": "name",
+                            "type": "STRING",
+                            "description": "",
+                            "required": True,
+                        }
+                    ],
+                },
+            ],
+            "relationship_types": [
+                {"label": "LIVES_IN", "description": "", "properties": []}
+            ],
+            "patterns": [("Person", "LIVES_IN", "City")],
+        }
+    }
+    result = DataModel.from_neo4j_graphrag_python_package_schema(schema_dict)
+
+    assert len(result.nodes) == 2
+    assert result.nodes[0].label == "Person"
+    assert result.nodes[1].label == "City"
+    assert len(result.relationships) == 1
+    assert result.relationships[0].type == "LIVES_IN"
+    assert result.relationships[0].start_node_label == "Person"
+    assert result.relationships[0].end_node_label == "City"
+
+
+def test_data_model_neo4j_graphrag_python_package_schema_round_trip():
+    """Test round-trip conversion of DataModel to/from Neo4j GraphRAG Python Package schema."""
+    original_model = DataModel(
+        nodes=[
+            Node(
+                label="Person",
+                key_property=Property(
+                    name="id", type="STRING", description="Person ID"
+                ),
+                properties=[
+                    Property(name="name", type="STRING", description="Person name")
+                ],
+            ),
+            Node(
+                label="City",
+                key_property=Property(
+                    name="name", type="STRING", description="City name"
+                ),
+                properties=[],
+            ),
+        ],
+        relationships=[
+            Relationship(
+                type="LIVES_IN",
+                start_node_label="Person",
+                end_node_label="City",
+                properties=[
+                    Property(name="since", type="INTEGER", description="Year moved")
+                ],
+            )
+        ],
+    )
+
+    # Convert to schema and back
+    schema = original_model.to_neo4j_graphrag_python_package_schema()
+    restored_model = DataModel.from_neo4j_graphrag_python_package_schema(schema)
+
+    # Check nodes
+    assert len(restored_model.nodes) == len(original_model.nodes)
+    assert {n.label for n in restored_model.nodes} == {
+        n.label for n in original_model.nodes
+    }
+
+    # Check person node
+    person_node = next(n for n in restored_model.nodes if n.label == "Person")
+    assert person_node.key_property.name == "id"
+    assert len(person_node.properties) == 1
+    assert person_node.properties[0].name == "name"
+
+    # Check relationships
+    assert len(restored_model.relationships) == 1
+    assert restored_model.relationships[0].type == "LIVES_IN"
+    assert restored_model.relationships[0].start_node_label == "Person"
+    assert restored_model.relationships[0].end_node_label == "City"
+    assert len(restored_model.relationships[0].properties) == 1
+    assert restored_model.relationships[0].properties[0].name == "since"
