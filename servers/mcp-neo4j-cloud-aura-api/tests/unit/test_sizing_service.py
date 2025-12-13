@@ -20,6 +20,8 @@ class TestAuraSizingService:
         result = service.calculate_sizing(
             num_nodes=1000,
             num_relationships=5000,
+            avg_properties_per_node=5,
+            avg_properties_per_relationship=2,
         )
         
         assert result.calculations.total_size_with_indexes_gb > 0
@@ -46,12 +48,12 @@ class TestAuraSizingService:
         assert result.metadata.calculation_config["vector_index_dimensions"] == 768
     
     def test_calculate_sizing_none_defaults(self, service):
-        """Test that None values are converted to defaults."""
+        """Test that None values for optional parameters are converted to defaults."""
         result = service.calculate_sizing(
             num_nodes=100,
             num_relationships=200,
-            avg_properties_per_node=None,
-            avg_properties_per_relationship=None,
+            avg_properties_per_node=3,
+            avg_properties_per_relationship=1,
             total_num_large_node_properties=None,
             total_num_large_reltype_properties=None,
             vector_index_dimensions=None,
@@ -59,7 +61,7 @@ class TestAuraSizingService:
             number_of_vector_indexes=None,
         )
         
-        # Should work without errors and use defaults
+        # Should work without errors and use defaults for optional params
         assert result.calculations.total_size_with_indexes_gb >= 0
         assert result.calculations.size_of_vector_indexes_gb == 0
     
@@ -69,6 +71,8 @@ class TestAuraSizingService:
             service.calculate_sizing(
                 num_nodes=-1,
                 num_relationships=100,
+                avg_properties_per_node=5,
+                avg_properties_per_relationship=2,
             )
     
     def test_calculate_sizing_validation_negative_relationships(self, service):
@@ -77,6 +81,8 @@ class TestAuraSizingService:
             service.calculate_sizing(
                 num_nodes=100,
                 num_relationships=-1,
+                avg_properties_per_node=5,
+                avg_properties_per_relationship=2,
             )
     
     def test_calculate_sizing_validation_negative_properties(self, service):
@@ -86,6 +92,7 @@ class TestAuraSizingService:
                 num_nodes=100,
                 num_relationships=200,
                 avg_properties_per_node=-1,
+                avg_properties_per_relationship=2,
             )
     
     def test_calculate_sizing_validation_percentage_range(self, service):
@@ -94,6 +101,8 @@ class TestAuraSizingService:
             service.calculate_sizing(
                 num_nodes=100,
                 num_relationships=200,
+                avg_properties_per_node=5,
+                avg_properties_per_relationship=2,
                 percentage_nodes_with_vector_properties=150.0,
             )
         
@@ -101,6 +110,8 @@ class TestAuraSizingService:
             service.calculate_sizing(
                 num_nodes=100,
                 num_relationships=200,
+                avg_properties_per_node=5,
+                avg_properties_per_relationship=2,
                 percentage_nodes_with_vector_properties=-10.0,
             )
     
@@ -112,6 +123,8 @@ class TestAuraSizingService:
         result = service.calculate_sizing(
             num_nodes=1000,
             num_relationships=5000,
+            avg_properties_per_node=5,
+            avg_properties_per_relationship=2,
         )
         
         assert result.metadata.calculator_type == "Neo4jSizingCalculator"
