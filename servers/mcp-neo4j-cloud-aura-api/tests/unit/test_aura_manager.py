@@ -364,3 +364,247 @@ async def test_resume_instance(mock_client):
     
     # Verify the mock was called with the correct parameters
     mock_client.resume_instance.assert_called_once_with("instance-1")
+
+
+@pytest.mark.asyncio
+async def test_calculate_database_sizing_basic(mock_client):
+    """Test calculate_database_sizing with basic parameters."""
+    manager = AuraManager("fake-id", "fake-secret")
+    manager.client = mock_client
+    
+    result = await manager.calculate_database_sizing(
+        num_nodes=100000,
+        num_relationships=500000,
+        avg_properties_per_node=5,
+        avg_properties_per_relationship=2,
+    )
+    
+    # Should return a dict with calculations and metadata
+    assert isinstance(result, dict)
+    assert "calculations" in result
+    assert "metadata" in result
+    assert result["calculations"]["total_size_with_indexes_gb"] > 0
+    assert result["metadata"]["calculator_type"] == "Neo4jSizingCalculator"
+    assert "recommended_memory_gb" in result["calculations"]
+    assert "recommended_vcpus" in result["calculations"]
+
+
+@pytest.mark.asyncio
+async def test_calculate_database_sizing_with_all_params(mock_client):
+    """Test calculate_database_sizing with all optional parameters."""
+    manager = AuraManager("fake-id", "fake-secret")
+    manager.client = mock_client
+    
+    result = await manager.calculate_database_sizing(
+        num_nodes=100000,
+        num_relationships=500000,
+        avg_properties_per_node=5,
+        avg_properties_per_relationship=2,
+        total_num_large_node_properties=1000,
+        total_num_large_reltype_properties=500,
+        vector_index_dimensions=768,
+        percentage_nodes_with_vector_properties=50.0,
+        number_of_vector_indexes=1,
+        quantization_enabled=True,
+        memory_to_storage_ratio=2.0,
+        concurrent_end_users=10,
+    )
+    
+    assert isinstance(result, dict)
+    assert "calculations" in result
+    assert "metadata" in result
+    assert result["calculations"]["size_of_vector_indexes_gb"] > 0
+    assert result["metadata"]["calculation_config"]["quantization_enabled"] is True
+    assert result["metadata"]["calculation_config"]["vector_index_dimensions"] == 768
+    # With memory_to_storage_ratio=2.0, memory should be calculated
+    assert result["calculations"]["recommended_memory_gb"] > 0
+    # With concurrent_end_users=10, vCPUs should be 20 (2 per user)
+    assert result["calculations"]["recommended_vcpus"] == 20
+
+
+@pytest.mark.asyncio
+async def test_calculate_database_sizing_error_handling(mock_client):
+    """Test calculate_database_sizing error handling."""
+    manager = AuraManager("fake-id", "fake-secret")
+    manager.client = mock_client
+    
+    # Should raise ValueError for negative nodes
+    with pytest.raises(ValueError, match="num_nodes must be non-negative"):
+        await manager.calculate_database_sizing(
+            num_nodes=-1,
+            num_relationships=100,
+            avg_properties_per_node=5,
+            avg_properties_per_relationship=2,
+        )
+
+
+@pytest.mark.asyncio
+async def test_calculate_database_sizing_returns_dict(mock_client):
+    """Test that calculate_database_sizing returns a dict (not Pydantic model)."""
+    manager = AuraManager("fake-id", "fake-secret")
+    manager.client = mock_client
+    
+    result = await manager.calculate_database_sizing(
+        num_nodes=1000,
+        num_relationships=5000,
+        avg_properties_per_node=5,
+        avg_properties_per_relationship=2,
+    )
+    
+    # Should be a dict, not a Pydantic model
+    assert isinstance(result, dict)
+    # Should be JSON serializable
+    import json
+    json_str = json.dumps(result)
+    assert json_str is not None
+
+
+@pytest.mark.asyncio
+async def test_forecast_database_size_basic(mock_client):
+    """Test forecast_database_size with basic parameters."""
+    manager = AuraManager("fake-id", "fake-secret")
+    manager.client = mock_client
+    
+    result = await manager.forecast_database_size(
+        base_size_gb=100.0,
+        base_memory_gb=64,
+        base_cores=8,
+    )
+    
+    # Should return a dict with projections
+    assert isinstance(result, dict)
+    assert "base_size_gb" in result
+    assert "base_memory_gb" in result
+    assert "base_cores" in result
+    assert "projections" in result
+    assert "growth_model_used" in result
+    assert len(result["projections"]) == 3  # Default projection_years
+    assert result["base_size_gb"] == 100.0
+    assert result["base_memory_gb"] == 64
+    assert result["base_cores"] == 8
+
+
+@pytest.mark.asyncio
+async def test_forecast_database_size_with_all_params(mock_client):
+    """Test forecast_database_size with all optional parameters."""
+    manager = AuraManager("fake-id", "fake-secret")
+    manager.client = mock_client
+    
+    result = await manager.forecast_database_size(
+        base_size_gb=100.0,
+        base_memory_gb=64,
+        base_cores=8,
+        annual_growth_rate=15.0,
+        projection_years=5,
+        workloads=["transactional", "agentic"],
+        domain="customer",
+        memory_to_storage_ratio=4.0,
+    )
+    
+    assert isinstance(result, dict)
+    assert len(result["projections"]) == 5
+    assert result["growth_model_used"] is not None
+    # Projections should show growth
+    assert result["projections"][0]["total_size_gb"] > result["base_size_gb"]
+    assert result["projections"][1]["total_size_gb"] > result["projections"][0]["total_size_gb"]
+
+
+@pytest.mark.asyncio
+async def test_forecast_database_size_with_workloads(mock_client):
+    """Test forecast_database_size with workload types."""
+    manager = AuraManager("fake-id", "fake-secret")
+    manager.client = mock_client
+    
+    result = await manager.forecast_database_size(
+        base_size_gb=100.0,
+        base_memory_gb=64,
+        base_cores=8,
+        workloads=["transactional"],
+    )
+    
+    # Transactional should use LogLinearGrowthModel
+    assert "LogLinear" in result["growth_model_used"]
+
+
+@pytest.mark.asyncio
+async def test_forecast_database_size_with_domain(mock_client):
+    """Test forecast_database_size with domain."""
+    manager = AuraManager("fake-id", "fake-secret")
+    manager.client = mock_client
+    
+    result = await manager.forecast_database_size(
+        base_size_gb=100.0,
+        base_memory_gb=64,
+        base_cores=8,
+        domain="customer",
+    )
+    
+    # Customer domain defaults to transactional + analytical -> LogLinear
+    assert "LogLinear" in result["growth_model_used"]
+
+
+@pytest.mark.asyncio
+async def test_forecast_database_size_error_handling(mock_client):
+    """Test forecast_database_size error handling."""
+    manager = AuraManager("fake-id", "fake-secret")
+    manager.client = mock_client
+    
+    # Should raise ValueError for negative base_size_gb
+    with pytest.raises(ValueError, match="base_size_gb must be non-negative"):
+        await manager.forecast_database_size(
+            base_size_gb=-1.0,
+            base_memory_gb=64,
+            base_cores=8,
+        )
+    
+    # Should raise ValueError for invalid projection_years
+    with pytest.raises(ValueError, match="projection_years must be at least 1"):
+        await manager.forecast_database_size(
+            base_size_gb=100.0,
+            base_memory_gb=64,
+            base_cores=8,
+            projection_years=0,
+        )
+
+
+@pytest.mark.asyncio
+async def test_forecast_database_size_returns_dict(mock_client):
+    """Test that forecast_database_size returns a dict (not Pydantic model)."""
+    manager = AuraManager("fake-id", "fake-secret")
+    manager.client = mock_client
+    
+    result = await manager.forecast_database_size(
+        base_size_gb=100.0,
+        base_memory_gb=64,
+        base_cores=8,
+    )
+    
+    # Should be a dict, not a Pydantic model
+    assert isinstance(result, dict)
+    # Should be JSON serializable
+    import json
+    json_str = json.dumps(result)
+    assert json_str is not None
+
+
+@pytest.mark.asyncio
+async def test_forecast_database_size_memory_scaling(mock_client):
+    """Test that forecast_database_size scales memory with storage ratio."""
+    manager = AuraManager("fake-id", "fake-secret")
+    manager.client = mock_client
+    
+    result = await manager.forecast_database_size(
+        base_size_gb=100.0,
+        base_memory_gb=64,
+        base_cores=8,
+        annual_growth_rate=10.0,
+        projection_years=3,
+        memory_to_storage_ratio=2.0,  # 1:2 ratio
+    )
+    
+    # Memory should scale with projected size
+    # First projection should have memory >= base_memory_gb
+    assert result["projections"][0]["recommended_memory_gb"] >= result["base_memory_gb"]
+    # As size grows, memory should increase
+    if result["projections"][2]["total_size_gb"] > result["projections"][0]["total_size_gb"]:
+        assert result["projections"][2]["recommended_memory_gb"] >= result["projections"][0]["recommended_memory_gb"]

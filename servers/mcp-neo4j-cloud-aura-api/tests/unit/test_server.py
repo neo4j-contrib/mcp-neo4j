@@ -176,6 +176,6 @@ class TestNamespacing:
         # Should have the same number of tools
         assert len(default_tools) == len(namespaced_tools)
         
-        # Verify we have the expected number of tools (12 tools based on the server implementation)
-        assert len(default_tools) == 12
-        assert len(namespaced_tools) == 12
+        # Verify we have the expected number of tools (14 tools: 12 instance management + 2 sizing tools)
+        assert len(default_tools) == 14
+        assert len(namespaced_tools) == 14

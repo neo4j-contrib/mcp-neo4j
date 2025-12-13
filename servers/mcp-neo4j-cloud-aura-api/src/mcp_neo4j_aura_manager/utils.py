@@ -14,6 +14,65 @@ def get_logger(name: str) -> logging.Logger:
 logger = get_logger(__name__)
 
 
+import inspect
+from typing import Dict, Any
+
+
+def get_calculator_parameter_info() -> Dict[str, Any]:
+    """Extract parameter information from the current calculator implementation.
+    
+    Returns a dictionary with required/optional parameters and calculator type.
+    This is used to dynamically generate prompts based on the calculator being used.
+    """
+    from .sizing import AuraSizingService
+    service = AuraSizingService()
+    calculator = service._calculator
+    
+    sig = inspect.signature(calculator.calculate)
+    params_info = {
+        'required': [],
+        'optional': [],
+        'calculator_type': calculator.__class__.__name__
+    }
+    
+    # Get docstring for parameter descriptions
+    docstring = inspect.getdoc(calculator.calculate) or ""
+    
+    for param_name, param in sig.parameters.items():
+        if param_name == 'self':
+            continue
+        
+        # Check if parameter has a default (making it optional)
+        has_default = param.default != inspect.Parameter.empty
+        
+        # Try to extract description from docstring
+        description = ""
+        if docstring:
+            # Look for "param_name:" in docstring
+            lines = docstring.split('\n')
+            for i, line in enumerate(lines):
+                if f"{param_name}:" in line.lower():
+                    description = line.split(':', 1)[1].strip() if ':' in line else ""
+                    # Sometimes description continues on next line
+                    if not description and i + 1 < len(lines):
+                        description = lines[i + 1].strip()
+                    break
+        
+        param_info = {
+            'name': param_name,
+            'type': param.annotation if param.annotation != inspect.Parameter.empty else 'Any',
+            'default': param.default if has_default else None,
+            'description': description or f"{param_name.replace('_', ' ').title()}"
+        }
+        
+        if has_default:
+            params_info['optional'].append(param_info)
+        else:
+            params_info['required'].append(param_info)
+    
+    return params_info
+
+
 def format_namespace(namespace: str) -> str:
     if namespace:
         if namespace.endswith("-"):
