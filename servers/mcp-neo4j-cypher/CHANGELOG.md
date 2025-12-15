@@ -1,12 +1,16 @@
 ## Next
 
 ### Fixed
-* Fix bug in Dockerfile where build would fail due to `LABEL` statement coming before `FROM` statement
-* Removed `dependencies=...` from server constructor. This was removed from FastMCP.
 
 ### Changed
 
 ### Added
+
+v0.5.2
+
+### Fixed
+* Fix bug in Dockerfile where build would fail due to `LABEL` statement coming before `FROM` statement
+* Removed `dependencies=...` from server constructor. This was removed from FastMCP.
 
 ## v0.5.1
 
