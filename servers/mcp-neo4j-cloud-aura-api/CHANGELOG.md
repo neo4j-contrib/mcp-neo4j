@@ -1,6 +1,7 @@
 ## Next
 
 ### Fixed
+* Removed `dependencies=...` from server constructor. This was removed from FastMCP.
 
 ### Changed
 
