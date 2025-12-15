@@ -47,7 +47,7 @@ def create_mcp_server(
     config_sample_size: int = 1000,
 ) -> FastMCP:
     mcp: FastMCP = FastMCP(
-        "mcp-neo4j-cypher", dependencies=["neo4j", "pydantic"], stateless_http=True
+        "mcp-neo4j-cypher", stateless_http=True
     )
 
     namespace_prefix = _format_namespace(namespace)

@@ -2,6 +2,7 @@
 
 ### Fixed
 * Remove `stateless_http` flag on MCP server constructor and move to the appropriate `run_...` function for http and sse transport. The constructor flag is deprecated by FastMCP.
+* Removed `dependencies=...` from server constructor. This was removed from FastMCP.
 
 ### Changed
 * Make node corners rounded for Mermaid visualization

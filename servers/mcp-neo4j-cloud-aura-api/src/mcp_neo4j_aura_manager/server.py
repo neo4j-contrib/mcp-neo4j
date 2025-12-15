@@ -19,7 +19,7 @@ def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP
     
     namespace_prefix = format_namespace(namespace)
     
-    mcp: FastMCP = FastMCP("mcp-neo4j-aura-manager", dependencies=["requests", "pydantic", "starlette"])
+    mcp: FastMCP = FastMCP("mcp-neo4j-aura-manager", stateless_http=True)
 
     @mcp.tool(
         name=namespace_prefix + "list_instances",

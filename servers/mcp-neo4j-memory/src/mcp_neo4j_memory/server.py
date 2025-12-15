@@ -30,7 +30,7 @@ def create_mcp_server(memory: Neo4jMemory, namespace: str = "") -> FastMCP:
     """Create an MCP server instance for memory management."""
     
     namespace_prefix = format_namespace(namespace)
-    mcp: FastMCP = FastMCP("mcp-neo4j-memory", dependencies=["neo4j", "pydantic"], stateless_http=True)
+    mcp: FastMCP = FastMCP("mcp-neo4j-memory", stateless_http=True)
 
     @mcp.tool(
         name=namespace_prefix + "read_graph",
