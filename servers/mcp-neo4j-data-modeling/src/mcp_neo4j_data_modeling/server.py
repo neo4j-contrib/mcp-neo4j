@@ -33,7 +33,7 @@ logger = logging.getLogger("mcp_neo4j_data_modeling")
 def create_mcp_server(namespace: str = "") -> FastMCP:
     """Create an MCP server instance for data modeling."""
 
-    mcp: FastMCP = FastMCP("mcp-neo4j-data-modeling", dependencies=["pydantic"])
+    mcp: FastMCP = FastMCP("mcp-neo4j-data-modeling")
 
     namespace_prefix = format_namespace(namespace)
 
