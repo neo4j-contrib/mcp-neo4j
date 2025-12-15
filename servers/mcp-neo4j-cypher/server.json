@@ -7,7 +7,7 @@
     "source": "github",
     "subfolder": "servers/mcp-neo4j-cypher"
   },
-  "version": "1.0.0",
+  "version": "0.5.2",
   "packages": [
     {
       "registryType": "pypi",
