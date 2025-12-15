@@ -12,7 +12,7 @@
     {
       "registryType": "pypi",
       "identifier": "mcp-neo4j-cypher",
-      "version": "0.5.1",
+      "version": "0.5.2",
       "transport": {
         "type": "stdio"
       },
