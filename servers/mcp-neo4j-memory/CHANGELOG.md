@@ -1,11 +1,11 @@
-## Next
-
 ### Fixed
-* Removed `dependencies=...` from server constructor. This was removed from FastMCP.
 
 ### Changed
 
 ### Added
+
+### v0.4.4
+* Removed `dependencies=...` from server constructor. This was removed from FastMCP.
 
 ### v0.4.3
 
