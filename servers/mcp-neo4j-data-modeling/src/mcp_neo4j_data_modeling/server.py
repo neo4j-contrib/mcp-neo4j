@@ -413,8 +413,8 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Exporting a data model to Pydantic models.")
         return data_model_obj.to_pydantic_model_str()
 
-    @mcp.tool(name=namespace_prefix + "export_to_neo4j_graphrag_python_package_schema")
-    def export_to_neo4j_graphrag_python_package_schema(
+    @mcp.tool(name=namespace_prefix + "export_to_neo4j_graphrag_pkg_schema")
+    def export_to_neo4j_graphrag_pkg_schema(
         data_model: Union[str, DataModel],
     ) -> dict[str, Any]:
         """
@@ -428,8 +428,8 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Exporting a data model to a Neo4j Graphrag Python Package schema.")
         return data_model_obj.to_neo4j_graphrag_python_package_schema()
 
-    @mcp.tool(name=namespace_prefix + "load_from_neo4j_graphrag_python_package_schema")
-    def load_from_neo4j_graphrag_python_package_schema(
+    @mcp.tool(name=namespace_prefix + "load_from_neo4j_graphrag_pkg_schema")
+    def load_from_neo4j_graphrag_pkg_schema(
         neo4j_graphrag_python_package_schema: dict[str, Any],
     ) -> DataModel:
         """
