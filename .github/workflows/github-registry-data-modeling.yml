@@ -1,13 +1,10 @@
 name: Publish Data Modeling MCP to Github MCP Registry
 
 on:
-  push:
-    tags:
-      - 'mcp-neo4j-data-modeling-v*'
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
-  publish:
+  mcp-registry-publish:
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # For OIDC

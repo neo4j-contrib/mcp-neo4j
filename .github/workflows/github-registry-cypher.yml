@@ -1,9 +1,6 @@
 name: Publish Cypher MCP to Github MCP Registry
 
 on:
-  push:
-    tags:
-      - 'mcp-neo4j-cypher-v*'
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
