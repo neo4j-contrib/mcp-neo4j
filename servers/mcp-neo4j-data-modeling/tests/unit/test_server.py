@@ -197,11 +197,22 @@ class TestMCPResources:
         assert len(tool_model.nodes) == len(resource_data["nodes"])
         assert len(tool_model.relationships) == len(resource_data["relationships"])
 
+    
+    @pytest.mark.asyncio
+    async def test_server_name_plus_tool_name_under_60_chars(self, test_mcp_server: FastMCP):
+        """
+        Test that the server name plus tool name is under 60 characters.
+        This is a requirement by some applications such as Cursor IDE.
+        """
+        tools = await test_mcp_server.get_tools()
+        for tool in tools:
+            assert len(test_mcp_server.name  + tool) <= 60
+
 
 class TestNamespacing:
     """Test namespacing functionality."""
 
-    def testformat_namespace(self):
+    def test_format_namespace(self):
         """Test the format_namespace function behavior."""
         from mcp_neo4j_data_modeling.server import format_namespace
 
@@ -337,7 +348,7 @@ async def test_load_from_neo4j_graphrag_python_package_schema_with_dict(
 
     # Get the tool function
     tools = await test_mcp_server.get_tools()
-    load_tool = tools.get("load_from_neo4j_graphrag_python_package_schema")
+    load_tool = tools.get("load_from_neo4j_graphrag_pkg_schema")
     assert load_tool is not None
 
     # Call with dict
@@ -348,3 +359,6 @@ async def test_load_from_neo4j_graphrag_python_package_schema_with_dict(
     assert len(result.nodes) == 1
     assert result.nodes[0].label == "City"
     assert result.nodes[0].key_property.name == "name"
+
+
+
