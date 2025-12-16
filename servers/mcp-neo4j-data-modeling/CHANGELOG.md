@@ -7,6 +7,7 @@
 ### Changed
 
 ### Added
+* Update README to include new tools and optional `return_validated` argument to validation tools
 
 ## v0.8.0
 
