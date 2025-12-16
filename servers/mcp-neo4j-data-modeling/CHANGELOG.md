@@ -1,10 +1,16 @@
 ## Next
 
 ### Fixed
-* Shorten tool name `export_to_neo4j_python_graphrag_package_schema` to `export_to_neo4j_graphrag_pkg_schema` to be under 60 characters including the default server name.
-* Shorten tool name `load_from_neo4j_python_graphrag_package_schema` to `load_from_neo4j_graphrag_pkg_schema` to be under 60 characters including the default server name.
 
 ### Changed
+
+### Added
+
+## v0.8.1
+
+### Fixed
+* Shorten tool name `export_to_neo4j_python_graphrag_package_schema` to `export_to_neo4j_graphrag_pkg_schema` to be under 60 characters including the default server name.
+* Shorten tool name `load_from_neo4j_python_graphrag_package_schema` to `load_from_neo4j_graphrag_pkg_schema` to be under 60 characters including the default server name.
 
 ### Added
 * Update README to include new tools and optional `return_validated` argument to validation tools
