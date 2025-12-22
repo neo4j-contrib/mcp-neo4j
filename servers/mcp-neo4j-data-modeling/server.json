@@ -7,12 +7,12 @@
     "source": "github",
     "subfolder": "servers/mcp-neo4j-data-modeling"
   },
-  "version": "0.8.1",
+  "version": "0.8.2",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "mcp-neo4j-data-modeling",
-      "version": "0.8.1",
+      "version": "0.8.2",
       "transport": {
         "type": "stdio"
       },
