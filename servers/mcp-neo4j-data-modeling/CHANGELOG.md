@@ -1,6 +1,8 @@
 ## Next
 
 ### Fixed
+* Fixed bug in f-string formatting with Pydantic model export in Python v < 3.12
+* Fixed bug in the data modeling Github action that didn't actually test different Python versions due to not specifying the version when executing uv commands.
 
 ### Changed
 
