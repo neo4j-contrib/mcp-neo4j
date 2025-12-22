@@ -368,10 +368,12 @@ SET n += {{{formatted_props}}}"""
             escaped_desc = self.description.replace('"""', r"\"\"\"")
             docstring = f'\n    """{escaped_desc}"""'
 
+        # Extract newline to avoid backslash in f-string
+        props_joined = "\n    ".join(props)
         return f"""class {self.label}(BaseModel):{docstring}
     node_label: ClassVar[str] = \"{self.label}\"
 
-    {"\n    ".join(props)}"""
+    {props_joined}"""
 
     def to_neo4j_graphrag_python_package_node_dict(self) -> dict[str, str]:
         """
@@ -661,7 +663,9 @@ SET end += {{{formatted_props}}}"""
             docstring = f'\n    """{escaped_desc}"""'
 
         # Build properties section with proper indentation
-        props_section = f"\n    {'\n    '.join(props)}\n" if props else ""
+        # Extract newline to avoid backslash in f-string
+        props_joined = '\n    '.join(props)
+        props_section = f"\n    {props_joined}\n" if props else ""
 
         return f"""class {type_pascal_case}(BaseModel):{docstring}
     relationship_type: ClassVar[str] = \"{self.type}\"
