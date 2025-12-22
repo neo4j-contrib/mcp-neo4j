@@ -1,6 +1,6 @@
 [project]
 name = "mcp-neo4j-data-modeling"
-version = "0.8.1"
+version = "0.8.2"
 description = "A simple Neo4j MCP server for creating graph data models."
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
@@ -16,8 +16,8 @@ dependencies = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "ipykernel>=6.29.5",
     "pyright>=1.1.389",
     "pytest>=7.0.0",
