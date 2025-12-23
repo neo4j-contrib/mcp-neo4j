@@ -1,5 +1,6 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional, Literal
 from .aura_api_client import AuraAPIClient
+from .sizing import AuraSizingService
 from .utils import get_logger
 
 logger = get_logger(__name__)
@@ -7,8 +8,23 @@ logger = get_logger(__name__)
 class AuraManager:
     """Service layer for the Aura API MCP Server."""
     
-    def __init__(self, client_id: str, client_secret: str):
+    def __init__(
+        self, 
+        client_id: str, 
+        client_secret: str,
+        sizing_service: Optional[AuraSizingService] = None
+    ):
+        """
+        Initialize the Aura Manager.
+        
+        Args:
+            client_id: Aura API client ID
+            client_secret: Aura API client secret
+            sizing_service: Optional sizing service instance. If None, creates a default instance.
+                           Useful for dependency injection in tests.
+        """
         self.client = AuraAPIClient(client_id, client_secret)
+        self.sizing_service = sizing_service or AuraSizingService()
     
     async def list_instances(self, **kwargs) -> Dict[str, Any]:
         """List all Aura database instances."""
@@ -127,3 +143,71 @@ class AuraManager:
             return self.client.delete_instance(instance_id)
         except Exception as e:
             return {"error": str(e)}
+    
+    async def calculate_database_sizing(
+        self,
+        num_nodes: int,
+        num_relationships: int,
+        avg_properties_per_node: int,
+        avg_properties_per_relationship: int,
+        total_num_large_node_properties: Optional[int] = None,
+        total_num_large_reltype_properties: Optional[int] = None,
+        vector_index_dimensions: Optional[int] = None,
+        percentage_nodes_with_vector_properties: Optional[float] = None,
+        number_of_vector_indexes: Optional[int] = None,
+        quantization_enabled: bool = False,
+        memory_to_storage_ratio: Optional[float] = None,
+        concurrent_end_users: Optional[int] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Calculate current database sizing based on graph metrics."""
+        try:
+            result = self.sizing_service.calculate_sizing(
+                num_nodes=num_nodes,
+                num_relationships=num_relationships,
+                avg_properties_per_node=avg_properties_per_node,
+                avg_properties_per_relationship=avg_properties_per_relationship,
+                total_num_large_node_properties=total_num_large_node_properties,
+                total_num_large_reltype_properties=total_num_large_reltype_properties,
+                vector_index_dimensions=vector_index_dimensions,
+                percentage_nodes_with_vector_properties=percentage_nodes_with_vector_properties,
+                number_of_vector_indexes=number_of_vector_indexes,
+                quantization_enabled=quantization_enabled,
+                memory_to_storage_ratio=memory_to_storage_ratio,
+                concurrent_end_users=concurrent_end_users,
+            )
+            # Convert Pydantic model to dict
+            return result.model_dump()
+        except Exception as e:
+            logger.error(f"Error calculating sizing: {str(e)}")
+            raise  # Re-raise exception so FastMCP can handle it properly
+    
+    async def forecast_database_size(
+        self,
+        base_size_gb: float,
+        base_memory_gb: int,
+        base_cores: int,
+        annual_growth_rate: float = 10.0,
+        projection_years: int = 3,
+        workloads: Optional[List[str]] = None,
+        domain: Optional[str] = None,
+        memory_to_storage_ratio: float = 1.0,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Forecast database growth over multiple years."""
+        try:
+            result = self.sizing_service.forecast_sizing(
+                base_size_gb=base_size_gb,
+                base_memory_gb=base_memory_gb,
+                base_cores=base_cores,
+                annual_growth_rate=annual_growth_rate,
+                projection_years=projection_years,
+                workloads=workloads,
+                domain=domain,
+                memory_to_storage_ratio=memory_to_storage_ratio,
+            )
+            # Convert Pydantic model to dict
+            return result.model_dump()
+        except Exception as e:
+            logger.error(f"Error forecasting sizing: {str(e)}")
+            raise  # Re-raise exception so FastMCP can handle it properly
