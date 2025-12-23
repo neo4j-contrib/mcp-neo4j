@@ -3,6 +3,7 @@ import logging
 from typing import Any, Literal, Union
 
 from fastmcp.server import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import Field, ValidationError
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
@@ -109,7 +110,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Getting the Health Insurance Fraud Detection data model.")
         return json.dumps(HEALTH_INSURANCE_FRAUD_MODEL, indent=2)
 
-    @mcp.tool(name=namespace_prefix + "validate_node")
+    @mcp.tool(
+        name=namespace_prefix + "validate_node",
+        annotations=ToolAnnotations(
+            title="Validate Node",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def validate_node(
         node: Union[str, Node], return_validated: bool = False
     ) -> bool | dict[str, Any]:
@@ -133,7 +143,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
             logger.error(f"Validation error: {e}")
             raise ValueError(f"Validation error: {e}")
 
-    @mcp.tool(name=namespace_prefix + "validate_relationship")
+    @mcp.tool(
+        name=namespace_prefix + "validate_relationship",
+        annotations=ToolAnnotations(
+            title="Validate Relationship",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def validate_relationship(
         relationship: Union[str, Relationship], return_validated: bool = False
     ) -> bool | dict[str, Any]:
@@ -159,7 +178,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
             logger.error(f"Validation error: {e}")
             raise ValueError(f"Validation error: {e}")
 
-    @mcp.tool(name=namespace_prefix + "validate_data_model")
+    @mcp.tool(
+        name=namespace_prefix + "validate_data_model",
+        annotations=ToolAnnotations(
+            title="Validate Data Model",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def validate_data_model(
         data_model: Union[str, DataModel], return_validated: bool = False
     ) -> bool | dict[str, Any]:
@@ -183,13 +211,31 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
             logger.error(f"Validation error: {e}")
             raise ValueError(f"Validation error: {e}")
 
-    @mcp.tool(name=namespace_prefix + "load_from_arrows_json")
+    @mcp.tool(
+        name=namespace_prefix + "load_from_arrows_json",
+        annotations=ToolAnnotations(
+            title="Load from Arrows JSON",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def load_from_arrows_json(arrows_data_model_dict: dict[str, Any]) -> DataModel:
         "Load a data model from the Arrows web application format. Returns a data model as a JSON string."
         logger.info("Loading a data model from the Arrows web application format.")
         return DataModel.from_arrows(arrows_data_model_dict)
 
-    @mcp.tool(name=namespace_prefix + "export_to_arrows_json")
+    @mcp.tool(
+        name=namespace_prefix + "export_to_arrows_json",
+        annotations=ToolAnnotations(
+            title="Export to Arrows JSON",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def export_to_arrows_json(data_model: Union[str, DataModel]) -> str:
         """
         Export the data model to the Arrows web application format.
@@ -202,7 +248,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         data_model_obj = DataModel.model_validate(data_model_dict)
         return data_model_obj.to_arrows_json_str()
 
-    @mcp.tool(name=namespace_prefix + "get_mermaid_config_str")
+    @mcp.tool(
+        name=namespace_prefix + "get_mermaid_config_str",
+        annotations=ToolAnnotations(
+            title="Get Mermaid Config",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def get_mermaid_config_str(data_model: Union[str, DataModel]) -> str:
         """
         Get the Mermaid configuration string for the data model.
@@ -219,7 +274,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
             raise ValueError(f"Validation error: {e}")
         return dm_validated.get_mermaid_config_str()
 
-    @mcp.tool(name=namespace_prefix + "get_node_cypher_ingest_query")
+    @mcp.tool(
+        name=namespace_prefix + "get_node_cypher_ingest_query",
+        annotations=ToolAnnotations(
+            title="Get Node Cypher Ingest Query",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def get_node_cypher_ingest_query(
         node: Union[str, Node] = Field(
             description="The node to get the Cypher query for. Accepts either a Node object or a JSON string of the Node object."
@@ -238,7 +302,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         )
         return node_obj.get_cypher_ingest_query_for_many_records()
 
-    @mcp.tool(name=namespace_prefix + "get_relationship_cypher_ingest_query")
+    @mcp.tool(
+        name=namespace_prefix + "get_relationship_cypher_ingest_query",
+        annotations=ToolAnnotations(
+            title="Get Relationship Cypher Ingest Query",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def get_relationship_cypher_ingest_query(
         data_model: Union[str, DataModel] = Field(
             description="The data model snippet that contains the relationship, start node and end node. Accepts either a DataModel object or a JSON string of the DataModel object."
@@ -271,7 +344,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
             relationship_end_node_label,
         )
 
-    @mcp.tool(name=namespace_prefix + "get_constraints_cypher_queries")
+    @mcp.tool(
+        name=namespace_prefix + "get_constraints_cypher_queries",
+        annotations=ToolAnnotations(
+            title="Get Constraints Cypher Queries",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def get_constraints_cypher_queries(data_model: Union[str, DataModel]) -> list[str]:
         """
         Get the Cypher queries to create constraints on the data model.
@@ -286,7 +368,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         )
         return data_model_obj.get_cypher_constraints_query()
 
-    @mcp.tool(name=namespace_prefix + "get_example_data_model")
+    @mcp.tool(
+        name=namespace_prefix + "get_example_data_model",
+        annotations=ToolAnnotations(
+            title="Get Example Data Model",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def get_example_data_model(
         example_name: str = Field(
             ...,
@@ -320,7 +411,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
             mermaid_config=validated_data_model.get_mermaid_config_str(),
         )
 
-    @mcp.tool(name=namespace_prefix + "list_example_data_models")
+    @mcp.tool(
+        name=namespace_prefix + "list_example_data_models",
+        annotations=ToolAnnotations(
+            title="List Example Data Models",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def list_example_data_models() -> dict[str, Any]:
         """List all available example data models with descriptions. Returns a dictionary with example names and their descriptions."""
         logger.info("Listing available example data models.")
@@ -376,7 +476,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
             "usage": "Use the get_example_data_model tool with any of the example names above to get a specific data model",
         }
 
-    @mcp.tool(name=namespace_prefix + "load_from_owl_turtle")
+    @mcp.tool(
+        name=namespace_prefix + "load_from_owl_turtle",
+        annotations=ToolAnnotations(
+            title="Load from OWL Turtle",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def load_from_owl_turtle(owl_turtle_str: str) -> DataModel:
         """
         Load a data model from an OWL Turtle string.
@@ -386,7 +495,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Loading a data model from an OWL Turtle string.")
         return DataModel.from_owl_turtle_str(owl_turtle_str)
 
-    @mcp.tool(name=namespace_prefix + "export_to_owl_turtle")
+    @mcp.tool(
+        name=namespace_prefix + "export_to_owl_turtle",
+        annotations=ToolAnnotations(
+            title="Export to OWL Turtle",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def export_to_owl_turtle(data_model: Union[str, DataModel]) -> str:
         """
         Export a data model to an OWL Turtle string.
@@ -400,7 +518,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Exporting a data model to an OWL Turtle string.")
         return data_model_obj.to_owl_turtle_str()
 
-    @mcp.tool(name=namespace_prefix + "export_to_pydantic_models")
+    @mcp.tool(
+        name=namespace_prefix + "export_to_pydantic_models",
+        annotations=ToolAnnotations(
+            title="Export to Pydantic Models",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def export_to_pydantic_models(data_model: Union[str, DataModel]) -> str:
         """
         Export a data model to Pydantic models.
@@ -413,7 +540,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Exporting a data model to Pydantic models.")
         return data_model_obj.to_pydantic_model_str()
 
-    @mcp.tool(name=namespace_prefix + "export_to_neo4j_graphrag_pkg_schema")
+    @mcp.tool(
+        name=namespace_prefix + "export_to_neo4j_graphrag_pkg_schema",
+        annotations=ToolAnnotations(
+            title="Export to Neo4j GraphRAG Schema",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def export_to_neo4j_graphrag_pkg_schema(
         data_model: Union[str, DataModel],
     ) -> dict[str, Any]:
@@ -428,7 +564,16 @@ def create_mcp_server(namespace: str = "") -> FastMCP:
         logger.info("Exporting a data model to a Neo4j Graphrag Python Package schema.")
         return data_model_obj.to_neo4j_graphrag_python_package_schema()
 
-    @mcp.tool(name=namespace_prefix + "load_from_neo4j_graphrag_pkg_schema")
+    @mcp.tool(
+        name=namespace_prefix + "load_from_neo4j_graphrag_pkg_schema",
+        annotations=ToolAnnotations(
+            title="Load from Neo4j GraphRAG Schema",
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
     def load_from_neo4j_graphrag_pkg_schema(
         neo4j_graphrag_python_package_schema: dict[str, Any],
     ) -> DataModel:
