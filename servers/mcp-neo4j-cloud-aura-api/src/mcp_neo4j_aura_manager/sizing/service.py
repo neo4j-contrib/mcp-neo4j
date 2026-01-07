@@ -12,9 +12,9 @@ from .growth_models import get_growth_model
 from .models import (
     SizingResult,
     ForecastResult,
-    SizingCalculations,
     YearProjection,
     SizingMetadata,
+    Neo4jSizingCalculationResult,
 )
 from .utils import get_logger
 
@@ -50,7 +50,7 @@ class AuraSizingService:
         
         # Optional overrides
         quantization_enabled: bool = False,
-        memory_to_storage_ratio: Optional[float] = None,
+        memory_to_storage_ratio: Optional[int] = None,
         concurrent_end_users: Optional[int] = None,
     ) -> SizingResult:
         """
@@ -67,8 +67,9 @@ class AuraSizingService:
             percentage_nodes_with_vector_properties: Percentage of nodes with vector properties 0-100 (default: 0.0)
             number_of_vector_indexes: Number of vector indexes (default: 0)
             quantization_enabled: Enable scalar quantization for vectors (4x storage reduction)
-            memory_to_storage_ratio: Memory-to-storage ratio denominator (1=1:1, 2=1:2, 4=1:4, 8=1:8). 
-                                     If provided, calculates recommended_memory_gb. Default: None (no memory calculation)
+            memory_to_storage_ratio: Memory-to-storage ratio denominator. Must be one of: 1 (1:1), 2 (1:2), 4 (1:4), or 8 (1:8).
+                                     Raises ValueError if not one of these values. If provided, calculates recommended_memory_gb.
+                                     Default: None (no memory calculation)
             concurrent_end_users: Number of concurrent end users. If provided, calculates recommended_vcpus (2 vCPU per user).
                                   Default: None (no vCPU calculation)
             
@@ -115,8 +116,8 @@ class AuraSizingService:
         
         # Validate memory_to_storage_ratio if provided
         if memory_to_storage_ratio is not None:
-            if memory_to_storage_ratio not in [1.0, 2.0, 4.0, 8.0]:
-                raise ValueError("memory_to_storage_ratio must be 1.0 (1:1), 2.0 (1:2), 4.0 (1:4), or 8.0 (1:8)")
+            if memory_to_storage_ratio not in [1, 2, 4, 8]:
+                raise ValueError("memory_to_storage_ratio must be 1 (1:1), 2 (1:2), 4 (1:4), or 8 (1:8)")
         
         # Validate concurrent_end_users if provided
         if concurrent_end_users is not None and concurrent_end_users < 0:
@@ -134,12 +135,12 @@ class AuraSizingService:
             percentage_nodes_with_vector_properties=percentage_nodes_with_vector_properties,
             number_of_vector_indexes=number_of_vector_indexes,
             quantization_enabled=quantization_enabled,
-            memory_to_storage_ratio=memory_to_storage_ratio if memory_to_storage_ratio is not None else 1.0,
+            memory_to_storage_ratio=memory_to_storage_ratio if memory_to_storage_ratio is not None else 1,
             concurrent_end_users=concurrent_end_users if concurrent_end_users is not None else 0,
         )
         
-        # Convert Neo4jSizingCalculationResult to SizingCalculations
-        calculations = SizingCalculations(**calculation_result.model_dump())
+        # Use Neo4jSizingCalculationResult directly (no conversion needed)
+        calculations = calculation_result
         
         # Get calculator type name for metadata
         calculator_type = self._calculator.__class__.__name__
@@ -174,7 +175,7 @@ class AuraSizingService:
         projection_years: int = 3,
         workloads: Optional[List[str]] = None,
         domain: Optional[str] = None,
-        memory_to_storage_ratio: float = 1.0,
+        memory_to_storage_ratio: int = 1,
     ) -> ForecastResult:
         """
         Forecast database growth over multiple years.
@@ -188,7 +189,8 @@ class AuraSizingService:
             workloads: List of workload types (transactional, agentic, analytical, graph_data_science)
                       If provided, overrides domain defaults
             domain: Graph domain (customer, product, etc.) - used to infer default workloads if workloads not provided
-            memory_to_storage_ratio: Memory-to-storage ratio denominator (1=1:1, 2=1:2, 4=1:4, 8=1:8). Default: 1 (1:1 ratio)
+            memory_to_storage_ratio: Memory-to-storage ratio denominator. Must be one of: 1 (1:1), 2 (1:2), 4 (1:4), or 8 (1:8).
+                                     Raises ValueError if not one of these values. Default: 1 (1:1 ratio)
             
         Returns:
             Forecast result with multi-year projections
@@ -202,15 +204,13 @@ class AuraSizingService:
             raise ValueError("base_cores must be non-negative")
         if annual_growth_rate < 0:
             raise ValueError("annual_growth_rate must be non-negative")
-        if annual_growth_rate > 1000:
-            raise ValueError("annual_growth_rate seems unreasonably high (>1000%). Please verify the value.")
         if projection_years < 1:
             raise ValueError("projection_years must be at least 1")
         if projection_years > 20:
             raise ValueError("projection_years exceeds reasonable limit (20 years). Please use a value <= 20")
         # Validate memory_to_storage_ratio
-        if memory_to_storage_ratio not in [1.0, 2.0, 4.0, 8.0]:
-            raise ValueError("memory_to_storage_ratio must be 1.0 (1:1), 2.0 (1:2), 4.0 (1:4), or 8.0 (1:8)")
+        if memory_to_storage_ratio not in [1, 2, 4, 8]:
+            raise ValueError("memory_to_storage_ratio must be 1 (1:1), 2 (1:2), 4 (1:4), or 8 (1:8)")
         
         # Project growth using workload-based model
         projections_list = GrowthProjector.project(

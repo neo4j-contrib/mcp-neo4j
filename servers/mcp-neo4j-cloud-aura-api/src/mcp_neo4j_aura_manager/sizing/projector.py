@@ -28,7 +28,7 @@ class GrowthProjector:
         workloads: Optional[List[str]] = None,
         domain: Optional[str] = None,
         growth_model: Optional[GrowthModel] = None,
-        memory_to_storage_ratio: float = 1.0,
+        memory_to_storage_ratio: int = 1,
         **growth_model_kwargs,
     ) -> List[Dict[str, Any]]:
         """

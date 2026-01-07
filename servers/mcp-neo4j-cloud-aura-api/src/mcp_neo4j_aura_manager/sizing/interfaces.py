@@ -4,10 +4,9 @@ Interfaces for sizing calculator components.
 Defines protocols/abstract base classes for extensible sizing calculator architecture.
 """
 
-from typing import Protocol, Dict, Any, TYPE_CHECKING
+from typing import Protocol, Dict, Any
 
-if TYPE_CHECKING:
-    from .models import Neo4jSizingCalculationResult
+from .models import Neo4jSizingCalculationResult
 
 
 class SizingCalculatorProtocol(Protocol):
@@ -21,7 +20,7 @@ class SizingCalculatorProtocol(Protocol):
     a consistent output format.
     """
     
-    def calculate(self, **kwargs: Any) -> "Neo4jSizingCalculationResult":
+    def calculate(self, **kwargs: Any) -> Neo4jSizingCalculationResult:
         """
         Calculate database sizes based on graph metrics.
         

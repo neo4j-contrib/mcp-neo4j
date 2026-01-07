@@ -42,7 +42,7 @@ class Neo4jSizingCalculator:
         percentage_nodes_with_vector_properties: float = 0.0,
         number_of_vector_indexes: int = 0,
         quantization_enabled: bool = False,
-        memory_to_storage_ratio: float = 1.0,
+        memory_to_storage_ratio: int = 1,
         concurrent_end_users: int = 0,
     ) -> Neo4jSizingCalculationResult:
         """

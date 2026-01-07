@@ -12,21 +12,18 @@ from .service import AuraSizingService
 from .models import (
     SizingResult,
     ForecastResult,
-    SizingCalculations,
     YearProjection,
     SizingMetadata,
 )
 
 __all__ = [
     "Neo4jSizingCalculator",
-    "SizingCalculator",  # Backward compatibility alias
     "SizingCalculatorProtocol",
     "Neo4jSizingCalculationResult",
     "GrowthProjector",
     "AuraSizingService",
     "SizingResult",
     "ForecastResult",
-    "SizingCalculations",
     "YearProjection",
     "SizingMetadata",
 ]

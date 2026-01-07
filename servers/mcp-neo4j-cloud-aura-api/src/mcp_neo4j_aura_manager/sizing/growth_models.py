@@ -140,6 +140,22 @@ class ExponentialWithVectorGrowthModel(GrowthModel):
     """Exponential growth with additional vector index growth
     
     Good for agentic/RAG workloads where vector indexes grow separately.
+    
+    Assumption: Total chunk size + vector index size will be much larger than 
+    total entity size. This model accounts for the fact that vector indexes grow 
+    faster than the underlying graph structure in RAG/agentic workloads.
+    
+    For calculating vector index size requirements, see:
+    https://neo4j.com/docs/operations-manual/current/performance/vector-index-memory-configuration/#_example_calculations
+    
+    The Neo4j documentation provides the formula:
+    Vector Index Size (GB) = (1.1 * (4 * dimension + 8 * 16) * num_vectors) / 1,048,576,000
+    
+    Where:
+    - 1.1 is an overhead factor
+    - 4 bytes per dimension (float32)
+    - 8 * 16 = 128 bytes overhead per vector
+    - num_vectors is the number of vectors in the index
     """
     
     @staticmethod
@@ -148,21 +164,52 @@ class ExponentialWithVectorGrowthModel(GrowthModel):
         annual_growth_rate: float,
         year: int,
         vector_growth_multiplier: float = 1.2,
-        vector_proportion: float = 0.3,
+        vector_proportion: float = 0.7,
         **kwargs
     ) -> float:
         """
         Exponential growth with vector component growing faster.
         
+        This model separates the base size into vector and non-vector components,
+        applying faster growth to the vector component to account for the fact that
+        vector indexes (chunks + vectors) typically grow faster than entity data
+        in RAG/agentic workloads.
+        
+        Assumption: For RAG/agentic workloads, chunk size + vector index size will be
+        much larger than entity size. The default vector_proportion of 0.7 (70%) reflects
+        this assumption.
+        
+        Vector index size follows the Neo4j formula:
+        Vector Index Size (GB) = (1.1 * (4 * dimension + 8 * 16) * num_vectors) / 1,048,576,000
+        
+        Since vector size is proportional to num_vectors, and num_vectors typically grows
+        faster than entity data in RAG workloads, this model applies a higher growth rate
+        to the vector component.
+        
         Args:
+            base_size_gb: Base size in GB (year 0), which should include both
+                         entity data and vector index data (chunks + vectors)
+            annual_growth_rate: Annual growth rate as percentage
+            year: Year number (1, 2, 3, etc.)
             vector_growth_multiplier: Additional growth multiplier for vector indexes
-            vector_proportion: Proportion of base size that is vector-related (default 30%)
+                                     (default 1.2, meaning vectors grow 20% faster than base rate)
+            vector_proportion: Proportion of base size that is vector-related 
+                              (default 0.7 = 70%, reflecting that chunk size + vector >> entity size
+                              for RAG workloads)
         """
+        # For RAG workloads, chunks + vectors dominate the size
+        # Default 70% reflects the assumption that vector-related data >> entity data
         vector_base = base_size_gb * vector_proportion
         non_vector_base = base_size_gb * (1 - vector_proportion)
         
-        # Vector grows faster
+        # Vector component grows faster (exponential with additional multiplier)
+        # This reflects how vector indexes grow with num_vectors according to the Neo4j formula:
+        # (1.1 * (4 * dimension + 128) * num_vectors) / 1,048,576,000
+        # Since vector size is proportional to num_vectors, faster num_vectors growth
+        # means faster vector index size growth
         vector_growth = vector_base * ((1 + annual_growth_rate / 100.0) * vector_growth_multiplier) ** year
+        
+        # Non-vector (entity) component grows at standard exponential rate
         non_vector_growth = non_vector_base * ((1 + annual_growth_rate / 100.0) ** year)
         
         return vector_growth + non_vector_growth

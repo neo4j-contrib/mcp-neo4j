@@ -156,7 +156,7 @@ class AuraManager:
         percentage_nodes_with_vector_properties: Optional[float] = None,
         number_of_vector_indexes: Optional[int] = None,
         quantization_enabled: bool = False,
-        memory_to_storage_ratio: Optional[float] = None,
+        memory_to_storage_ratio: Optional[int] = None,
         concurrent_end_users: Optional[int] = None,
         **kwargs
     ) -> Dict[str, Any]:
@@ -191,7 +191,7 @@ class AuraManager:
         projection_years: int = 3,
         workloads: Optional[List[str]] = None,
         domain: Optional[str] = None,
-        memory_to_storage_ratio: float = 1.0,
+        memory_to_storage_ratio: int = 1,
         **kwargs
     ) -> Dict[str, Any]:
         """Forecast database growth over multiple years."""

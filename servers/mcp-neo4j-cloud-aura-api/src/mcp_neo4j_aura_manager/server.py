@@ -234,13 +234,14 @@ def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP
         
         # Optional overrides
         quantization_enabled: bool = Field(False, description="Enable scalar quantization for vectors (4x storage reduction, uses int8 instead of float32)"),
-        memory_to_storage_ratio: Optional[float] = Field(
+        memory_to_storage_ratio: Optional[int] = Field(
             None,
             description="Memory-to-storage ratio denominator. "
-            "Options: 1.0 (1:1 ratio - memory equals storage), "
-            "2.0 (1:2 ratio - memory is half of storage), "
-            "4.0 (1:4 ratio - memory is quarter of storage), "
-            "8.0 (1:8 ratio - memory is eighth of storage). "
+            "Options: 1 (1:1 ratio - memory equals storage), "
+            "2 (1:2 ratio - memory is half of storage), "
+            "4 (1:4 ratio - memory is quarter of storage), "
+            "8 (1:8 ratio - memory is eighth of storage). "
+            "Must be one of these values. Raises ValueError if not. "
             "If provided, calculates recommended_memory_gb based on total storage size. "
             "Default: None (no memory calculation)."
         ),
@@ -328,14 +329,15 @@ def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP
             "If provided, uses default workload types for the domain to determine growth model. "
             "Can be overridden by explicitly providing 'workloads' parameter."
         ),
-        memory_to_storage_ratio: float = Field(
-            1.0,
+        memory_to_storage_ratio: int = Field(
+            1,
             description="Memory-to-storage ratio denominator. "
-            "Options: 1.0 (1:1 ratio - memory equals storage), "
-            "2.0 (1:2 ratio - memory is half of storage), "
-            "4.0 (1:4 ratio - memory is quarter of storage), "
-            "8.0 (1:8 ratio - memory is eighth of storage). "
-            "Default: 1.0 (1:1 ratio). "
+            "Options: 1 (1:1 ratio - memory equals storage), "
+            "2 (1:2 ratio - memory is half of storage), "
+            "4 (1:4 ratio - memory is quarter of storage), "
+            "8 (1:8 ratio - memory is eighth of storage). "
+            "Must be one of these values. Raises ValueError if not. "
+            "Default: 1 (1:1 ratio). "
             "The ratio determines how memory scales with projected storage size."
         ),
     ) -> ForecastResult:
