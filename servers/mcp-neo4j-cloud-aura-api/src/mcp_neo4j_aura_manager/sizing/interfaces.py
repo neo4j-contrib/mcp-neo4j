@@ -5,7 +5,6 @@ Defines protocols/abstract base classes for extensible sizing calculator archite
 """
 
 from typing import Protocol, Dict, Any
-
 from .models import Neo4jSizingCalculationResult
 
 

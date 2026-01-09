@@ -230,26 +230,32 @@ class TestNeo4jSizingCalculator:
     
     def test_recommended_memory_with_ratio(self, calculator):
         """Test recommended_memory_gb with different memory_to_storage_ratio values."""
-        # Test 1:2 ratio
+        # Test 1:2 ratio - use larger graph to avoid OS floor issues
         result = calculator.calculate(
-            num_nodes=100000,
-            num_relationships=500000,
-            memory_to_storage_ratio=2.0,  # 1:2 ratio
+            num_nodes=10000000,
+            num_relationships=50000000,
+            avg_properties_per_node=5,
+            avg_properties_per_relationship=2,
+            memory_to_storage_ratio=2,  # 1:2 ratio (integer)
         )
         
-        # Memory should be storage / 2 (rounded up)
+        # Memory should be storage / 2 (rounded up), but at least 2GB (OS floor)
         expected_memory = result.total_size_with_indexes_gb / 2.0
-        assert result.recommended_memory_gb == math.ceil(expected_memory)
+        expected_memory = max(math.ceil(expected_memory), 2)  # OS floor of 2GB
+        assert result.recommended_memory_gb == expected_memory
         
         # Test 1:4 ratio
         result = calculator.calculate(
-            num_nodes=100000,
-            num_relationships=500000,
-            memory_to_storage_ratio=4.0,  # 1:4 ratio
+            num_nodes=10000000,
+            num_relationships=50000000,
+            avg_properties_per_node=5,
+            avg_properties_per_relationship=2,
+            memory_to_storage_ratio=4,  # 1:4 ratio (integer)
         )
         
         expected_memory = result.total_size_with_indexes_gb / 4.0
-        assert result.recommended_memory_gb == math.ceil(expected_memory)
+        expected_memory = max(math.ceil(expected_memory), 2)  # OS floor of 2GB
+        assert result.recommended_memory_gb == expected_memory
     
     def test_recommended_vcpus_defaults_to_1(self, calculator):
         """Test that recommended_vcpus defaults to 1."""

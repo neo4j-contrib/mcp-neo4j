@@ -147,6 +147,8 @@ class Neo4jSizingCalculator:
         # Use provided ratio or default to 1.0 (1:1 ratio)
         effective_memory_ratio = memory_to_storage_ratio if memory_to_storage_ratio is not None and memory_to_storage_ratio > 0 else 1.0
         recommended_memory_gb = math.ceil(total_size_with_indexes_gb / effective_memory_ratio)
+        # Enforce minimum 2GB for memory (OS floor)
+        recommended_memory_gb = max(recommended_memory_gb, 2)
         
         # Calculate recommended vCPUs (defaults to 1 if concurrent_end_users not provided)
         # 2 vCPU per concurrent end user, minimum 1

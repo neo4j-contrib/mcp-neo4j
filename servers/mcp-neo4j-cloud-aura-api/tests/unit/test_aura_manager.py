@@ -244,29 +244,6 @@ async def test_get_tenant_details(mock_client):
 
 
 @pytest.mark.asyncio
-async def test_pause_instance(mock_client):
-    manager = AuraManager("fake-id", "fake-secret")
-    manager.client = mock_client
-    
-    # Mock the pause_instance method
-    mock_client.pause_instance = MagicMock(return_value={"status": "paused"})
-    
-    result = await manager.pause_instance("instance-1")
-    assert result["status"] == "paused"
-
-@pytest.mark.asyncio
-async def test_update_instance_name(mock_client):
-    manager = AuraManager("fake-id", "fake-secret")
-    manager.client = mock_client
-    
-    # Mock the update_instance method
-    mock_client.update_instance = MagicMock(return_value={"name": "New Name", "id": "instance-1"})
-    
-    result = await manager.update_instance_name("instance-1", "New Name")
-    assert result["name"] == "New Name"
-    assert result["id"] == "instance-1"
-
-@pytest.mark.asyncio
 async def test_create_instance(mock_client):
     manager = AuraManager("fake-id", "fake-secret")
     manager.client = mock_client

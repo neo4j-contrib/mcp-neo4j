@@ -258,23 +258,6 @@ def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP
         This tool uses Neo4j's sizing formulas to calculate storage requirements based on your 
         graph structure (nodes, relationships, properties, and indexes).
         
-        **Required parameters:**
-        - num_nodes: Number of nodes in the graph
-        - num_relationships: Number of relationships in the graph
-        - avg_properties_per_node: Average properties per node (REQUIRED - significantly affects sizing)
-        - avg_properties_per_relationship: Average properties per relationship (REQUIRED - significantly affects sizing)
-        
-        **Optional parameters:**
-        - total_num_large_node_properties: Large properties (128+ bytes) across all nodes (default: 0)
-        - total_num_large_reltype_properties: Large properties (128+ bytes) across all relationships (default: 0)
-        - vector_index_dimensions: Vector dimensions if using vector search (default: 0)
-        - percentage_nodes_with_vector_properties: % of nodes with vectors (default: 0.0)
-        - number_of_vector_indexes: Number of vector indexes (default: 0)
-        
-        **IMPORTANT**: Property counts are required for accurate sizing. If the user provides incomplete 
-        information, ask about properties before calling this tool, as missing property data leads to 
-        wildly inaccurate results.
-        
         Returns detailed breakdown of storage components plus recommended memory and vCPU counts.
         Use the forecast_database_size tool to project growth over multiple years.
         """
@@ -350,21 +333,6 @@ def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP
         You can use the output from calculate_database_sizing as input to this tool,
         or provide your own base size, memory, and cores.
         
-        **Graph Domains (7 Graphs of the Enterprise):**
-        - customer: Customer 360, interactions → Default workloads: transactional, analytical
-        - product: Product catalogs, recommendations → Default workloads: analytical
-        - employee: Org charts, skills → Default workloads: analytical
-        - supplier: Supply chain, dependencies → Default workloads: analytical
-        - transaction: Fraud detection, payments → Default workloads: transactional
-        - process: Workflows, dependencies → Default workloads: analytical
-        - security: Access control, threats → Default workloads: transactional, analytical
-        
-        **Workload Types** (affect growth speed):
-        - transactional: Fast growth (high write volume, real-time)
-        - agentic: Fastest growth (RAG, vector search, AI/ML)
-        - analytical: Moderate growth (reporting, BI)
-        - graph_data_science: Slowest growth (algorithms, batch processing)
-        
         If domain is provided, it uses default workloads unless workloads are explicitly specified.
         The growth model is automatically selected based on the fastest-growing workload.
         
@@ -385,10 +353,21 @@ def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP
 
     @mcp.prompt(title="Calculate Database Sizing")
     def calculate_database_sizing_prompt(
-        graph_description: str = Field(
-            ...,
-            description="A description of the graph including nodes, relationships, properties, and any vector search requirements."
-        ),
+        # Required parameters
+        num_nodes: Optional[int] = Field(None, description="Number of nodes in the graph"),
+        num_relationships: Optional[int] = Field(None, description="Number of relationships in the graph"),
+        avg_properties_per_node: Optional[int] = Field(None, description="Average number of properties per node. Required for accurate sizing."),
+        avg_properties_per_relationship: Optional[int] = Field(None, description="Average number of properties per relationship. Required for accurate sizing."),
+        
+        # Optional parameters
+        total_num_large_node_properties: Optional[int] = Field(None, description="Total number of large properties (128+ bytes) across all nodes (default: 0)"),
+        total_num_large_reltype_properties: Optional[int] = Field(None, description="Total number of large properties (128+ bytes) across all relationships (default: 0)"),
+        vector_index_dimensions: Optional[int] = Field(None, description="Vector index dimensions (default: 0 if not using vectors)"),
+        percentage_nodes_with_vector_properties: Optional[float] = Field(None, description="Percentage of nodes with properties in vector index 0-100 (default: 0.0)"),
+        number_of_vector_indexes: Optional[int] = Field(None, description="Number of vector indexes (default: 0)"),
+        quantization_enabled: Optional[bool] = Field(None, description="Enable scalar quantization for vectors (4x storage reduction, uses int8 instead of float32)"),
+        memory_to_storage_ratio: Optional[int] = Field(None, description="Memory-to-storage ratio denominator. Options: 1 (1:1), 2 (1:2), 4 (1:4), 8 (1:8). If provided, calculates recommended_memory_gb."),
+        concurrent_end_users: Optional[int] = Field(None, description="Number of concurrent end users. If provided, calculates recommended_vcpus (2 vCPU per concurrent user)."),
     ) -> str:
         """
         Guide the agent through collecting complete graph information for database sizing.
@@ -397,98 +376,162 @@ def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP
         to collect all necessary information before calculating sizing.
         """
         
-        # Get parameter information from the current calculator
-        params_info = get_calculator_parameter_info()
+        # Build list of provided and missing parameters
+        provided_params = []
+        missing_required = []
         
-        # Build required parameters section
-        required_section = ""
-        if params_info['required']:
-            required_section = "**Required Information:**\n"
-            for param in params_info['required']:
-                required_section += f"- {param['name'].replace('_', ' ').title()}: {param['description']}\n"
+        if num_nodes is not None:
+            provided_params.append(f"- num_nodes: {num_nodes}")
+        else:
+            missing_required.append("num_nodes")
+            
+        if num_relationships is not None:
+            provided_params.append(f"- num_relationships: {num_relationships}")
+        else:
+            missing_required.append("num_relationships")
+            
+        if avg_properties_per_node is not None:
+            provided_params.append(f"- avg_properties_per_node: {avg_properties_per_node}")
+        else:
+            missing_required.append("avg_properties_per_node")
+            
+        if avg_properties_per_relationship is not None:
+            provided_params.append(f"- avg_properties_per_relationship: {avg_properties_per_relationship}")
+        else:
+            missing_required.append("avg_properties_per_relationship")
         
-        # Build important optional parameters section
-        optional_section = ""
-        important_params = ['avg_properties_per_node', 'avg_properties_per_relationship', 
-                           'vector_index_dimensions', 'percentage_nodes_with_vector_properties',
-                           'total_num_large_node_properties', 'total_num_large_reltype_properties']
+        # Optional parameters
+        if total_num_large_node_properties is not None:
+            provided_params.append(f"- total_num_large_node_properties: {total_num_large_node_properties}")
+        if total_num_large_reltype_properties is not None:
+            provided_params.append(f"- total_num_large_reltype_properties: {total_num_large_reltype_properties}")
+        if vector_index_dimensions is not None:
+            provided_params.append(f"- vector_index_dimensions: {vector_index_dimensions}")
+        if percentage_nodes_with_vector_properties is not None:
+            provided_params.append(f"- percentage_nodes_with_vector_properties: {percentage_nodes_with_vector_properties}")
+        if number_of_vector_indexes is not None:
+            provided_params.append(f"- number_of_vector_indexes: {number_of_vector_indexes}")
+        if quantization_enabled is not None:
+            provided_params.append(f"- quantization_enabled: {quantization_enabled}")
+        if memory_to_storage_ratio is not None:
+            provided_params.append(f"- memory_to_storage_ratio: {memory_to_storage_ratio}")
+        if concurrent_end_users is not None:
+            provided_params.append(f"- concurrent_end_users: {concurrent_end_users}")
         
-        if params_info['optional']:
-            optional_section = "\n**Important for Accuracy:**\n"
-            for param in params_info['optional']:
-                if param['name'] in important_params:
-                    default_str = f" (default: {param['default']})" if param['default'] is not None else ""
-                    optional_section += f"- {param['name'].replace('_', ' ').title()}: {param['description']}{default_str}\n"
+        # Build the prompt
+        provided_section = "\n".join(provided_params) if provided_params else "None provided yet."
+        missing_section = ", ".join(missing_required) if missing_required else "None - all required parameters are provided!"
         
         prompt = f"""The user wants to calculate database sizing for their Neo4j graph.
 
-**What they've told us:**
-{graph_description}
+**Information already provided:**
+{provided_section}
 
-**Information needed:**
+**Missing required parameters:**
+{missing_section}
 
-{required_section}{optional_section}
 **Process:**
 1. **Information Gathering**
-   - Identify what information is already provided from the user's description
-   - Ask for any missing required information (nodes, relationships)
-   - Ask about properties, vectors, and other details that significantly impact sizing accuracy
+   - If any required parameters are missing, ask the user for them
+   - For optional parameters, ask if they apply to the user's use case (vectors, large properties, etc.)
+   - Property counts (avg_properties_per_node and avg_properties_per_relationship) are critical for accuracy
    
 2. **Calculation**
-   - Once you have collected the information (or confirmed defaults are acceptable), 
-     call the `calculate_database_sizing` tool with all parameters
+   - Once you have all required parameters (or confirmed defaults are acceptable for optional ones), 
+     call the `calculate_database_sizing` tool with the collected parameters
+   - Only include parameters that have been provided or have meaningful defaults
    
 3. **Presentation**
    - Present the results clearly, showing the breakdown of storage components
    - Explain any recommendations for memory and vCPU
 
-**Note:** Properties significantly impact sizing calculations. If the user only mentions 
-nodes/relationships, you should ask about properties before calculating.
+**Note:** Properties significantly impact sizing calculations. Always ask about properties if the user 
+hasn't provided avg_properties_per_node and avg_properties_per_relationship.
 """
         
         return prompt
 
     @mcp.prompt(title="Forecast Database Size")
     def forecast_database_size_prompt(
-        graph_description: str = Field(
-            ...,
-            description="A description of the graph use case, domain, and workload types."
+        # Required parameters
+        base_size_gb: Optional[float] = Field(None, description="Current database size in GB"),
+        base_memory_gb: Optional[int] = Field(None, description="Current recommended memory in GB"),
+        base_cores: Optional[int] = Field(None, description="Current recommended number of cores"),
+        
+        # Optional parameters
+        annual_growth_rate: Optional[float] = Field(None, description="Annual growth rate percentage (default: 10%)"),
+        projection_years: Optional[int] = Field(None, description="Number of years to project (default: 3)"),
+        domain: Optional[str] = Field(
+            None,
+            description="Graph domain (7 Graphs of the Enterprise). Options: 'customer', 'product', 'employee', 'supplier', 'transaction', 'process', 'security', 'generic'"
+        ),
+        workloads: Optional[str] = Field(
+            None,
+            description="Workload types that determine growth pattern. Options: 'transactional', 'agentic', 'analytical', 'graph_data_science'. Can specify multiple."
+        ),
+        memory_to_storage_ratio: Optional[int] = Field(
+            None,
+            description="Memory-to-storage ratio denominator. Options: 1 (1:1), 2 (1:2), 4 (1:4), 8 (1:8). Default: 1."
         ),
     ) -> str:
         """
-        Guide the agent through identifying graph domain and workload types for growth forecasting.
+        Guide the agent through collecting information for database growth forecasting.
         
-        Use this prompt when a user wants to forecast database growth. It helps identify
-        which of the 7 Graphs of the Enterprise applies and what workload types are being used.
+        Use this prompt when a user wants to forecast database growth. It provides a structured workflow
+        to collect all necessary information before forecasting.
         """
+        
+        # Build list of provided and missing parameters
+        provided_params = []
+        missing_required = []
+        
+        if base_size_gb is not None:
+            provided_params.append(f"- base_size_gb: {base_size_gb}")
+        else:
+            missing_required.append("base_size_gb")
+            
+        if base_memory_gb is not None:
+            provided_params.append(f"- base_memory_gb: {base_memory_gb}")
+        else:
+            missing_required.append("base_memory_gb")
+            
+        if base_cores is not None:
+            provided_params.append(f"- base_cores: {base_cores}")
+        else:
+            missing_required.append("base_cores")
+        
+        # Optional parameters
+        if annual_growth_rate is not None:
+            provided_params.append(f"- annual_growth_rate: {annual_growth_rate}%")
+        if projection_years is not None:
+            provided_params.append(f"- projection_years: {projection_years}")
+        if domain is not None:
+            provided_params.append(f"- domain: {domain}")
+        if workloads is not None:
+            provided_params.append(f"- workloads: {workloads}")
+        if memory_to_storage_ratio is not None:
+            provided_params.append(f"- memory_to_storage_ratio: {memory_to_storage_ratio}")
+        
+        # Build the prompt
+        provided_section = "\n".join(provided_params) if provided_params else "None provided yet."
+        missing_section = ", ".join(missing_required) if missing_required else "None - all required parameters are provided!"
         
         prompt = f"""The user wants to forecast database growth for their Neo4j graph.
 
-**What they've told us:**
-{graph_description}
+**Information already provided:**
+{provided_section}
+
+**Missing required parameters:**
+{missing_section}
 
 **7 Graphs of the Enterprise:**
-
-1. **Customer** - Customer 360, interactions, preferences, journeys
-   - Default workloads: Transactional, Analytical
-   
-2. **Product** - Product catalogs, recommendations, components
-   - Default workloads: Analytical
-   
-3. **Employee** - Org charts, skills, collaborations
-   - Default workloads: Analytical
-   
-4. **Supplier** - Supply chain, dependencies, risk
-   - Default workloads: Analytical
-   
-5. **Transaction** - Fraud detection, payments, financial flows
-   - Default workloads: Transactional
-   
-6. **Process** - Workflows, dependencies, bottlenecks
-   - Default workloads: Analytical
-   
-7. **Security** - Access control, threats, compliance
-   - Default workloads: Transactional, Analytical
+1. **Customer** - Customer 360, interactions, preferences, journeys (defaults to transactional+analytical)
+2. **Product** - Product catalogs, recommendations, components (defaults to analytical)
+3. **Employee** - Org charts, skills, collaborations (defaults to analytical)
+4. **Supplier** - Supply chain, dependencies, risk (defaults to analytical)
+5. **Transaction** - Fraud detection, payments, financial flows (defaults to transactional)
+6. **Process** - Workflows, dependencies, bottlenecks (defaults to analytical)
+7. **Security** - Access control, threats, compliance (defaults to transactional+analytical)
 
 **Workload Types** (affect growth speed):
 - **Transactional** - Fast growth (high write volume, real-time)
@@ -497,25 +540,27 @@ nodes/relationships, you should ask about properties before calculating.
 - **Graph Data Science** - Slowest growth (algorithms, batch processing)
 
 **Process:**
-1. **Domain Identification**
-   - Map the user's description to one of the 7 Graphs of the Enterprise
-   - If domain is identified, it will use default workloads unless explicitly overridden
+1. **Information Gathering**
+   - If base_size_gb, base_memory_gb, or base_cores are missing, ask the user for them
+   - These can come from the output of `calculate_database_sizing` tool
+   - For optional parameters, ask if they apply or use defaults:
+     * annual_growth_rate: default 10%
+     * projection_years: default 3 years
+     * domain: identify from user's description (7 Graphs of the Enterprise)
+     * workloads: identify from user's description (overrides domain defaults if provided)
+     * memory_to_storage_ratio: default 1 (1:1 ratio)
    
-2. **Workload Identification**
-   - Identify workload types from the description
-   - If not clear, ask the user about their workload patterns
-   - Explicit workloads override domain defaults
-   
-3. **Forecast Setup**
-   - Collect base size, memory, and cores (can use output from `calculate_database_sizing`)
-   - Ask about growth rate and projection years if not provided
-   - Determine memory-to-storage ratio preference
-   
-4. **Forecasting**
-   - Call the `forecast_database_size` tool with all collected parameters
+2. **Domain and Workload Identification**
+   - If domain is provided, it uses default workloads unless workloads are explicitly specified
+   - If workloads are provided, they override domain defaults
    - The growth model is automatically selected based on the fastest-growing workload
    
-5. **Presentation**
+3. **Forecasting**
+   - Once you have all required parameters (or confirmed defaults are acceptable for optional ones),
+     call the `forecast_database_size` tool with the collected parameters
+   - Only include parameters that have been provided or have meaningful defaults
+   
+4. **Presentation**
    - Present multi-year projections with scaling recommendations
    - Explain when scaling might be needed
 

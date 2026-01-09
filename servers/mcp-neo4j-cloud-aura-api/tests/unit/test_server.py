@@ -179,3 +179,245 @@ class TestNamespacing:
         # Verify we have the expected number of tools (14 tools: 12 instance management + 2 sizing tools)
         assert len(default_tools) == 14
         assert len(namespaced_tools) == 14
+
+
+class TestPrompts:
+    """Test prompt functions for database sizing and forecasting."""
+
+    @pytest.fixture
+    def mock_aura_manager(self):
+        """Create a mock AuraManager for testing."""
+        manager = Mock(spec=AuraManager)
+        # Mock all the async methods that the tools will call
+        manager.list_instances = AsyncMock(return_value={"instances": []})
+        manager.get_instance_details = AsyncMock(return_value={"details": []})
+        manager.get_instance_by_name = AsyncMock(return_value={"instance": None})
+        manager.create_instance = AsyncMock(return_value={"instance_id": "test-id"})
+        manager.update_instance_name = AsyncMock(return_value={"success": True})
+        manager.update_instance_memory = AsyncMock(return_value={"success": True})
+        manager.update_instance_vector_optimization = AsyncMock(return_value={"success": True})
+        manager.pause_instance = AsyncMock(return_value={"success": True})
+        manager.resume_instance = AsyncMock(return_value={"success": True})
+        manager.list_tenants = AsyncMock(return_value={"tenants": []})
+        manager.get_tenant_details = AsyncMock(return_value={"tenant": {}})
+        manager.delete_instance = AsyncMock(return_value={"success": True})
+        return manager
+
+    # Calculate Database Sizing Prompt Tests
+    @pytest.mark.asyncio
+    async def test_calculate_database_sizing_prompt_exists(self, mock_aura_manager):
+        """Test that the calculate_database_sizing prompt exists."""
+        server = create_mcp_server(mock_aura_manager)
+        prompts = await server.get_prompts()
+        
+        assert "calculate_database_sizing_prompt" in prompts.keys()
+        prompt = prompts["calculate_database_sizing_prompt"]
+        assert prompt is not None
+
+    @pytest.mark.asyncio
+    async def test_calculate_database_sizing_prompt_no_params(self, mock_aura_manager):
+        """Test prompt with no parameters provided."""
+        server = create_mcp_server(mock_aura_manager)
+        prompts = await server.get_prompts()
+        prompt = prompts.get("calculate_database_sizing_prompt")
+        assert prompt is not None
+        
+        # Call the prompt function with no arguments (all None)
+        result = prompt.fn(
+            num_nodes=None,
+            num_relationships=None,
+            avg_properties_per_node=None,
+            avg_properties_per_relationship=None
+        )
+        
+        # Should be a string
+        assert isinstance(result, str)
+        # Should mention missing required parameters
+        assert "Missing required parameters" in result
+        assert "num_nodes" in result
+        assert "num_relationships" in result
+        assert "avg_properties_per_node" in result
+        assert "avg_properties_per_relationship" in result
+        # Should say none provided yet or show all parameters as missing
+        assert "None provided yet" in result or "num_nodes" in result
+
+    @pytest.mark.asyncio
+    async def test_calculate_database_sizing_prompt_some_params(self, mock_aura_manager):
+        """Test prompt with some parameters provided."""
+        server = create_mcp_server(mock_aura_manager)
+        prompts = await server.get_prompts()
+        prompt = prompts.get("calculate_database_sizing_prompt")
+        assert prompt is not None
+        
+        result = prompt.fn(
+            num_nodes=1000,
+            num_relationships=5000,
+            avg_properties_per_node=5
+        )
+        
+        # Should be a string
+        assert isinstance(result, str)
+        # Should show provided parameters
+        assert "num_nodes: 1000" in result
+        assert "num_relationships: 5000" in result
+        assert "avg_properties_per_node: 5" in result
+        # Should still mention missing avg_properties_per_relationship
+        assert "avg_properties_per_relationship" in result
+
+    @pytest.mark.asyncio
+    async def test_calculate_database_sizing_prompt_all_required(self, mock_aura_manager):
+        """Test prompt with all required parameters provided."""
+        server = create_mcp_server(mock_aura_manager)
+        prompts = await server.get_prompts()
+        prompt = prompts.get("calculate_database_sizing_prompt")
+        assert prompt is not None
+        
+        result = prompt.fn(
+            num_nodes=1000,
+            num_relationships=5000,
+            avg_properties_per_node=5,
+            avg_properties_per_relationship=2
+        )
+        
+        # Should be a string
+        assert isinstance(result, str)
+        # Should show all provided parameters
+        assert "num_nodes: 1000" in result
+        assert "num_relationships: 5000" in result
+        assert "avg_properties_per_node: 5" in result
+        assert "avg_properties_per_relationship: 2" in result
+        # Should say all required parameters are provided
+        assert "None - all required parameters are provided" in result or "all required parameters" in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_calculate_database_sizing_prompt_with_optional_params(self, mock_aura_manager):
+        """Test prompt with optional parameters provided."""
+        server = create_mcp_server(mock_aura_manager)
+        prompts = await server.get_prompts()
+        prompt = prompts.get("calculate_database_sizing_prompt")
+        assert prompt is not None
+        
+        result = prompt.fn(
+            num_nodes=1000,
+            num_relationships=5000,
+            avg_properties_per_node=5,
+            avg_properties_per_relationship=2,
+            vector_index_dimensions=768,
+            percentage_nodes_with_vector_properties=50.0,
+            memory_to_storage_ratio=2
+        )
+        
+        # Should be a string
+        assert isinstance(result, str)
+        # Should show optional parameters
+        assert "vector_index_dimensions: 768" in result
+        assert "percentage_nodes_with_vector_properties: 50.0" in result
+        assert "memory_to_storage_ratio: 2" in result
+
+    # Forecast Database Size Prompt Tests
+    @pytest.mark.asyncio
+    async def test_forecast_database_size_prompt_exists(self, mock_aura_manager):
+        """Test that the forecast_database_size prompt exists."""
+        server = create_mcp_server(mock_aura_manager)
+        prompts = await server.get_prompts()
+        
+        assert "forecast_database_size_prompt" in prompts.keys()
+        prompt = prompts["forecast_database_size_prompt"]
+        assert prompt is not None
+
+    @pytest.mark.asyncio
+    async def test_forecast_database_size_prompt_no_params(self, mock_aura_manager):
+        """Test prompt with no parameters provided."""
+        server = create_mcp_server(mock_aura_manager)
+        prompts = await server.get_prompts()
+        prompt = prompts.get("forecast_database_size_prompt")
+        assert prompt is not None
+        
+        # Call the prompt function with no arguments (all None)
+        result = prompt.fn(
+            base_size_gb=None,
+            base_memory_gb=None,
+            base_cores=None
+        )
+        
+        # Should be a string
+        assert isinstance(result, str)
+        # Should mention missing required parameters
+        assert "Missing required parameters" in result
+        assert "base_size_gb" in result
+        assert "base_memory_gb" in result
+        assert "base_cores" in result
+        # Should say none provided yet or show all parameters as missing
+        assert "None provided yet" in result or "base_size_gb" in result
+
+    @pytest.mark.asyncio
+    async def test_forecast_database_size_prompt_some_params(self, mock_aura_manager):
+        """Test prompt with some parameters provided."""
+        server = create_mcp_server(mock_aura_manager)
+        prompts = await server.get_prompts()
+        prompt = prompts.get("forecast_database_size_prompt")
+        assert prompt is not None
+        
+        result = prompt.fn(
+            base_size_gb=100.0,
+            base_memory_gb=50
+        )
+        
+        # Should be a string
+        assert isinstance(result, str)
+        # Should show provided parameters
+        assert "base_size_gb: 100.0" in result
+        assert "base_memory_gb: 50" in result
+        # Should still mention missing base_cores
+        assert "base_cores" in result
+
+    @pytest.mark.asyncio
+    async def test_forecast_database_size_prompt_all_required(self, mock_aura_manager):
+        """Test prompt with all required parameters provided."""
+        server = create_mcp_server(mock_aura_manager)
+        prompts = await server.get_prompts()
+        prompt = prompts.get("forecast_database_size_prompt")
+        assert prompt is not None
+        
+        result = prompt.fn(
+            base_size_gb=100.0,
+            base_memory_gb=50,
+            base_cores=4
+        )
+        
+        # Should be a string
+        assert isinstance(result, str)
+        # Should show all provided parameters
+        assert "base_size_gb: 100.0" in result
+        assert "base_memory_gb: 50" in result
+        assert "base_cores: 4" in result
+        # Should say all required parameters are provided
+        assert "None - all required parameters are provided" in result or "all required parameters" in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_forecast_database_size_prompt_with_optional_params(self, mock_aura_manager):
+        """Test prompt with optional parameters provided."""
+        server = create_mcp_server(mock_aura_manager)
+        prompts = await server.get_prompts()
+        prompt = prompts.get("forecast_database_size_prompt")
+        assert prompt is not None
+        
+        result = prompt.fn(
+            base_size_gb=100.0,
+            base_memory_gb=50,
+            base_cores=4,
+            annual_growth_rate=15.0,
+            projection_years=5,
+            domain="customer",
+            workloads="transactional, analytical",
+            memory_to_storage_ratio=2
+        )
+        
+        # Should be a string
+        assert isinstance(result, str)
+        # Should show optional parameters
+        assert "annual_growth_rate: 15.0%" in result
+        assert "projection_years: 5" in result
+        assert "domain: customer" in result
+        assert "workloads: transactional, analytical" in result
+        assert "memory_to_storage_ratio: 2" in result
