@@ -51,3 +51,5 @@ mcp.json
 servers/mcp-neo4j-cloud-aura-api/eval_sizing_tool.py
 servers/mcp-neo4j-cloud-aura-api/eval_forecast_tool.py
 servers/mcp-neo4j-cloud-aura-api/DESIGN_PROPOSAL_FORECASTER.md
+servers/mcp-neo4j-cloud-aura-api/smoke_test_growth_models.py
+servers/mcp-neo4j-cloud-aura-api/growth_models_smoke_test_results.txt

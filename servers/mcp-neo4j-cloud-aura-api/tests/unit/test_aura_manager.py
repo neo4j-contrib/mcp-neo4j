@@ -446,6 +446,7 @@ async def test_forecast_database_size_basic(mock_client):
         base_size_gb=100.0,
         base_memory_gb=64,
         base_cores=8,
+        domain="customer",
     )
     
     # Should return a dict with projections
@@ -496,6 +497,7 @@ async def test_forecast_database_size_with_workloads(mock_client):
         base_size_gb=100.0,
         base_memory_gb=64,
         base_cores=8,
+        domain="generic",
         workloads=["transactional"],
     )
     
@@ -532,6 +534,7 @@ async def test_forecast_database_size_error_handling(mock_client):
             base_size_gb=-1.0,
             base_memory_gb=64,
             base_cores=8,
+            domain="customer",
         )
     
     # Should raise ValueError for invalid projection_years
@@ -540,6 +543,7 @@ async def test_forecast_database_size_error_handling(mock_client):
             base_size_gb=100.0,
             base_memory_gb=64,
             base_cores=8,
+            domain="customer",
             projection_years=0,
         )
 
@@ -554,6 +558,7 @@ async def test_forecast_database_size_returns_dict(mock_client):
         base_size_gb=100.0,
         base_memory_gb=64,
         base_cores=8,
+        domain="customer",
     )
     
     # Should be a dict, not a Pydantic model
@@ -574,9 +579,10 @@ async def test_forecast_database_size_memory_scaling(mock_client):
         base_size_gb=100.0,
         base_memory_gb=64,
         base_cores=8,
+        domain="customer",
         annual_growth_rate=10.0,
         projection_years=3,
-        memory_to_storage_ratio=2.0,  # 1:2 ratio
+        memory_to_storage_ratio=2,  # 1:2 ratio (integer)
     )
     
     # Memory should scale with projected size

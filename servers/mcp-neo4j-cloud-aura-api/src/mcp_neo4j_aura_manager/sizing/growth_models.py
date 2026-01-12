@@ -1,53 +1,58 @@
-"""
-Growth Models for Different Use Cases
-
-Neo4j use cases can be characterized by:
-1. Domain (7 Graphs of the Enterprise): Customer, Product, Employee, Supplier, Transaction, Process, Security
-2. Workload Type: Transactional, Agentic, Analytical, Graph Data Science
-3. Growth Pattern: Based on workload type (Transactional/Agentic grow faster than Analytical/GDS)
-"""
+from __future__ import annotations
 
 from enum import Enum
-from typing import Literal, Optional, List, Set, Dict
+from typing import Optional, List, Set, Dict
 import math
 
+
+# ============================================================================
+# Enums
+# ============================================================================
 
 class GraphDomain(str, Enum):
     """The 7 Graphs of the Enterprise - high-level business domains.
     
-    Each domain can support any combination of workload types.
-    Domain defaults are just suggestions - users can override with any workload combination.
+    Domains are categorized into three types that influence growth patterns:
+    - Graphs of Things: Static entities (product, employee, supplier)
+    - Graphs of Transactions: High volume events (transaction)
+    - Graphs of Behaviors: Activity-based (customer, process, security)
+    
+    Domain is the primary driver for growth model selection. Workloads can override domain defaults.
     """
-    CUSTOMER = "customer"  # Customer interactions, preferences, journeys
-    PRODUCT = "product"  # Relationships between products, components, services
-    EMPLOYEE = "employee"  # Team structures, skills, collaborations
-    SUPPLIER = "supplier"  # Supply chain, dependencies, risk
-    TRANSACTION = "transaction"  # Fraud detection, payment flows
-    PROCESS = "process"  # Business workflows, dependencies, bottlenecks
-    SECURITY = "security"  # Access, threats, compliance
+    CUSTOMER = "customer"  # Customer interactions, preferences, journeys (Graphs of Behaviors)
+    PRODUCT = "product"  # Relationships between products, components, services (Graphs of Things)
+    EMPLOYEE = "employee"  # Team structures, skills, collaborations (Graphs of Things)
+    SUPPLIER = "supplier"  # Supply chain, dependencies, risk (Graphs of Things)
+    TRANSACTION = "transaction"  # Fraud detection, payment flows (Graphs of Transactions)
+    PROCESS = "process"  # Business workflows, dependencies, bottlenecks (Graphs of Behaviors)
+    SECURITY = "security"  # Access, threats, compliance (Graphs of Behaviors)
     GENERIC = "generic"  # Unknown or mixed domain
 
 
 class WorkloadType(str, Enum):
-    """Workload types that determine growth patterns.
+    """Workload types that determine growth patterns and core scaling.
     
-    Growth speed (fastest to slowest):
-    - Transactional: Fast growth - high write volume, real-time queries
-    - Agentic: Fast growth - RAG, vector search, knowledge bases
-    - Analytical: Moderate growth - reporting, BI, aggregations
-    - Graph Data Science: Slowest growth - algorithms, analytics, batch processing
+    Workloads can override domain-based growth models when explicitly provided.
     
-    Any graph domain can use any combination of these workload types.
+    Storage Growth (fastest to slowest):
+    - Transactional: Fast growth (Log-linear) - high read/write volume, real-time queries
+    - Agentic: Medium growth (Compound) - RAG, vector search, knowledge bases
+    - Analytical: Moderate growth (Compound) - reporting, BI, aggregations, ad-hoc queries
+    
+    Core Scaling (high to low):
+    - Transactional: High - needs more cores for concurrent writes
+    - Agentic: Medium - queries hitting DB
+    - Analytical: Low - mostly reads, batch writes don't need many cores
     """
     TRANSACTIONAL = "transactional"
     AGENTIC = "agentic"
     ANALYTICAL = "analytical"
-    GRAPH_DATA_SCIENCE = "graph_data_science"
 
 
-# Default workload type suggestions for each GraphDomain
-# These are just common defaults - any domain can use any workload combination
-# Users can override by explicitly providing workloads
+# ============================================================================
+# Configuration Mappings
+# ============================================================================
+
 DOMAIN_DEFAULT_WORKLOADS: Dict[GraphDomain, List[WorkloadType]] = {
     GraphDomain.CUSTOMER: [WorkloadType.TRANSACTIONAL, WorkloadType.ANALYTICAL],  # Customer 360: commonly transactional + analytical
     GraphDomain.PRODUCT: [WorkloadType.ANALYTICAL],  # Product graph: commonly analytical
@@ -59,6 +64,27 @@ DOMAIN_DEFAULT_WORKLOADS: Dict[GraphDomain, List[WorkloadType]] = {
     GraphDomain.GENERIC: [],  # No default - user must specify or use generic growth
 }
 
+WORKLOAD_DEFAULT_GROWTH_RATES: Dict[WorkloadType, float] = {
+    WorkloadType.TRANSACTIONAL: 20.0,  # High-volume transactional systems grow fast
+    WorkloadType.AGENTIC: 15.0,        # agentic workloads grow moderately fast (with the potential to grow faster yet)
+    WorkloadType.ANALYTICAL: 5.0,      # Analytical/reporting workloads grow slowly
+}
+
+DOMAIN_DEFAULT_GROWTH_RATES: Dict[GraphDomain, float] = {
+    GraphDomain.CUSTOMER: 15.0,      # Customer 360: moderate growth
+    GraphDomain.PRODUCT: 5.0,        # Product catalogs: slow growth
+    GraphDomain.EMPLOYEE: 3.0,       # Org charts: very slow growth
+    GraphDomain.SUPPLIER: 5.0,       # Supply chain: slow growth
+    GraphDomain.TRANSACTION: 20.0,   # Transaction graphs: fast growth
+    GraphDomain.PROCESS: 5.0,        # Process workflows: slow growth
+    GraphDomain.SECURITY: 10.0,      # Security: moderate growth
+    GraphDomain.GENERIC: 10.0,       # Generic: moderate default
+}
+
+
+# ============================================================================
+# Growth Model Classes
+# ============================================================================
 
 class GrowthModel:
     """Base class for growth models."""
@@ -70,8 +96,7 @@ class GrowthModel:
         year: int,
         **kwargs
     ) -> float:
-        """
-        Calculate projected size for a given year.
+        """Calculate projected size for a given year.
         
         Args:
             base_size_gb: Base size in GB (year 0)
@@ -114,7 +139,6 @@ class LogLinearGrowthModel(GrowthModel):
         year: int,
         **kwargs
     ) -> float:
-        # Log-linear: exponential growth using e^(r*t)
         r = annual_growth_rate / 100.0
         return base_size_gb * math.exp(r * year)
 
@@ -137,25 +161,15 @@ class LinearGrowthModel(GrowthModel):
 
 
 class ExponentialWithVectorGrowthModel(GrowthModel):
-    """Exponential growth with additional vector index growth
+    """Exponential growth with additional vector index growth.
     
     Good for agentic/RAG workloads where vector indexes grow separately.
+    Assumes chunk size + vector index size >> entity size.
     
-    Assumption: Total chunk size + vector index size will be much larger than 
-    total entity size. This model accounts for the fact that vector indexes grow 
-    faster than the underlying graph structure in RAG/agentic workloads.
+    Vector index size formula:
+    (1.1 * (4 * dimension + 8 * 16) * num_vectors) / 1,048,576,000
     
-    For calculating vector index size requirements, see:
-    https://neo4j.com/docs/operations-manual/current/performance/vector-index-memory-configuration/#_example_calculations
-    
-    The Neo4j documentation provides the formula:
-    Vector Index Size (GB) = (1.1 * (4 * dimension + 8 * 16) * num_vectors) / 1,048,576,000
-    
-    Where:
-    - 1.1 is an overhead factor
-    - 4 bytes per dimension (float32)
-    - 8 * 16 = 128 bytes overhead per vector
-    - num_vectors is the number of vectors in the index
+    Reference: https://neo4j.com/docs/operations-manual/current/performance/vector-index-memory-configuration/
     """
     
     @staticmethod
@@ -167,58 +181,29 @@ class ExponentialWithVectorGrowthModel(GrowthModel):
         vector_proportion: float = 0.7,
         **kwargs
     ) -> float:
-        """
-        Exponential growth with vector component growing faster.
-        
-        This model separates the base size into vector and non-vector components,
-        applying faster growth to the vector component to account for the fact that
-        vector indexes (chunks + vectors) typically grow faster than entity data
-        in RAG/agentic workloads.
-        
-        Assumption: For RAG/agentic workloads, chunk size + vector index size will be
-        much larger than entity size. The default vector_proportion of 0.7 (70%) reflects
-        this assumption.
-        
-        Vector index size follows the Neo4j formula:
-        Vector Index Size (GB) = (1.1 * (4 * dimension + 8 * 16) * num_vectors) / 1,048,576,000
-        
-        Since vector size is proportional to num_vectors, and num_vectors typically grows
-        faster than entity data in RAG workloads, this model applies a higher growth rate
-        to the vector component.
+        """Calculate growth with vector component growing faster.
         
         Args:
-            base_size_gb: Base size in GB (year 0), which should include both
-                         entity data and vector index data (chunks + vectors)
+            base_size_gb: Base size in GB (year 0), includes entity + vector data
             annual_growth_rate: Annual growth rate as percentage
             year: Year number (1, 2, 3, etc.)
-            vector_growth_multiplier: Additional growth multiplier for vector indexes
-                                     (default 1.2, meaning vectors grow 20% faster than base rate)
-            vector_proportion: Proportion of base size that is vector-related 
-                              (default 0.7 = 70%, reflecting that chunk size + vector >> entity size
-                              for RAG workloads)
+            vector_growth_multiplier: Additional growth multiplier for vectors (default 1.2)
+            vector_proportion: Proportion of base size that is vector-related (default 0.7)
         """
-        # For RAG workloads, chunks + vectors dominate the size
-        # Default 70% reflects the assumption that vector-related data >> entity data
         vector_base = base_size_gb * vector_proportion
         non_vector_base = base_size_gb * (1 - vector_proportion)
         
-        # Vector component grows faster (exponential with additional multiplier)
-        # This reflects how vector indexes grow with num_vectors according to the Neo4j formula:
-        # (1.1 * (4 * dimension + 128) * num_vectors) / 1,048,576,000
-        # Since vector size is proportional to num_vectors, faster num_vectors growth
-        # means faster vector index size growth
         vector_growth = vector_base * ((1 + annual_growth_rate / 100.0) * vector_growth_multiplier) ** year
-        
-        # Non-vector (entity) component grows at standard exponential rate
         non_vector_growth = non_vector_base * ((1 + annual_growth_rate / 100.0) ** year)
         
         return vector_growth + non_vector_growth
 
 
 class LogisticGrowthModel(GrowthModel):
-    """Logistic growth: S-curve that levels off
+    """Logistic growth: S-curve that levels off.
     
     Fast early growth that slows down. Good for workloads that reach saturation.
+    Formula: base * (K / (1 + (K - 1) * e^(-r * t)))
     """
     
     @staticmethod
@@ -229,8 +214,7 @@ class LogisticGrowthModel(GrowthModel):
         carrying_capacity_multiplier: float = 5.0,
         **kwargs
     ) -> float:
-        """
-        Logistic growth: base * (K / (1 + (K - 1) * e^(-r * t)))
+        """Calculate logistic growth.
         
         Args:
             carrying_capacity_multiplier: Maximum size as multiple of base (default 5x)
@@ -239,113 +223,210 @@ class LogisticGrowthModel(GrowthModel):
         r = annual_growth_rate / 100.0
         t = year
         
-        size = base_size_gb * (K / (1 + (K - 1) * math.exp(-r * t)))
-        return size
+        return base_size_gb * (K / (1 + (K - 1) * math.exp(-r * t)))
 
 
-def get_growth_model_for_workloads(workloads: List[WorkloadType]) -> GrowthModel:
-    """
-    Determine growth model based on workload types.
-    
-    Priority (fastest growth wins):
-    1. Transactional or Agentic → LogLinearGrowthModel (fastest)
-    2. Analytical → CompoundGrowthModel (moderate)
-    3. Graph Data Science → LinearGrowthModel (slowest)
-    
-    If multiple workloads, use the fastest-growing one.
-    If Agentic is present, use ExponentialWithVectorGrowthModel.
-    
-    Args:
-        workloads: List of workload types
-        
-    Returns:
-        Appropriate growth model
-    """
-    if not workloads:
-        return CompoundGrowthModel()
-    
-    workload_set: Set[WorkloadType] = set(workloads)
-    
-    # Agentic workloads get special treatment (vector growth)
-    if WorkloadType.AGENTIC in workload_set:
-        # If also transactional, use log-linear with vectors
-        if WorkloadType.TRANSACTIONAL in workload_set:
-            return LogLinearGrowthModel()
-        return ExponentialWithVectorGrowthModel()
-    
-    # Transactional workloads grow fast
-    if WorkloadType.TRANSACTIONAL in workload_set:
-        return LogLinearGrowthModel()
-    
-    # Analytical workloads use compound growth
-    if WorkloadType.ANALYTICAL in workload_set:
-        return CompoundGrowthModel()
-    
-    # Graph Data Science grows slowest
-    if WorkloadType.GRAPH_DATA_SCIENCE in workload_set:
-        return LinearGrowthModel()
-    
-    # Default to compound
-    return CompoundGrowthModel()
+# ============================================================================
+# Component Growth Model Mappings
+# ============================================================================
+
+WORKLOAD_COMPONENT_GROWTH_MODELS: Dict[WorkloadType, Dict[str, type[GrowthModel]]] = {
+    WorkloadType.TRANSACTIONAL: {
+        "storage": LogLinearGrowthModel,
+        "memory": LogLinearGrowthModel,
+        "vcpu": LogLinearGrowthModel,
+    },
+    WorkloadType.AGENTIC: {
+        "storage": CompoundGrowthModel,
+        "memory": CompoundGrowthModel,
+        "vcpu": CompoundGrowthModel,
+    },
+    WorkloadType.ANALYTICAL: {
+        "storage": CompoundGrowthModel,
+        "memory": LinearGrowthModel,
+        "vcpu": LinearGrowthModel,
+    },
+}
+
+DOMAIN_COMPONENT_GROWTH_MODELS: Dict[GraphDomain, Dict[str, type[GrowthModel]]] = {
+    GraphDomain.PRODUCT: {
+        "storage": CompoundGrowthModel,
+        "memory": CompoundGrowthModel,
+        "vcpu": LinearGrowthModel,
+    },
+    GraphDomain.EMPLOYEE: {
+        "storage": LinearGrowthModel,
+        "memory": LinearGrowthModel,
+        "vcpu": LinearGrowthModel,
+    },
+    GraphDomain.SUPPLIER: {
+        "storage": CompoundGrowthModel,
+        "memory": CompoundGrowthModel,
+        "vcpu": LinearGrowthModel,
+    },
+    GraphDomain.TRANSACTION: {
+        "storage": LogLinearGrowthModel,
+        "memory": LogLinearGrowthModel,
+        "vcpu": LogLinearGrowthModel,
+    },
+    GraphDomain.CUSTOMER: {
+        "storage": CompoundGrowthModel,
+        "memory": CompoundGrowthModel,
+        "vcpu": CompoundGrowthModel,
+    },
+    GraphDomain.PROCESS: {
+        "storage": CompoundGrowthModel,
+        "memory": CompoundGrowthModel,
+        "vcpu": CompoundGrowthModel,
+    },
+    GraphDomain.SECURITY: {
+        "storage": CompoundGrowthModel,
+        "memory": CompoundGrowthModel,
+        "vcpu": CompoundGrowthModel,
+    },
+    GraphDomain.GENERIC: {
+        "storage": CompoundGrowthModel,
+        "memory": CompoundGrowthModel,
+        "vcpu": CompoundGrowthModel,
+    },
+}
 
 
-def get_growth_model(
+# ============================================================================
+# Growth Model Selection Functions
+# ============================================================================
+
+def get_default_growth_rate(
     workloads: Optional[List[str]] = None,
     domain: Optional[str] = None
-) -> GrowthModel:
-    """
-    Get the appropriate growth model based on workload types or domain.
+) -> float:
+    """Get default growth rate based on workloads or domain.
     
     Priority:
-    1. If workloads are explicitly provided, use those
-    2. If domain is provided, use default workloads for that domain
-    3. Otherwise, use generic compound growth
+    1. If workloads provided → use fastest workload's default rate
+    2. If domain provided → infer default workloads for domain, then use fastest workload's rate
+    3. Otherwise → 10.0% (generic default)
     
     Args:
-        workloads: List of workload types (transactional, agentic, analytical, graph_data_science)
-                  If provided, overrides domain defaults
-        domain: Graph domain (customer, product, etc.) - used to infer default workloads if workloads not provided
-        
-    Returns:
-        Growth model instance
-    """
-    # If workloads explicitly provided, use them
-    if workloads:
-        try:
-            workload_enums = [WorkloadType(w) for w in workloads]
-            return get_growth_model_for_workloads(workload_enums)
-        except ValueError:
-            # Invalid workload type, fall through to domain-based selection
-            pass
-    
-    # If domain provided, use default workloads for that domain
-    if domain:
-        try:
-            domain_enum = GraphDomain(domain)
-            default_workloads = DOMAIN_DEFAULT_WORKLOADS.get(domain_enum, [])
-            if default_workloads:
-                return get_growth_model_for_workloads(default_workloads)
-        except ValueError:
-            # Invalid domain, fall through to default
-            pass
-    
-    # Default to compound growth
-    return CompoundGrowthModel()
-
-
-def get_default_workloads_for_domain(domain: str) -> List[str]:
-    """
-    Get default workload types for a graph domain.
-    
-    Args:
+        workloads: List of workload types (transactional, agentic, analytical)
         domain: Graph domain (customer, product, etc.)
         
     Returns:
-        List of default workload type strings for the domain
+        Default annual growth rate percentage
     """
-    try:
-        domain_enum = GraphDomain(domain)
-        default_workloads = DOMAIN_DEFAULT_WORKLOADS.get(domain_enum, [])
-        return [w.value for w in default_workloads]
-    except ValueError:
-        return []
+    # Determine which workloads to use
+    workload_enums: List[WorkloadType] = []
+    
+    if workloads:
+        try:
+            workload_enums = [WorkloadType(w) for w in workloads]
+        except ValueError:
+            pass
+    elif domain:
+        # If no workloads provided but domain is, use default workloads for that domain
+        try:
+            domain_enum = GraphDomain(domain)
+            default_workloads = DOMAIN_DEFAULT_WORKLOADS.get(domain_enum, [])
+            workload_enums = default_workloads
+        except ValueError:
+            pass
+    
+    # Use the fastest-growing workload's default rate
+    if workload_enums:
+        workload_set = set(workload_enums)
+        if WorkloadType.TRANSACTIONAL in workload_set:
+            return WORKLOAD_DEFAULT_GROWTH_RATES[WorkloadType.TRANSACTIONAL]
+        elif WorkloadType.AGENTIC in workload_set:
+            return WORKLOAD_DEFAULT_GROWTH_RATES[WorkloadType.AGENTIC]
+        elif WorkloadType.ANALYTICAL in workload_set:
+            return WORKLOAD_DEFAULT_GROWTH_RATES[WorkloadType.ANALYTICAL]
+    
+    # Fallback: if domain provided but has no default workloads, use domain rate
+    if domain:
+        try:
+            domain_enum = GraphDomain(domain)
+            return DOMAIN_DEFAULT_GROWTH_RATES.get(domain_enum, 10.0)
+        except ValueError:
+            pass
+    
+    return 10.0  # Generic default
+
+
+def get_component_growth_models(
+    workloads: Optional[List[str]] = None,
+    domain: Optional[str] = None
+) -> Dict[str, GrowthModel]:
+    """Get component-based growth models for storage, memory, and vcpu.
+    
+    Each component can have its own growth model. When multiple workloads are provided,
+    uses the fastest-growing model for each component.
+    
+    Priority:
+    1. If workloads provided → use workload-based component models (override)
+    2. If domain provided → infer default workloads for domain, then use workload-based models
+    3. If domain provided but no default workloads → use domain-based component models
+    4. Otherwise → CompoundGrowthModel for all components (default)
+    """
+    # Determine which workloads to use
+    workload_enums: List[WorkloadType] = []
+    
+    if workloads:
+        try:
+            workload_enums = [WorkloadType(w) for w in workloads]
+        except ValueError:
+            pass
+    elif domain:
+        # If no workloads provided but domain is, use default workloads for that domain
+        try:
+            domain_enum = GraphDomain(domain)
+            default_workloads = DOMAIN_DEFAULT_WORKLOADS.get(domain_enum, [])
+            workload_enums = default_workloads
+        except ValueError:
+            pass
+    
+    # Use workload-based models if we have workloads
+    if workload_enums:
+        try:
+            workload_set = set(workload_enums)
+            component_models = {}
+            
+            if WorkloadType.TRANSACTIONAL in workload_set:
+                component_models["storage"] = WORKLOAD_COMPONENT_GROWTH_MODELS[WorkloadType.TRANSACTIONAL]["storage"]()
+                component_models["memory"] = WORKLOAD_COMPONENT_GROWTH_MODELS[WorkloadType.TRANSACTIONAL]["memory"]()
+                component_models["vcpu"] = WORKLOAD_COMPONENT_GROWTH_MODELS[WorkloadType.TRANSACTIONAL]["vcpu"]()
+            elif WorkloadType.AGENTIC in workload_set:
+                component_models["storage"] = WORKLOAD_COMPONENT_GROWTH_MODELS[WorkloadType.AGENTIC]["storage"]()
+                component_models["memory"] = WORKLOAD_COMPONENT_GROWTH_MODELS[WorkloadType.AGENTIC]["memory"]()
+                component_models["vcpu"] = WORKLOAD_COMPONENT_GROWTH_MODELS[WorkloadType.AGENTIC]["vcpu"]()
+            elif WorkloadType.ANALYTICAL in workload_set:
+                component_models["storage"] = WORKLOAD_COMPONENT_GROWTH_MODELS[WorkloadType.ANALYTICAL]["storage"]()
+                component_models["memory"] = WORKLOAD_COMPONENT_GROWTH_MODELS[WorkloadType.ANALYTICAL]["memory"]()
+                component_models["vcpu"] = WORKLOAD_COMPONENT_GROWTH_MODELS[WorkloadType.ANALYTICAL]["vcpu"]()
+            else:
+                default = CompoundGrowthModel()
+                component_models = {"storage": default, "memory": default, "vcpu": default}
+            
+            return component_models
+        except (ValueError, KeyError):
+            pass
+    
+    # Fallback: if domain provided but has no default workloads, use domain models
+    if domain:
+        try:
+            domain_enum = GraphDomain(domain)
+            component_models = DOMAIN_COMPONENT_GROWTH_MODELS.get(domain_enum)
+            if component_models:
+                return {
+                    component: model_class()
+                    for component, model_class in component_models.items()
+                }
+        except ValueError:
+            pass
+    
+    # Final fallback: default compound growth for all components
+    default_model = CompoundGrowthModel()
+    return {
+        "storage": default_model,
+        "memory": default_model,
+        "vcpu": default_model,
+    }

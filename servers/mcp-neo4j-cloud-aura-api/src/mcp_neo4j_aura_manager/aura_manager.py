@@ -187,10 +187,10 @@ class AuraManager:
         base_size_gb: float,
         base_memory_gb: int,
         base_cores: int,
+        domain: str,
         annual_growth_rate: float = 10.0,
         projection_years: int = 3,
         workloads: Optional[List[str]] = None,
-        domain: Optional[str] = None,
         memory_to_storage_ratio: int = 1,
         **kwargs
     ) -> Dict[str, Any]:
@@ -200,10 +200,10 @@ class AuraManager:
                 base_size_gb=base_size_gb,
                 base_memory_gb=base_memory_gb,
                 base_cores=base_cores,
+                domain=domain,
                 annual_growth_rate=annual_growth_rate,
                 projection_years=projection_years,
                 workloads=workloads,
-                domain=domain,
                 memory_to_storage_ratio=memory_to_storage_ratio,
             )
             # Convert Pydantic model to dict

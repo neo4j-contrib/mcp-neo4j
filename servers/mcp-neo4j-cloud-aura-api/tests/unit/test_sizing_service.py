@@ -135,6 +135,7 @@ class TestAuraSizingService:
             base_size_gb=100.0,
             base_memory_gb=64,
             base_cores=8,
+            domain="customer",
             annual_growth_rate=10.0,
             projection_years=3,
         )
@@ -155,6 +156,7 @@ class TestAuraSizingService:
             base_size_gb=100.0,
             base_memory_gb=64,
             base_cores=8,
+            domain="generic",
             annual_growth_rate=10.0,
             projection_years=3,
             workloads=["transactional"],
@@ -177,6 +179,58 @@ class TestAuraSizingService:
         assert result.growth_model_used is not None
         assert len(result.projections) == 3
     
+    def test_forecast_sizing_smart_default_growth_rate_with_domain(self, service):
+        """Test that forecast uses smart default growth rate when annual_growth_rate is None."""
+        # Customer domain should use 20% (transactional is fastest default workload)
+        result = service.forecast_sizing(
+            base_size_gb=100.0,
+            base_memory_gb=64,
+            base_cores=8,
+            annual_growth_rate=None,  # Should use smart default
+            projection_years=3,
+            domain="customer",
+        )
+        
+        assert result.growth_model_used is not None
+        assert len(result.projections) == 3
+        # Customer domain with transactional workload should grow faster than 10%
+        assert result.projections[0].total_size_gb > 110.0  # More than 10% growth
+    
+    def test_forecast_sizing_smart_default_growth_rate_with_workloads(self, service):
+        """Test that forecast uses smart default growth rate based on workloads."""
+        # Analytical workload should use 5% default
+        result = service.forecast_sizing(
+            base_size_gb=100.0,
+            base_memory_gb=64,
+            base_cores=8,
+            annual_growth_rate=None,  # Should use smart default
+            projection_years=3,
+            domain="generic",
+            workloads=["analytical"],
+        )
+        
+        assert result.growth_model_used is not None
+        assert len(result.projections) == 3
+        # Analytical with 5% growth should be slower
+        assert result.projections[0].total_size_gb < 110.0  # Less than 10% growth
+    
+    def test_forecast_sizing_smart_default_growth_rate_no_inputs(self, service):
+        """Test that forecast uses generic default when domain has no default workloads."""
+        # Generic domain has no default workloads, so should use domain default (10%)
+        result = service.forecast_sizing(
+            base_size_gb=100.0,
+            base_memory_gb=64,
+            base_cores=8,
+            annual_growth_rate=None,  # Should use generic default (10%)
+            projection_years=3,
+            domain="generic",
+        )
+        
+        assert result.growth_model_used is not None
+        assert len(result.projections) == 3
+        # Generic default should be around 10% growth
+        assert 105.0 < result.projections[0].total_size_gb < 115.0
+    
     def test_forecast_sizing_validation(self, service):
         """Test forecast validation."""
         with pytest.raises(ValueError, match="base_size_gb must be non-negative"):
@@ -184,6 +238,7 @@ class TestAuraSizingService:
                 base_size_gb=-1.0,
                 base_memory_gb=64,
                 base_cores=8,
+                domain="customer",
             )
         
         with pytest.raises(ValueError, match="projection_years must be at least 1"):
@@ -191,6 +246,7 @@ class TestAuraSizingService:
                 base_size_gb=100.0,
                 base_memory_gb=64,
                 base_cores=8,
+                domain="customer",
                 projection_years=0,
             )
         
@@ -199,6 +255,7 @@ class TestAuraSizingService:
                 base_size_gb=100.0,
                 base_memory_gb=64,
                 base_cores=8,
+                domain="customer",
                 projection_years=25,
             )
 

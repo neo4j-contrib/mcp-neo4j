@@ -290,27 +290,31 @@ def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP
         base_size_gb: float = Field(..., description="Current database size in GB"),
         base_memory_gb: int = Field(..., description="Current recommended memory in GB"),
         base_cores: int = Field(..., description="Current recommended number of cores"),
-        annual_growth_rate: float = Field(10.0, description="Annual growth rate percentage (default: 10%)"),
-        projection_years: int = Field(3, description="Number of years to project (default: 3)"),
-        workloads: Optional[List[Literal["transactional", "agentic", "analytical", "graph_data_science"]]] = Field(
-            None,
-            description="Workload types that determine growth pattern. "
-            "Options: 'transactional' (fast growth - high write volume), "
-            "'agentic' (fast growth - RAG, vector search), "
-            "'analytical' (moderate growth - reporting, BI), "
-            "'graph_data_science' (slowest growth - algorithms, analytics). "
-            "Can specify multiple workloads. Growth model uses fastest-growing workload. "
-            "If None, uses generic compound growth."
+        domain: Literal["customer", "product", "employee", "supplier", "transaction", "process", "security", "generic"] = Field(
+            ...,
+            description="Graph domain (7 Graphs of the Enterprise) - PRIMARY INPUT. "
+            "Determines growth model based on domain category: "
+            "'customer', 'process', 'security' (Graphs of Behaviors → CompoundGrowthModel), "
+            "'product', 'supplier' (Graphs of Things → CompoundGrowthModel), "
+            "'employee' (Graphs of Things → LinearGrowthModel), "
+            "'transaction' (Graphs of Transactions → LogLinearGrowthModel), "
+            "'generic' (CompoundGrowthModel). "
+            "Workloads parameter can override domain-based growth model."
         ),
-        domain: Optional[Literal["customer", "product", "employee", "supplier", "transaction", "process", "security", "generic"]] = Field(
+        annual_growth_rate: Optional[float] = Field(
             None,
-            description="Graph domain (7 Graphs of the Enterprise). "
-            "Options: 'customer' (defaults to transactional+analytical), "
-            "'product' (defaults to analytical), 'employee' (defaults to analytical), "
-            "'supplier' (defaults to analytical), 'transaction' (defaults to transactional), "
-            "'process' (defaults to analytical), 'security' (defaults to transactional+analytical). "
-            "If provided, uses default workload types for the domain to determine growth model. "
-            "Can be overridden by explicitly providing 'workloads' parameter."
+            description="Annual growth rate percentage. If not provided, uses smart defaults based on workloads/domain: "
+            "Transactional (20%), Agentic (15%), Analytical (5%), or domain-specific defaults."
+        ),
+        projection_years: int = Field(3, description="Number of years to project (default: 3)"),
+        workloads: Optional[List[Literal["transactional", "agentic", "analytical"]]] = Field(
+            None,
+            description="Workload types that override domain-based growth model. "
+            "Options: 'transactional' (LogLinearGrowthModel - fast growth, high core scaling), "
+            "'agentic' (CompoundGrowthModel - medium growth, medium core scaling), "
+            "'analytical' (CompoundGrowthModel - moderate growth, low core scaling). "
+            "If provided, overrides domain-based growth model selection. "
+            "Also affects core scaling: transactional (1.5x), agentic (1.2x), analytical (1.0x)."
         ),
         memory_to_storage_ratio: int = Field(
             1,
@@ -328,13 +332,15 @@ def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP
         Forecast database growth over multiple years.
         
         This tool projects database size, memory, and core requirements over multiple years
-        based on growth rate and workload characteristics.
+        based on domain (7 Graphs of the Enterprise) and optional workload overrides.
         
         You can use the output from calculate_database_sizing as input to this tool,
         or provide your own base size, memory, and cores.
         
-        If domain is provided, it uses default workloads unless workloads are explicitly specified.
-        The growth model is automatically selected based on the fastest-growing workload.
+        **Growth Model Selection:**
+        - Domain is the PRIMARY driver for growth model selection
+        - Workloads can override domain-based growth model when explicitly provided
+        - Core scaling is dynamic based on workload type and storage growth
         
         Returns multi-year projections with scaling recommendations.
         """
@@ -342,10 +348,10 @@ def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP
             base_size_gb=base_size_gb,
             base_memory_gb=base_memory_gb,
             base_cores=base_cores,
+            domain=domain,
             annual_growth_rate=annual_growth_rate,
             projection_years=projection_years,
             workloads=workloads,
-            domain=domain,
             memory_to_storage_ratio=memory_to_storage_ratio,
         )
 
@@ -467,7 +473,7 @@ hasn't provided avg_properties_per_node and avg_properties_per_relationship.
         ),
         workloads: Optional[str] = Field(
             None,
-            description="Workload types that determine growth pattern. Options: 'transactional', 'agentic', 'analytical', 'graph_data_science'. Can specify multiple."
+            description="Workload types that determine growth pattern. Options: 'transactional', 'agentic', 'analytical'. Can specify multiple."
         ),
         memory_to_storage_ratio: Optional[int] = Field(
             None,
@@ -533,27 +539,34 @@ hasn't provided avg_properties_per_node and avg_properties_per_relationship.
 6. **Process** - Workflows, dependencies, bottlenecks (defaults to analytical)
 7. **Security** - Access control, threats, compliance (defaults to transactional+analytical)
 
-**Workload Types** (affect growth speed):
-- **Transactional** - Fast growth (high write volume, real-time)
-- **Agentic** - Fastest growth (RAG, vector search, AI/ML)
-- **Analytical** - Moderate growth (reporting, BI)
-- **Graph Data Science** - Slowest growth (algorithms, batch processing)
+**Workload Types** (affect component growth patterns):
+- **Transactional** - Fast growth for all components (storage, memory, vcpu use LogLinearGrowthModel)
+- **Agentic** - Medium growth for all components (storage, memory, vcpu use CompoundGrowthModel)
+- **Analytical** - Moderate growth for storage (CompoundGrowthModel), slower for memory/vcpu (LinearGrowthModel)
+
+**Component-Based Growth Models:**
+The forecasting system uses separate growth models for each component:
+- **Storage** - Grows based on data volume
+- **Memory** - Grows independently, but constrained by memory_to_storage_ratio
+- **vCPU** - Grows independently based on compute needs
 
 **Process:**
 1. **Information Gathering**
    - If base_size_gb, base_memory_gb, or base_cores are missing, ask the user for them
    - These can come from the output of `calculate_database_sizing` tool
    - For optional parameters, ask if they apply or use defaults:
-     * annual_growth_rate: default 10%
+     * annual_growth_rate: automatically determined from workloads/domain (Transactional: 20%, Agentic: 15%, Analytical: 5%, or domain-specific)
      * projection_years: default 3 years
      * domain: identify from user's description (7 Graphs of the Enterprise)
      * workloads: identify from user's description (overrides domain defaults if provided)
-     * memory_to_storage_ratio: default 1 (1:1 ratio)
+     * memory_to_storage_ratio: default 1 (1:1 ratio) - acts as minimum floor for memory
    
 2. **Domain and Workload Identification**
-   - If domain is provided, it uses default workloads unless workloads are explicitly specified
+   - Domain is the primary driver for growth model selection
+   - If domain is provided, it uses component-based growth models for that domain
    - If workloads are provided, they override domain defaults
-   - The growth model is automatically selected based on the fastest-growing workload
+   - Each component (storage, memory, vcpu) gets its own growth model based on workload/domain
+   - If multiple workloads are specified, the fastest-growing model is used for each component
    
 3. **Forecasting**
    - Once you have all required parameters (or confirmed defaults are acceptable for optional ones),
@@ -561,11 +574,12 @@ hasn't provided avg_properties_per_node and avg_properties_per_relationship.
    - Only include parameters that have been provided or have meaningful defaults
    
 4. **Presentation**
-   - Present multi-year projections with scaling recommendations
-   - Explain when scaling might be needed
+   - Present multi-year projections showing storage, memory, and vcpu growth independently
+   - Explain when scaling might be needed for each component
+   - Note that memory is constrained by memory_to_storage_ratio (minimum floor)
 
-**Note:** The growth model selection is automatic based on workload types. 
-If multiple workloads are specified, the system uses the fastest-growing one.
+**Note:** Each component (storage, memory, vcpu) grows independently using its own growth model.
+The memory_to_storage_ratio acts as a constraint, ensuring memory meets minimum requirements.
 """
         
         return prompt

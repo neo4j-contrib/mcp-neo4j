@@ -8,7 +8,7 @@ from typing import Optional, List
 from .calculator import Neo4jSizingCalculator
 from .interfaces import SizingCalculatorProtocol
 from .projector import GrowthProjector
-from .growth_models import get_growth_model
+from .growth_models import get_default_growth_rate
 from .models import (
     SizingResult,
     ForecastResult,
@@ -171,10 +171,10 @@ class AuraSizingService:
         base_size_gb: float,
         base_memory_gb: int,
         base_cores: int,
-        annual_growth_rate: float = 10.0,
+        domain: str,
+        annual_growth_rate: Optional[float] = None,
         projection_years: int = 3,
         workloads: Optional[List[str]] = None,
-        domain: Optional[str] = None,
         memory_to_storage_ratio: int = 1,
     ) -> ForecastResult:
         """
@@ -184,17 +184,25 @@ class AuraSizingService:
             base_size_gb: Current database size in GB
             base_memory_gb: Current recommended memory in GB
             base_cores: Current recommended number of cores
-            annual_growth_rate: Annual growth rate percentage (default: 10%)
+            domain: Graph domain (customer, product, etc.) - REQUIRED, primary driver for growth model selection
+            annual_growth_rate: Annual growth rate percentage. If None, uses smart defaults based on workloads/domain:
+                              - Transactional: 20%
+                              - Agentic: 15%
+                              - Analytical: 5%
+                              - Domain defaults vary (3-20% based on domain)
             projection_years: Number of years to project (default: 3)
-            workloads: List of workload types (transactional, agentic, analytical, graph_data_science)
-                      If provided, overrides domain defaults
-            domain: Graph domain (customer, product, etc.) - used to infer default workloads if workloads not provided
+            workloads: List of workload types (transactional, agentic, analytical)
+                      If provided, overrides domain-based growth model
             memory_to_storage_ratio: Memory-to-storage ratio denominator. Must be one of: 1 (1:1), 2 (1:2), 4 (1:4), or 8 (1:8).
                                      Raises ValueError if not one of these values. Default: 1 (1:1 ratio)
             
         Returns:
             Forecast result with multi-year projections
         """
+        # Use smart default growth rate if not provided
+        if annual_growth_rate is None:
+            annual_growth_rate = get_default_growth_rate(workloads=workloads, domain=domain)
+        
         # Validate inputs
         if base_size_gb < 0:
             raise ValueError("base_size_gb must be non-negative")
@@ -225,14 +233,19 @@ class AuraSizingService:
         )
         projections = [YearProjection(**p) for p in projections_list]
         
-        # Get the growth model name for reference
-        growth_model = get_growth_model(workloads=workloads, domain=domain)
-        growth_model_name = growth_model.__class__.__name__
+        # Get component growth models to describe what was used
+        from .growth_models import get_component_growth_models
+        component_models = get_component_growth_models(workloads=workloads, domain=domain)
+        growth_model_used = (
+            f"storage={component_models['storage'].__class__.__name__}, "
+            f"memory={component_models['memory'].__class__.__name__}, "
+            f"vcpu={component_models['vcpu'].__class__.__name__}"
+        )
         
         return ForecastResult(
             base_size_gb=base_size_gb,
             base_memory_gb=base_memory_gb,
             base_cores=base_cores,
             projections=projections,
-            growth_model_used=growth_model_name,
+            growth_model_used=growth_model_used,
         )

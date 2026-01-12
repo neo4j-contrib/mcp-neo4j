@@ -9,7 +9,8 @@ from mcp_neo4j_aura_manager.sizing.growth_models import (
     LogLinearGrowthModel,
     LogisticGrowthModel,
     ExponentialWithVectorGrowthModel,
-    get_growth_model,
+    get_component_growth_models,
+    get_default_growth_rate,
     GraphDomain,
     WorkloadType,
 )
@@ -74,53 +75,155 @@ class TestGrowthModels:
         # Should grow but be bounded
         assert 100.0 < result < 200.0
     
-    def test_get_growth_model_with_workloads(self):
-        """Test getting growth model based on workloads."""
-        # Transactional should use log-linear (fast growth)
-        model = get_growth_model(workloads=["transactional"])
-        assert isinstance(model, LogLinearGrowthModel)
+    def test_get_component_growth_models_with_workloads(self):
+        """Test getting component growth models based on workloads."""
+        # Transactional should use log-linear for all components
+        models = get_component_growth_models(workloads=["transactional"])
+        assert isinstance(models["storage"], LogLinearGrowthModel)
+        assert isinstance(models["memory"], LogLinearGrowthModel)
+        assert isinstance(models["vcpu"], LogLinearGrowthModel)
         
-        # Analytical should use compound (moderate growth)
-        model = get_growth_model(workloads=["analytical"])
-        assert isinstance(model, CompoundGrowthModel)
+        # Analytical should use compound for storage, linear for memory/vcpu
+        models = get_component_growth_models(workloads=["analytical"])
+        assert isinstance(models["storage"], CompoundGrowthModel)
+        assert isinstance(models["memory"], LinearGrowthModel)
+        assert isinstance(models["vcpu"], LinearGrowthModel)
         
-        # Agentic should use exponential (fastest growth)
-        model = get_growth_model(workloads=["agentic"])
-        assert isinstance(model, ExponentialWithVectorGrowthModel)
-        
-        # Graph Data Science should use linear (slowest)
-        model = get_growth_model(workloads=["graph_data_science"])
-        assert isinstance(model, LinearGrowthModel)
+        # Agentic should use compound for all components
+        models = get_component_growth_models(workloads=["agentic"])
+        assert isinstance(models["storage"], CompoundGrowthModel)
+        assert isinstance(models["memory"], CompoundGrowthModel)
+        assert isinstance(models["vcpu"], CompoundGrowthModel)
     
-    def test_get_growth_model_with_domain(self):
-        """Test getting growth model based on domain."""
-        # Customer domain defaults to transactional + analytical
-        model = get_growth_model(domain="customer")
-        # Should use fastest-growing workload (transactional -> log-linear)
-        assert isinstance(model, LogLinearGrowthModel)
+    def test_get_component_growth_models_with_domain(self):
+        """Test getting component growth models based on domain."""
+        # Customer domain (transactional+analytical) should use LogLinear (transactional is fastest)
+        models = get_component_growth_models(domain="customer")
+        assert isinstance(models["storage"], LogLinearGrowthModel)
+        assert isinstance(models["memory"], LogLinearGrowthModel)
+        assert isinstance(models["vcpu"], LogLinearGrowthModel)
         
-        # Product domain defaults to analytical
-        model = get_growth_model(domain="product")
-        assert isinstance(model, CompoundGrowthModel)
+        # Product domain (analytical) should use compound for storage, linear for memory/vcpu
+        models = get_component_growth_models(domain="product")
+        assert isinstance(models["storage"], CompoundGrowthModel)
+        assert isinstance(models["memory"], LinearGrowthModel)
+        assert isinstance(models["vcpu"], LinearGrowthModel)
+        
+        # Employee domain (analytical) should use compound for storage, linear for memory/vcpu
+        models = get_component_growth_models(domain="employee")
+        assert isinstance(models["storage"], CompoundGrowthModel)
+        assert isinstance(models["memory"], LinearGrowthModel)
+        assert isinstance(models["vcpu"], LinearGrowthModel)
+        
+        # Transaction domain should use log-linear for all components
+        models = get_component_growth_models(domain="transaction")
+        assert isinstance(models["storage"], LogLinearGrowthModel)
+        assert isinstance(models["memory"], LogLinearGrowthModel)
+        assert isinstance(models["vcpu"], LogLinearGrowthModel)
     
-    def test_get_growth_model_workloads_override_domain(self):
-        """Test that explicit workloads override domain defaults."""
-        # Domain would suggest log-linear, but explicit workload overrides
-        model = get_growth_model(workloads=["analytical"], domain="customer")
-        assert isinstance(model, CompoundGrowthModel)
+    def test_get_component_growth_models_workloads_override_domain(self):
+        """Test that explicit workloads override domain-based growth models."""
+        # Transaction domain would use LogLinear, but explicit workload overrides
+        models = get_component_growth_models(workloads=["analytical"], domain="transaction")
+        assert isinstance(models["storage"], CompoundGrowthModel)
+        assert isinstance(models["memory"], LinearGrowthModel)
+        assert isinstance(models["vcpu"], LinearGrowthModel)
+        
+        # Customer domain would use Compound, but explicit workload overrides
+        models = get_component_growth_models(workloads=["transactional"], domain="customer")
+        assert isinstance(models["storage"], LogLinearGrowthModel)
+        assert isinstance(models["memory"], LogLinearGrowthModel)
+        assert isinstance(models["vcpu"], LogLinearGrowthModel)
     
-    def test_get_growth_model_default(self):
-        """Test default growth model when no workload/domain specified."""
-        model = get_growth_model()
-        assert isinstance(model, CompoundGrowthModel)
+    def test_get_component_growth_models_default(self):
+        """Test default growth models when no workload/domain specified."""
+        models = get_component_growth_models()
+        assert isinstance(models["storage"], CompoundGrowthModel)
+        assert isinstance(models["memory"], CompoundGrowthModel)
+        assert isinstance(models["vcpu"], CompoundGrowthModel)
     
     def test_multiple_workloads_uses_fastest(self):
-        """Test that multiple workloads use the fastest-growing model."""
-        # Transactional (log-linear) + Analytical (compound) should use log-linear
-        model = get_growth_model(workloads=["analytical", "transactional"])
-        assert isinstance(model, LogLinearGrowthModel)
+        """Test that multiple workloads use the fastest-growing model for each component."""
+        # Transactional (log-linear) + Analytical (compound/linear) should use log-linear for all
+        models = get_component_growth_models(workloads=["analytical", "transactional"])
+        assert isinstance(models["storage"], LogLinearGrowthModel)
+        assert isinstance(models["memory"], LogLinearGrowthModel)
+        assert isinstance(models["vcpu"], LogLinearGrowthModel)
         
-        # Agentic (exponential) should be fastest
-        model = get_growth_model(workloads=["analytical", "agentic"])
-        assert isinstance(model, ExponentialWithVectorGrowthModel)
+        # Transactional (log-linear) should be fastest for all components
+        models = get_component_growth_models(workloads=["analytical", "agentic", "transactional"])
+        assert isinstance(models["storage"], LogLinearGrowthModel)
+        assert isinstance(models["memory"], LogLinearGrowthModel)
+        assert isinstance(models["vcpu"], LogLinearGrowthModel)
+
+
+class TestDefaultGrowthRates:
+    """Test smart default growth rate selection."""
+    
+    def test_default_growth_rate_with_workloads(self):
+        """Test default growth rates for explicit workloads."""
+        # Transactional should be 20%
+        rate = get_default_growth_rate(workloads=["transactional"])
+        assert rate == 20.0
+        
+        # Agentic should be 15%
+        rate = get_default_growth_rate(workloads=["agentic"])
+        assert rate == 15.0
+        
+        # Analytical should be 5%
+        rate = get_default_growth_rate(workloads=["analytical"])
+        assert rate == 5.0
+    
+    def test_default_growth_rate_with_domain(self):
+        """Test default growth rates for domains."""
+        # Customer domain (transactional+analytical) should use fastest: 20%
+        rate = get_default_growth_rate(domain="customer")
+        assert rate == 20.0
+        
+        # Transaction domain (transactional) should be 20%
+        rate = get_default_growth_rate(domain="transaction")
+        assert rate == 20.0
+        
+        # Product domain (analytical) should be 5%
+        rate = get_default_growth_rate(domain="product")
+        assert rate == 5.0
+        
+        # Employee domain (analytical) should be 5%
+        rate = get_default_growth_rate(domain="employee")
+        assert rate == 5.0
+        
+        # Security domain (transactional+analytical) should use fastest: 20%
+        rate = get_default_growth_rate(domain="security")
+        assert rate == 20.0
+    
+    def test_default_growth_rate_workloads_override_domain(self):
+        """Test that explicit workloads override domain defaults."""
+        # Customer domain defaults to 20% (transactional), but analytical override should be 5%
+        rate = get_default_growth_rate(domain="customer", workloads=["analytical"])
+        assert rate == 5.0
+        
+        # Product domain defaults to 5% (analytical), but transactional override should be 20%
+        rate = get_default_growth_rate(domain="product", workloads=["transactional"])
+        assert rate == 20.0
+    
+    def test_default_growth_rate_multiple_workloads(self):
+        """Test that multiple workloads use the fastest growth rate."""
+        # Transactional (20%) + Analytical (5%) should use 20%
+        rate = get_default_growth_rate(workloads=["analytical", "transactional"])
+        assert rate == 20.0
+        
+        # All three workloads should use 20% (transactional is fastest)
+        rate = get_default_growth_rate(workloads=["analytical", "agentic", "transactional"])
+        assert rate == 20.0
+    
+    def test_default_growth_rate_no_inputs(self):
+        """Test default growth rate when no domain or workloads provided."""
+        rate = get_default_growth_rate()
+        assert rate == 10.0  # Generic default
+    
+    def test_default_growth_rate_domain_without_default_workloads(self):
+        """Test default growth rate for domain without default workloads."""
+        # Generic domain should use domain default (10%)
+        rate = get_default_growth_rate(domain="generic")
+        assert rate == 10.0
 

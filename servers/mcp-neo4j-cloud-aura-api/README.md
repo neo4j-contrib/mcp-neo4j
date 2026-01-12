@@ -136,7 +136,7 @@ The server offers these core tools:
     - `annual_growth_rate` (float): Annual growth rate percentage (default: 10%)
     - `projection_years` (integer): Number of years to project (default: 3)
     - `workloads` (array): Workload types that determine growth pattern
-      - Options: `"transactional"` (fast growth), `"agentic"` (fast growth - RAG/vector), `"analytical"` (moderate growth), `"graph_data_science"` (slowest growth)
+      - Options: `"transactional"` (fast growth - LogLinearGrowthModel), `"agentic"` (medium growth - CompoundGrowthModel), `"analytical"` (moderate growth - CompoundGrowthModel)
     - `domain` (string): Graph domain from "7 Graphs of the Enterprise"
       - Options: `"customer"`, `"product"`, `"employee"`, `"supplier"`, `"transaction"`, `"process"`, `"security"`, `"generic"`
     - `memory_to_storage_ratio` (float): Memory-to-storage ratio for projections (1.0=1:1, 2.0=1:2, 4.0=1:4, 8.0=1:8)
