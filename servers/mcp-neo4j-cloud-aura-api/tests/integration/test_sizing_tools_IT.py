@@ -63,6 +63,7 @@ class TestSizingToolsIntegration:
             base_size_gb=100.0,
             base_memory_gb=64,
             base_cores=8,
+            domain="customer",
             annual_growth_rate=10.0,
             projection_years=3,
         )
@@ -79,6 +80,7 @@ class TestSizingToolsIntegration:
             base_size_gb=100.0,
             base_memory_gb=64,
             base_cores=8,
+            domain="generic",
             annual_growth_rate=10.0,
             projection_years=3,
             workloads=["transactional"],
@@ -118,5 +120,6 @@ class TestSizingToolsIntegration:
                 base_size_gb=-1.0,
                 base_memory_gb=64,
                 base_cores=8,
+                domain="customer",
             )
 
