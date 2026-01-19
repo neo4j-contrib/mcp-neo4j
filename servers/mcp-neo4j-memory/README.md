@@ -1,26 +1,54 @@
-# 🧠🕸️ Neo4j Knowledge Graph Memory MCP Server
+# Neo4j Knowledge Graph Memory MCP Server
 
 mcp-name: io.github.neo4j-contrib/mcp-neo4j-memory
 
-## 🌟 Overview
+## Overview
 
 A Model Context Protocol (MCP) server implementation that provides persistent memory capabilities through Neo4j graph database integration.
 
-By storing information in a graph structure, this server maintains complex relationships between entities as memory nodes and enables long-term retention of knowledge that can be queried and analyzed across multiple conversations or sessions.
+By storing information in a graph structure, this server maintains complex relationships between entities as typed nodes with properties and enables long-term retention of knowledge that can be queried and analyzed across multiple conversations or sessions.
 
 With [Neo4j Aura](https://console.neo4j.io) you can host your own database server for free or share it with your collaborators. Otherwise you can run your own Neo4j server locally.
 
-The MCP server leverages Neo4j's graph database capabilities to create an interconnected knowledge base that serves as an external memory system. Through Cypher queries, it allows exploration and retrieval of stored information, relationship analysis between different data points, and generation of insights from the accumulated knowledge. This memory can be further enhanced with Claude's capabilities.
+The MCP server leverages Neo4j's graph database capabilities to create an interconnected knowledge base that serves as an external memory system. Through Cypher queries, it allows exploration and retrieval of stored information, relationship analysis between different data points, and generation of insights from the accumulated knowledge.
 
-### 🕸️ Graph Schema
+## Graph Schema
 
-* `Memory` - A node representing an entity with a name, type, and observations.
-* `Relationship` - A relationship between two entities with a type.
+### Entities (Nodes)
 
-### 🔍 Usage Example
+Entities are stored as nodes with typed labels (Person, Organization, Project, etc.) and support:
+
+- **name** (string): Unique identifier for the entity
+- **type** (string): Entity type (becomes the node label)
+- **observations** (array): Unstructured notes about the entity
+- **properties** (object): Structured key-value properties for queryable data
+
+### Relationships
+
+Relationships connect entities and support:
+
+- **source** (string): Source entity name
+- **target** (string): Target entity name
+- **relationType** (string): Relationship type (WORKS_AT, KNOWS, etc.)
+- **properties** (object): Structured key-value properties (validAt, invalidAt, role, etc.)
+
+### Temporal Properties (Event Clock)
+
+Both entities and relationships support temporal tracking:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `validAt` | datetime | When this fact became true |
+| `invalidAt` | datetime | When this fact stopped being true (soft delete) |
+| `source` | string | Provenance (meeting, document, person) |
+| `confidence` | float | Certainty level (0.0-1.0) |
+
+This enables the **Subject → Predicate → Object** pattern with temporal context on predicates for tracking how facts change over time.
+
+### Usage Example
 
 ```
-Let's add some memories 
+Let's add some memories
 I, Michael, living in Dresden, Germany work at Neo4j which is headquartered in Sweden with my colleagues Andreas (Cambridge, UK) and Oskar (Gothenburg, Sweden)
 I work in Product Management, Oskar in Engineering and Andreas in Developer Relations.
 ```
@@ -31,72 +59,98 @@ Results in Claude calling the create_entities and create_relations tools.
 
 ![](./docs/images/employee_graph.png)
 
-## 📦 Components
+## Components
 
-### 🔧 Tools
+### Tools
 
 The server offers these core tools:
 
-#### 🔎 Query Tools
-- `read_graph`
+#### Query Tools
+
+- **`read_graph`**
    - Read the entire knowledge graph
    - No input required
-   - Returns: Complete graph with entities and relations
+   - Returns: Complete graph with entities (including properties) and relations
 
-- `search_nodes`
-   - Search for nodes based on a query
+- **`search_memories`**
+   - Search for nodes based on a query using fulltext search
    - Input:
      - `query` (string): Search query matching names, types, observations
-   - Returns: Matching subgraph
+   - Returns: Matching subgraph with properties
 
-- `find_nodes`
-   - Find specific nodes by name
+- **`find_memories_by_name`**
+   - Find specific nodes by exact name
    - Input:
      - `names` (array of strings): Entity names to retrieve
-   - Returns: Subgraph with specified nodes
+   - Returns: Subgraph with specified nodes and their properties
 
-#### ♟️ Entity Management Tools
-- `create_entities`
+#### Entity Management Tools
+
+- **`create_entities`**
    - Create multiple new entities in the knowledge graph
    - Input:
      - `entities`: Array of objects with:
        - `name` (string): Name of the entity
-       - `type` (string): Type of the entity  
-       - `observations` (array of strings): Initial observations about the entity
+       - `type` (string): Type of the entity (becomes node label)
+       - `observations` (array of strings, optional): Unstructured notes
+       - `properties` (object, optional): Structured properties like `email`, `validAt`, `status`
    - Returns: Created entities
 
-- `delete_entities` 
-   - Delete multiple entities and their associated relations
+- **`update_entity_properties`**
+   - Update properties on existing entities (use for soft deletes)
+   - Input:
+     - `updates`: Array of objects with:
+       - `entityName` (string): Name of entity to update
+       - `properties` (object): Properties to set (use `null` to remove)
+   - Returns: Updated entities with new properties
+   - Example: Set `invalidAt` to soft-delete an entity
+
+- **`delete_entities`**
+   - Hard delete entities and their associated relations
    - Input:
      - `entityNames` (array of strings): Names of entities to delete
    - Returns: Success confirmation
 
-#### 🔗 Relation Management Tools
-- `create_relations`
+#### Relation Management Tools
+
+- **`create_relations`**
    - Create multiple new relations between entities
    - Input:
      - `relations`: Array of objects with:
        - `source` (string): Name of source entity
        - `target` (string): Name of target entity
        - `relationType` (string): Type of relation
+       - `properties` (object, optional): Properties like `validAt`, `role`, `source`
    - Returns: Created relations
 
-- `delete_relations`
-   - Delete multiple relations from the graph
+- **`update_relation_properties`**
+   - Update properties on existing relationships (use for soft deletes)
+   - Input:
+     - `updates`: Array of objects with:
+       - `source` (string): Source entity name
+       - `target` (string): Target entity name
+       - `relationType` (string): Relationship type
+       - `properties` (object): Properties to set (use `null` to remove)
+   - Returns: Updated relationships with new properties
+   - Example: Set `invalidAt` to mark a relationship as ended
+
+- **`delete_relations`**
+   - Hard delete relations from the graph
    - Input:
      - `relations`: Array of objects with same schema as create_relations
    - Returns: Success confirmation
 
-#### 📝 Observation Management Tools
-- `add_observations`
+#### Observation Management Tools
+
+- **`add_observations`**
    - Add new observations to existing entities
    - Input:
      - `observations`: Array of objects with:
        - `entityName` (string): Entity to add to
-       - `contents` (array of strings): Observations to add
+       - `observations` (array of strings): Observations to add
    - Returns: Added observation details
 
-- `delete_observations`
+- **`delete_observations`**
    - Delete specific observations from entities
    - Input:
      - `deletions`: Array of objects with:
@@ -104,15 +158,70 @@ The server offers these core tools:
        - `observations` (array of strings): Observations to remove
    - Returns: Success confirmation
 
-## 🔧 Usage with Claude Desktop
+### Example: Creating Entities with Properties
 
-### 💾 Installation
+```json
+{
+  "entities": [
+    {
+      "name": "Alice Johnson",
+      "type": "Person",
+      "observations": ["Prefers morning meetings"],
+      "properties": {
+        "email": "alice@acme.com",
+        "role": "Senior Architect",
+        "validAt": "2026-01-15T10:00:00Z"
+      }
+    }
+  ]
+}
+```
+
+### Example: Creating Relations with Properties
+
+```json
+{
+  "relations": [
+    {
+      "source": "Alice Johnson",
+      "target": "Acme Corp",
+      "relationType": "WORKS_AT",
+      "properties": {
+        "validAt": "2026-01-15T10:00:00Z",
+        "role": "Senior Architect",
+        "department": "Engineering"
+      }
+    }
+  ]
+}
+```
+
+### Example: Soft Delete (End a Relationship)
+
+```json
+{
+  "updates": [
+    {
+      "source": "Alice Johnson",
+      "target": "Old Company",
+      "relationType": "WORKS_AT",
+      "properties": {
+        "invalidAt": "2026-01-15T00:00:00Z"
+      }
+    }
+  ]
+}
+```
+
+## Usage with Claude Desktop
+
+### Installation
 
 ```bash
 pip install mcp-neo4j-memory
 ```
 
-### ⚙️ Configuration
+### Configuration
 
 Add the server to your `claude_desktop_config.json` with configuration of:
 
@@ -158,7 +267,7 @@ Tools become: `myapp-read_graph`, `myapp-create_entities`, etc.
 
 Can also use `NEO4J_NAMESPACE` environment variable.
 
-### 🌐 HTTP Transport Mode
+### HTTP Transport Mode
 
 The server supports HTTP transport for web-based deployments and microservices:
 
@@ -181,15 +290,15 @@ export NEO4J_NAMESPACE=myapp
 mcp-neo4j-memory
 ```
 
-### 🔄 Transport Modes
+### Transport Modes
 
 The server supports three transport modes:
 
 - **STDIO** (default): Standard input/output for local tools and Claude Desktop
-- **SSE**: Server-Sent Events for web-based deployments  
+- **SSE**: Server-Sent Events for web-based deployments
 - **HTTP**: Streamable HTTP for modern web deployments and microservices
 
-### 🐳 Using with Docker
+### Using with Docker
 
 ```json
 "mcpServers": {
@@ -207,11 +316,11 @@ The server supports three transport modes:
 }
 ```
 
-## 🔒 Security Protection
+## Security Protection
 
 The server includes comprehensive security protection with **secure defaults** that protect against common web-based attacks while preserving full MCP functionality when using HTTP transport.
 
-### 🛡️ DNS Rebinding Protection
+### DNS Rebinding Protection
 
 **TrustedHost Middleware** validates Host headers to prevent DNS rebinding attacks:
 
@@ -223,7 +332,7 @@ The server includes comprehensive security protection with **secure defaults** t
 export NEO4J_MCP_SERVER_ALLOWED_HOSTS="example.com,www.example.com"
 ```
 
-### 🌐 CORS Protection
+### CORS Protection
 
 **Cross-Origin Resource Sharing (CORS)** protection blocks browser-based requests by default:
 
@@ -232,7 +341,7 @@ export NEO4J_MCP_SERVER_ALLOWED_HOSTS="example.com,www.example.com"
 export NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://example.com,https://app.example.com"
 ```
 
-### 🔧 Complete Security Configuration
+### Complete Security Configuration
 
 **Development Setup:**
 ```bash
@@ -248,7 +357,7 @@ mcp-neo4j-memory --transport http \
   --allow-origins "https://example.com,https://app.example.com"
 ```
 
-### 🚨 Security Best Practices
+### Security Best Practices
 
 **For `allow_origins`:**
 - Be specific: `["https://example.com", "https://example.com"]`
@@ -260,11 +369,11 @@ mcp-neo4j-memory --transport http \
 - Include localhost only for development
 - Never use `"*"` unless you understand the risks
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 The Neo4j Memory MCP server can be deployed using Docker for remote deployments. Docker deployment should use HTTP transport for web accessibility. In order to integrate this deployment with applications like Claude Desktop, you will have to use a proxy in your MCP configuration such as `mcp-remote`.
 
-### 📦 Using Your Built Image
+### Using Your Built Image
 
 After building locally with `docker build -t mcp-neo4j-memory:latest .`:
 
@@ -296,7 +405,7 @@ docker run --rm -p 8000:8000 \
   mcp/neo4j-memory:latest
 ```
 
-### 🔧 Environment Variables
+### Environment Variables
 
 | Variable                           | Default                                 | Description                                        |
 | ---------------------------------- | --------------------------------------- | -------------------------------------------------- |
@@ -312,7 +421,7 @@ docker run --rm -p 8000:8000 \
 | `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
 | `NEO4J_NAMESPACE`                  | _(empty - no prefix)_                   | Namespace prefix for tool names (e.g., `myapp-read_graph`) |
 
-### 🌐 SSE Transport for Legacy Web Access
+### SSE Transport for Legacy Web Access
 
 When using SSE transport (for legacy web clients), the server exposes an HTTP endpoint:
 
@@ -336,9 +445,20 @@ curl http://localhost:8000/sse
 npx @modelcontextprotocol/inspector http://localhost:8000/sse
 ```
 
-## 🚀 Development
+## World Model Schema
 
-### 📦 Prerequisites
+For advanced usage with temporal facts, decisions, and the Event Clock pattern, see [docs/WORLD_MODEL_SCHEMA.md](./docs/WORLD_MODEL_SCHEMA.md).
+
+The World Model schema provides:
+- Typed entity labels (Person, Organization, Project, Decision, Fact, etc.)
+- Temporal tracking with `validAt`/`invalidAt` properties
+- Soft delete pattern for historical preservation
+- Decision chain: Context → Decision → Action → Outcome
+- Migration scripts for existing data
+
+## Development
+
+### Prerequisites
 
 1. Install `uv` (Universal Virtualenv):
 ```bash
@@ -367,7 +487,7 @@ source .venv/bin/activate  # On Unix/macOS
 uv pip install -e ".[dev]"
 ```
 
-### 🐳 Docker
+### Docker
 
 Build and run the Docker container:
 
@@ -382,6 +502,6 @@ docker run -e NEO4J_URL="neo4j+s://xxxx.databases.neo4j.io" \
           mcp/neo4j-memory:latest
 ```
 
-## 📄 License
+## License
 
 This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.

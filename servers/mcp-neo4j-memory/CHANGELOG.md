@@ -1,8 +1,21 @@
-### Fixed
-
-### Changed
+## v0.5.0
 
 ### Added
+* Add `properties` field to `Entity` model for structured key-value data on nodes
+* Add `properties` field to `Relation` model for structured key-value data on relationships
+* Add `update_entity_properties` tool for updating/adding properties on existing entities
+* Add `update_relation_properties` tool for updating/adding properties on existing relationships
+* Add temporal property support (`validAt`, `invalidAt`, `source`, `confidence`) for Event Clock pattern
+* Add soft delete pattern - use `invalidAt` property instead of hard deletes
+* Add `WORLD_MODEL_SCHEMA.md` documenting the full schema with typed entity labels
+* Add migration scripts in `docs/scripts/` for extracting observations to properties
+* Add `CLAUDE.md` with server-specific development guidance
+
+### Changed
+* Update `create_entities` to set user-provided properties on nodes
+* Update `create_relations` to set user-provided properties on relationships
+* Update `load_graph` and `find_memories_by_name` to return properties
+* Update `observations` field to be optional (default empty list)
 
 ### v0.4.4
 * Removed `dependencies=...` from server constructor. This was removed from FastMCP.
