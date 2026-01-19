@@ -166,7 +166,11 @@ class TestNamespacing:
         
         # Should have the same number of tools
         assert len(default_tools) == len(namespaced_tools)
-        
-        # Verify we have the expected number of tools (9 tools based on the server implementation)
-        assert len(default_tools) == 9
-        assert len(namespaced_tools) == 9
+
+        # Verify we have the expected number of tools (11 tools based on the server implementation)
+        # Tools: read_graph, create_entities, create_relations, add_observations,
+        #        delete_entities, delete_observations, delete_relations,
+        #        search_memories, find_memories_by_name,
+        #        update_entity_properties, update_relation_properties
+        assert len(default_tools) == 11
+        assert len(namespaced_tools) == 11

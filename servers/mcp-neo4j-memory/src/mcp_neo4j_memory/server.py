@@ -15,7 +15,7 @@ from mcp.types import TextContent
 from neo4j.exceptions import Neo4jError
 from mcp.types import ToolAnnotations
 
-from .neo4j_memory import Neo4jMemory, Entity, Relation, ObservationAddition, ObservationDeletion, KnowledgeGraph
+from .neo4j_memory import Neo4jMemory, Entity, Relation, ObservationAddition, ObservationDeletion, KnowledgeGraph, EntityPropertyUpdate, RelationPropertyUpdate
 from .utils import format_namespace
 
 # Set up logging
@@ -403,6 +403,111 @@ def create_mcp_server(memory: Neo4jMemory, namespace: str = "") -> FastMCP:
         except Exception as e:
             logger.error(f"Error finding memories by name: {e}")
             raise ToolError(f"Error finding memories by name: {e}")
+
+    @mcp.tool(
+        name=namespace_prefix + "update_entity_properties",
+        annotations=ToolAnnotations(title="Update Entity Properties",
+                                          readOnlyHint=False,
+                                          destructiveHint=False,
+                                          idempotentHint=True,
+                                          openWorldHint=True))
+    async def update_entity_properties(updates: list[EntityPropertyUpdate] = Field(..., description="List of property updates for existing entities")) -> ToolResult:
+        """Update properties on existing entities. Use for soft deletes (set invalidAt) or updating attributes.
+
+        Updates or adds properties on existing entities. Use this instead of delete_entities when you want
+        to preserve history - set invalidAt to mark an entity as no longer valid while keeping the data.
+
+        Returns:
+            list[dict]: Updated entities with their new properties
+
+        Example call:
+        {
+            "updates": [
+                {
+                    "entityName": "John Smith",
+                    "properties": {
+                        "invalidAt": "2026-01-15T00:00:00Z",
+                        "status": "inactive"
+                    }
+                },
+                {
+                    "entityName": "Alice Johnson",
+                    "properties": {
+                        "role": "Senior Engineer",
+                        "validAt": "2026-01-15T10:00:00Z"
+                    }
+                }
+            ]
+        }
+
+        Note: Use null as a value to remove a property. Reserved properties (name, type, observations, title, createdAt) cannot be updated via this tool.
+        """
+        logger.info(f"MCP tool: update_entity_properties ({len(updates)} updates)")
+        try:
+            update_objects = [EntityPropertyUpdate.model_validate(update) for update in updates]
+            result = await memory.update_entity_properties(update_objects)
+            return ToolResult(content=[TextContent(type="text", text=json.dumps(result))],
+                              structured_content={"result": result})
+        except Neo4jError as e:
+            logger.error(f"Neo4j error updating entity properties: {e}")
+            raise ToolError(f"Neo4j error updating entity properties: {e}")
+        except Exception as e:
+            logger.error(f"Error updating entity properties: {e}")
+            raise ToolError(f"Error updating entity properties: {e}")
+
+    @mcp.tool(
+        name=namespace_prefix + "update_relation_properties",
+        annotations=ToolAnnotations(title="Update Relation Properties",
+                                          readOnlyHint=False,
+                                          destructiveHint=False,
+                                          idempotentHint=True,
+                                          openWorldHint=True))
+    async def update_relation_properties(updates: list[RelationPropertyUpdate] = Field(..., description="List of property updates for existing relationships")) -> ToolResult:
+        """Update properties on existing relationships. Use for soft deletes (set invalidAt) or updating attributes.
+
+        Updates or adds properties on existing relationships. Use this instead of delete_relations when you want
+        to preserve history - set invalidAt to mark a relationship as ended while keeping the data for historical queries.
+
+        Returns:
+            list[dict]: Updated relationships with their new properties
+
+        Example call:
+        {
+            "updates": [
+                {
+                    "source": "John Smith",
+                    "target": "Old Company",
+                    "relationType": "WORKS_AT",
+                    "properties": {
+                        "invalidAt": "2026-01-15T00:00:00Z"
+                    }
+                },
+                {
+                    "source": "Alice Johnson",
+                    "target": "New Company",
+                    "relationType": "WORKS_AT",
+                    "properties": {
+                        "validAt": "2026-01-15T10:00:00Z",
+                        "role": "Senior Engineer"
+                    }
+                }
+            ]
+        }
+
+        Note: Use null as a value to remove a property. The createdAt property cannot be updated.
+        """
+        logger.info(f"MCP tool: update_relation_properties ({len(updates)} updates)")
+        try:
+            update_objects = [RelationPropertyUpdate.model_validate(update) for update in updates]
+            result = await memory.update_relation_properties(update_objects)
+            return ToolResult(content=[TextContent(type="text", text=json.dumps(result))],
+                              structured_content={"result": result})
+        except Neo4jError as e:
+            logger.error(f"Neo4j error updating relation properties: {e}")
+            raise ToolError(f"Neo4j error updating relation properties: {e}")
+        except Exception as e:
+            logger.error(f"Error updating relation properties: {e}")
+            raise ToolError(f"Error updating relation properties: {e}")
 
     return mcp
 
