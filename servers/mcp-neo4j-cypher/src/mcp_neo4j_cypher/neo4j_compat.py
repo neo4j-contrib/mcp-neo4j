@@ -9,10 +9,10 @@ Key considerations when using modern driver with Neo4j 3.5 server:
 - Different Cypher syntax for constraints and indexes
 - APOC procedures may have different signatures
 - Fulltext index creation uses CALL procedures, not CREATE syntax
+- No query timeout support (Neo4j 3.5 limitation)
 """
 
 import logging
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Any, Callable, TypeVar
 
 from neo4j import GraphDatabase
@@ -21,13 +21,9 @@ logger = logging.getLogger("mcp_neo4j_cypher")
 
 T = TypeVar("T")
 
-# Default query timeout in seconds (Neo4j 3.5 doesn't support native timeouts)
-# 60 seconds is reasonable for most queries; increase for very large datasets
-DEFAULT_QUERY_TIMEOUT = 60
-
 
 class QueryTimeoutError(Exception):
-    """Raised when a query exceeds the timeout limit."""
+    """Raised when a query exceeds the timeout limit (not used in 3.5)."""
     pass
 
 
@@ -75,171 +71,72 @@ class Neo4j35Driver:
         query: str,
         parameters: dict[str, Any] | None = None,
         result_transformer: Callable | None = None,
-        timeout: int | None = None,
+        timeout: int | None = None,  # Ignored - Neo4j 3.5 doesn't support timeouts
     ) -> Any:
         """
-        Execute a read query with optional timeout.
+        Execute a read query.
         
-        Parameters
-        ----------
-        query : str
-            The Cypher query to execute.
-        parameters : dict, optional
-            Parameters to pass to the query.
-        result_transformer : callable, optional
-            Function to transform the result. Defaults to returning data().
-        timeout : int, optional
-            Query timeout in seconds. Defaults to DEFAULT_QUERY_TIMEOUT.
-            
-        Returns
-        -------
-        Any
-            The query results, transformed if a transformer is provided.
-            
-        Raises
-        ------
-        QueryTimeoutError
-            If the query exceeds the timeout limit.
+        Note: timeout parameter is ignored in Neo4j 3.5 (not supported).
         """
         parameters = parameters or {}
-        timeout = timeout or DEFAULT_QUERY_TIMEOUT
 
-        def _run_query():
-            with self._driver.session() as session:
-                result = session.run(query, parameters)
-                if result_transformer:
-                    return result_transformer(result)
-                return result.data()
-
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_run_query)
-            try:
-                return future.result(timeout=timeout)
-            except FuturesTimeoutError:
-                logger.warning(f"Query timed out after {timeout}s: {query[:100]}...")
-                raise QueryTimeoutError(
-                    f"Query timed out after {timeout} seconds. "
-                    "Consider using LIMIT or adding WHERE clauses to reduce result set."
-                )
+        with self._driver.session() as session:
+            result = session.run(query, parameters)
+            if result_transformer:
+                return result_transformer(result)
+            return result.data()
 
     def execute_write(
         self,
         query: str,
         parameters: dict[str, Any] | None = None,
         result_transformer: Callable | None = None,
-        timeout: int | None = None,
+        timeout: int | None = None,  # Ignored - Neo4j 3.5 doesn't support timeouts
     ) -> Any:
         """
-        Execute a write query with optional timeout.
+        Execute a write query.
         
-        Parameters
-        ----------
-        query : str
-            The Cypher query to execute.
-        parameters : dict, optional
-            Parameters to pass to the query.
-        result_transformer : callable, optional
-            Function to transform the result.
-        timeout : int, optional
-            Query timeout in seconds. Defaults to DEFAULT_QUERY_TIMEOUT.
-            
-        Returns
-        -------
-        Any
-            The query results or summary, depending on transformer.
-            
-        Raises
-        ------
-        QueryTimeoutError
-            If the query exceeds the timeout limit.
+        Note: timeout parameter is ignored in Neo4j 3.5 (not supported).
         """
         parameters = parameters or {}
-        timeout = timeout or DEFAULT_QUERY_TIMEOUT
 
-        def _run_query():
-            with self._driver.session() as session:
-                result = session.run(query, parameters)
-                if result_transformer:
-                    return result_transformer(result)
-                return result.consume()
-
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_run_query)
-            try:
-                return future.result(timeout=timeout)
-            except FuturesTimeoutError:
-                logger.warning(f"Query timed out after {timeout}s: {query[:100]}...")
-                raise QueryTimeoutError(
-                    f"Query timed out after {timeout} seconds. "
-                    "Consider breaking this query into smaller operations."
-                )
+        with self._driver.session() as session:
+            result = session.run(query, parameters)
+            if result_transformer:
+                return result_transformer(result)
+            return result.consume()
 
     def get_summary_counters(
         self, query: str, parameters: dict[str, Any] | None = None, timeout: int | None = None
     ) -> dict[str, int]:
         """
-        Execute a write query and return the summary counters with optional timeout.
+        Execute a write query and return the summary counters.
         
-        Returns
-        -------
-        dict
-            Dictionary with counter names and values.
-            
-        Raises
-        ------
-        QueryTimeoutError
-            If the query exceeds the timeout limit.
+        Note: timeout parameter is ignored in Neo4j 3.5 (not supported).
         """
         parameters = parameters or {}
-        timeout = timeout or DEFAULT_QUERY_TIMEOUT
 
-        def _run_query():
-            with self._driver.session() as session:
-                result = session.run(query, parameters)
-                summary = result.consume()
-                counters = summary.counters
-                return {
-                    "nodes_created": counters.nodes_created,
-                    "nodes_deleted": counters.nodes_deleted,
-                    "relationships_created": counters.relationships_created,
-                    "relationships_deleted": counters.relationships_deleted,
-                    "properties_set": counters.properties_set,
-                    "labels_added": counters.labels_added,
-                    "labels_removed": counters.labels_removed,
-                    "indexes_added": counters.indexes_added,
-                    "indexes_removed": counters.indexes_removed,
-                    "constraints_added": counters.constraints_added,
-                    "constraints_removed": counters.constraints_removed,
-                }
-
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_run_query)
-            try:
-                return future.result(timeout=timeout)
-            except FuturesTimeoutError:
-                logger.warning(f"Query timed out after {timeout}s: {query[:100]}...")
-                raise QueryTimeoutError(
-                    f"Query timed out after {timeout} seconds. "
-                    "Consider breaking this into smaller operations."
-                )
+        with self._driver.session() as session:
+            result = session.run(query, parameters)
+            summary = result.consume()
+            counters = summary.counters
+            return {
+                "nodes_created": counters.nodes_created,
+                "nodes_deleted": counters.nodes_deleted,
+                "relationships_created": counters.relationships_created,
+                "relationships_deleted": counters.relationships_deleted,
+                "properties_set": counters.properties_set,
+                "labels_added": counters.labels_added,
+                "labels_removed": counters.labels_removed,
+                "indexes_added": counters.indexes_added,
+                "indexes_removed": counters.indexes_removed,
+                "constraints_added": counters.constraints_added,
+                "constraints_removed": counters.constraints_removed,
+            }
 
 
 def create_driver(uri: str, username: str, password: str) -> Neo4j35Driver:
     """
     Create a Neo4j 3.5 compatible driver.
-    
-    Parameters
-    ----------
-    uri : str
-        Neo4j connection URI (e.g., bolt://localhost:7687)
-    username : str
-        Neo4j username
-    password : str
-        Neo4j password
-        
-    Returns
-    -------
-    Neo4j35Driver
-        A compatibility driver wrapper.
     """
     return Neo4j35Driver(uri, auth=(username, password))
