@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir hatchling
 COPY pyproject.toml /app/
 
 # Install dependencies
-RUN pip install --no-cache-dir neo4j>=5.26.0 fastmcp>=2.10.5
+RUN pip install --no-cache-dir neo4j>=5.26.0 fastmcp>=2.11.0
 
 
 # Copy the source code
@@ -34,6 +34,11 @@ ENV NEO4J_MCP_SERVER_PORT="8000"
 ENV NEO4J_MCP_SERVER_PATH="/api/mcp/"
 ENV NEO4J_MCP_SERVER_ALLOW_ORIGINS=""
 ENV NEO4J_MCP_SERVER_ALLOWED_HOSTS="localhost,127.0.0.1"
+
+# Create a non-root user and switch to it
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
 EXPOSE 8000
 
