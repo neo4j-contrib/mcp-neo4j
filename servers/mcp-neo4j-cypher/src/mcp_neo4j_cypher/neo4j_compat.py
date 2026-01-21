@@ -23,9 +23,6 @@ logger = logging.getLogger("mcp_neo4j_cypher")
 
 T = TypeVar("T")
 
-# Default auto-limit for queries without LIMIT clause
-DEFAULT_AUTO_LIMIT = 1000
-
 # Schema cache TTL in seconds (5 minutes)
 SCHEMA_CACHE_TTL = 300
 
@@ -48,7 +45,7 @@ class Neo4j35Driver:
     - Auto-LIMIT for queries without LIMIT
     """
 
-    def __init__(self, uri: str, auth: tuple[str, str], auto_limit: int = DEFAULT_AUTO_LIMIT):
+    def __init__(self, uri: str, auth: tuple[str, str]):
         self._driver = GraphDatabase.driver(
             uri, 
             auth=auth,
@@ -58,7 +55,6 @@ class Neo4j35Driver:
         )
         self._uri = uri
         self._server_version = None
-        self._auto_limit = auto_limit
         self._schema_cache = None
         self._schema_cache_time = 0
 
@@ -88,41 +84,19 @@ class Neo4j35Driver:
         version = self.get_server_version()
         return version.startswith("3.5")
 
-    def _add_limit_if_missing(self, query: str) -> str:
-        """Add LIMIT clause if not present in query."""
-        query_upper = query.upper()
-        # Don't add LIMIT to queries that already have it or are aggregations
-        if "LIMIT" in query_upper:
-            return query
-        if "COUNT(" in query_upper and "RETURN" in query_upper:
-            # Aggregation query - don't add limit
-            return query
-        # Add limit before any trailing semicolons or whitespace
-        query = query.rstrip().rstrip(';')
-        return f"{query} LIMIT {self._auto_limit}"
-
     def execute_read(
         self,
         query: str,
         parameters: dict[str, Any] | None = None,
         result_transformer: Callable | None = None,
         timeout: int | None = None,  # Ignored - Neo4j 3.5 doesn't support timeouts
-        auto_limit: bool = True,
     ) -> Any:
         """
         Execute a read query.
         
-        Parameters
-        ----------
-        auto_limit : bool
-            If True and query has no LIMIT, adds LIMIT clause automatically.
-        
         Note: timeout parameter is ignored in Neo4j 3.5 (not supported).
         """
         parameters = parameters or {}
-        
-        if auto_limit:
-            query = self._add_limit_if_missing(query)
 
         with self._driver.session() as session:
             result = session.run(query, parameters)
@@ -195,7 +169,7 @@ class Neo4j35Driver:
         logger.info(f"Fetching fresh schema (sample_size={sample_size})")
         query = f"CALL apoc.meta.schema({{sample: {sample_size}}}) YIELD value RETURN value"
         
-        results = self.execute_read(query, auto_limit=False)
+        results = self.execute_read(query)
         if results:
             self._schema_cache = results[0].get("value", {})
             self._schema_cache_time = current_time
@@ -209,8 +183,8 @@ class Neo4j35Driver:
         self._schema_cache_time = 0
 
 
-def create_driver(uri: str, username: str, password: str, auto_limit: int = DEFAULT_AUTO_LIMIT) -> Neo4j35Driver:
+def create_driver(uri: str, username: str, password: str) -> Neo4j35Driver:
     """
     Create a Neo4j 3.5 compatible driver.
     """
-    return Neo4j35Driver(uri, auth=(username, password), auto_limit=auto_limit)
+    return Neo4j35Driver(uri, auth=(username, password))
