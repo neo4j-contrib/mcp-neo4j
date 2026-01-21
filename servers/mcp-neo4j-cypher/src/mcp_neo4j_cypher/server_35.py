@@ -42,6 +42,35 @@ def _is_write_query(query: str) -> bool:
     return re.search(write_keywords, query, re.IGNORECASE) is not None
 
 
+def _check_slow_query_patterns(query: str) -> list[str]:
+    """Check for query patterns that may be slow on large databases."""
+    warnings = []
+    query_upper = query.upper()
+    has_property_filter = "{" in query and ":" in query  # e.g., {email: "..."}
+    
+    # Full scan without WHERE or property filter
+    if "MATCH" in query_upper and "WHERE" not in query_upper and "LIMIT" not in query_upper:
+        if not has_property_filter:
+            if not any(x in query_upper for x in ["COUNT(", "SUM(", "AVG("]):
+                warnings.append("Query has no WHERE clause - may scan entire database")
+    
+    # ORDER BY without LIMIT
+    if "ORDER BY" in query_upper and "LIMIT" not in query_upper:
+        warnings.append("ORDER BY without LIMIT requires sorting entire result set")
+    
+    # CONTAINS or regex on unindexed property
+    if "CONTAINS" in query_upper or "=~" in query:
+        warnings.append("String matching (CONTAINS/regex) is slow on large datasets")
+    
+    # Aggregation without filtering
+    if any(x in query_upper for x in ["COUNT(", "SUM(", "AVG(", "COLLECT("]):
+        if "WHERE" not in query_upper and "LIMIT" not in query_upper:
+            if not has_property_filter:
+                warnings.append("Aggregation without filters may be slow")
+    
+    return warnings
+
+
 def create_mcp_server(
     neo4j_driver: Neo4j35Driver,
     namespace: str = "",
@@ -84,9 +113,6 @@ def create_mcp_server(
         """
         effective_sample_size = sample_size if sample_size else config_sample_size
         logger.info(f"Running `get_neo4j_schema` with sample size {effective_sample_size}.")
-
-        # Neo4j 3.5 APOC syntax - may need adjustment based on APOC version
-        get_schema_query = f"CALL apoc.meta.schema({{sample: {effective_sample_size}}}) YIELD value RETURN value"
 
         def clean_schema(schema: dict) -> dict:
             """Clean and simplify the schema response."""
@@ -143,11 +169,11 @@ def create_mcp_server(
             return cleaned
 
         try:
-            results = neo4j_driver.execute_read(get_schema_query)
-            logger.debug(f"Schema query returned {len(results)} rows")
-
-            if results:
-                schema_clean = clean_schema(results[0].get("value", {}))
+            # Use cached schema for better performance
+            schema_raw = neo4j_driver.get_schema_cached(effective_sample_size)
+            
+            if schema_raw:
+                schema_clean = clean_schema(schema_raw)
                 schema_clean_str = json.dumps(schema_clean, default=str)
                 return ToolResult(content=[TextContent(type="text", text=schema_clean_str)])
             
@@ -182,6 +208,11 @@ def create_mcp_server(
         """Execute a read Cypher query on the Neo4j database."""
         if _is_write_query(query):
             raise ValueError("Only MATCH queries are allowed for read-query")
+
+        # Check for slow query patterns
+        warnings = _check_slow_query_patterns(query)
+        for warning in warnings:
+            logger.warning(f"Slow query pattern: {warning}")
 
         try:
             results = neo4j_driver.execute_read(query, params)
