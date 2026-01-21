@@ -100,7 +100,7 @@ The deployment guide covers:
 
 For users running Neo4j 3.5, a compatibility layer is available for `mcp-neo4j-cypher`, `mcp-neo4j-memory`, and `mcp-neo4j-data-modeling` servers.
 
-> **Note:** Neo4j 3.5 has limitations compared to 5.x (no async driver, no multi-database, no query timeouts).
+> **Note:** Neo4j 3.5 has limitations compared to 5.x (no async driver, no multi-database, no native query timeouts).
 
 ### Prerequisites
 
@@ -232,7 +232,6 @@ The server will be available at `http://localhost:8000/mcp/`
 | `HOST`               | ❌       | `127.0.0.1` | Server host (for http/sse)                     |
 | `PORT`               | ❌       | `8000`      | Server port (for http/sse)                     |
 | `SCHEMA_SAMPLE_SIZE` | ❌       | `1000`      | Sample size for schema inference               |
-| `QUERY_TIMEOUT`      | ❌       | `60`        | Query timeout in seconds (Python-level)        |
 
 ### Available Tools (Neo4j 3.5)
 
@@ -305,26 +304,20 @@ NEO4J_PASSWORD="your-password" \
 python3 mcp_neo4j_35_runner.py
 ```
 
-#### Query hangs or times out
+#### Query hangs
 
-Neo4j 3.5 does **not support native query timeouts**. However, this server includes a **Python-level timeout** (default: 60 seconds) that will abort long-running queries.
-
-If a query times out, you'll see:
-
-```
-Query timed out (60s limit). Tips: Use LIMIT, add WHERE clauses, or avoid GROUP BY on large datasets.
-```
+Neo4j 3.5 does **not support query timeouts**. Long-running queries will block the server until they complete.
 
 **Best practices:**
 
 - Always use `LIMIT` on large result sets
-- Avoid `GROUP BY` on unindexed properties with millions of records
+- Avoid aggregations (COUNT, GROUP BY) on unindexed properties with millions of records
 - Use `WHERE` clauses to filter data before aggregation
-- Increase timeout with `QUERY_TIMEOUT` env var if needed
+- Test complex queries directly in Neo4j Browser first
 
 ```cypher
--- Bad: Will timeout on large datasets
-MATCH (n:App) RETURN n.platform, count(*) GROUP BY n.platform
+-- Bad: May hang on large datasets
+MATCH (n:App) RETURN n.platform, count(*)
 
 -- Good: Use LIMIT
 MATCH (n:App) RETURN n.name, n.platform LIMIT 100

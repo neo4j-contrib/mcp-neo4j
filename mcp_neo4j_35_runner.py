@@ -12,7 +12,6 @@ Environment Variables:
     READ_ONLY: "true" for read-only mode (default: "false")
     TRANSPORT: "stdio" (default), "http", or "sse"
     SCHEMA_SAMPLE_SIZE: Sample size for schema inference (default: 1000)
-    QUERY_TIMEOUT: Query timeout in seconds (default: 30)
     HOST: Server host for http/sse transport (default: 127.0.0.1)
     PORT: Server port for http/sse transport (default: 8000)
 """
