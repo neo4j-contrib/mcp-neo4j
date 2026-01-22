@@ -124,16 +124,16 @@ The server will be available at `http://localhost:8000/mcp/`
 
 ## Environment Variables
 
-| Variable             | Required | Default     | Description                                    |
-| -------------------- | -------- | ----------- | ---------------------------------------------- |
+| Variable             | Required | Default     | Description                                                                              |
+| -------------------- | -------- | ----------- | ---------------------------------------------------------------------------------------- |
 | `NEO4J_URL`          | Yes      | -           | Neo4j bolt URL (e.g., `bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687`) |
-| `NEO4J_USERNAME`     | Yes      | -           | Neo4j username                                 |
-| `NEO4J_PASSWORD`     | Yes      | -           | Neo4j password                                 |
-| `READ_ONLY`          | No       | `false`     | Set to `true` to disable write operations      |
-| `TRANSPORT`          | No       | `stdio`     | Transport mode: `stdio`, `http`, or `sse`      |
-| `HOST`               | No       | `127.0.0.1` | Server host (for http/sse)                     |
-| `PORT`               | No       | `8000`      | Server port (for http/sse)                     |
-| `SCHEMA_SAMPLE_SIZE` | No       | `1000`      | Sample size for schema inference               |
+| `NEO4J_USERNAME`     | Yes      | -           | Neo4j username                                                                           |
+| `NEO4J_PASSWORD`     | Yes      | -           | Neo4j password                                                                           |
+| `READ_ONLY`          | No       | `false`     | Set to `true` to disable write operations                                                |
+| `TRANSPORT`          | No       | `stdio`     | Transport mode: `stdio`, `http`, or `sse`                                                |
+| `HOST`               | No       | `127.0.0.1` | Server host (for http/sse)                                                               |
+| `PORT`               | No       | `8000`      | Server port (for http/sse)                                                               |
+| `SCHEMA_SAMPLE_SIZE` | No       | `1000`      | Sample size for schema inference                                                         |
 
 ## Available Tools
 
