@@ -31,14 +31,14 @@ Or using uv:
 uv pip install fastmcp pydantic tiktoken neo4j
 ```
 
-### Step 3: Verify Installation
+### Step 3: Verify Installation (Optional)
 
-Test the server starts correctly:
+Test that the server starts correctly:
 
 ```bash
-NEO4J_URL="bolt://localhost:7687" \
+NEO4J_URL="bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687" \
 NEO4J_USERNAME="neo4j" \
-NEO4J_PASSWORD="your-password" \
+NEO4J_PASSWORD="you-know-the-password" \
 python3 mcp_neo4j_35_runner.py
 ```
 
@@ -60,9 +60,9 @@ You should see the FastMCP banner and "Starting MCP server".
       "command": "python3",
       "args": ["/full/path/to/mcp-neo4j/mcp_neo4j_35_runner.py"],
       "env": {
-        "NEO4J_URL": "bolt://localhost:7687",
+        "NEO4J_URL": "bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687", // example
         "NEO4J_USERNAME": "neo4j",
-        "NEO4J_PASSWORD": "your-password",
+        "NEO4J_PASSWORD": "you-know-the-password",
         "READ_ONLY": "true"
       }
     }
@@ -89,9 +89,9 @@ You should see the FastMCP banner and "Starting MCP server".
       "command": "python3",
       "args": ["/full/path/to/mcp-neo4j/mcp_neo4j_35_runner.py"],
       "env": {
-        "NEO4J_URL": "bolt://localhost:7687",
+        "NEO4J_URL": "bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687", // example
         "NEO4J_USERNAME": "neo4j",
-        "NEO4J_PASSWORD": "your-password",
+        "NEO4J_PASSWORD": "you-know-the-password",
         "READ_ONLY": "true"
       }
     }
@@ -111,9 +111,9 @@ You should see the FastMCP banner and "Starting MCP server".
 **Run in HTTP mode:**
 
 ```bash
-NEO4J_URL="bolt://localhost:7687" \
+NEO4J_URL="bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687" \
 NEO4J_USERNAME="neo4j" \
-NEO4J_PASSWORD="your-password" \
+NEO4J_PASSWORD="you-know-the-password" \
 TRANSPORT="http" \
 HOST="0.0.0.0" \
 PORT="8000" \
@@ -126,7 +126,7 @@ The server will be available at `http://localhost:8000/mcp/`
 
 | Variable             | Required | Default     | Description                                    |
 | -------------------- | -------- | ----------- | ---------------------------------------------- |
-| `NEO4J_URL`          | Yes      | -           | Neo4j bolt URL (e.g., `bolt://localhost:7687`) |
+| `NEO4J_URL`          | Yes      | -           | Neo4j bolt URL (e.g., `bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687`) |
 | `NEO4J_USERNAME`     | Yes      | -           | Neo4j username                                 |
 | `NEO4J_PASSWORD`     | Yes      | -           | Neo4j password                                 |
 | `READ_ONLY`          | No       | `false`     | Set to `true` to disable write operations      |
@@ -200,9 +200,9 @@ If the server becomes unresponsive, kill and restart it:
 lsof -ti:8000 | xargs kill -9
 
 # Restart the server
-NEO4J_URL="bolt://localhost:7687" \
+NEO4J_URL="bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687" \
 NEO4J_USERNAME="neo4j" \
-NEO4J_PASSWORD="your-password" \
+NEO4J_PASSWORD="you-know-the-password" \
 python3 mcp_neo4j_35_runner.py
 ```
 
