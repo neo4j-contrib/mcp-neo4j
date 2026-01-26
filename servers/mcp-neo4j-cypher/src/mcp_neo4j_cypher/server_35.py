@@ -7,12 +7,14 @@ Key changes from the 5.x version:
 - No RoutingControl (uses read_transaction/write_transaction)
 - No Query timeout object
 - No multi-database support
+- Application-level query timeout using ThreadPoolExecutor
 """
 
 import json
 import logging
 import re
-from typing import Any, Literal, Optional
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from typing import Any, Callable, Literal, Optional, TypeVar
 
 from fastmcp.exceptions import ToolError
 from fastmcp.server import FastMCP
@@ -27,6 +29,24 @@ from .neo4j_compat import Neo4j35Driver, QueryTimeoutError, create_driver
 from .utils import _truncate_string_to_tokens, _value_sanitize
 
 logger = logging.getLogger("mcp_neo4j_cypher")
+
+T = TypeVar("T")
+
+# Query timeout in seconds (prevents blocking the MCP server)
+QUERY_TIMEOUT_SECONDS = 60
+
+# Thread pool for running queries without blocking
+_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="neo4j_query_")
+
+
+def run_with_timeout(func: Callable[[], T], timeout: int = QUERY_TIMEOUT_SECONDS) -> T:
+    """Run a function with a timeout. Raises TimeoutError if exceeded."""
+    future = _executor.submit(func)
+    try:
+        return future.result(timeout=timeout)
+    except FuturesTimeoutError:
+        logger.warning(f"Query timed out after {timeout}s")
+        raise QueryTimeoutError(f"Query exceeded {timeout}s timeout")
 
 
 def _format_namespace(namespace: str) -> str:
@@ -168,9 +188,12 @@ def create_mcp_server(
                 cleaned[key] = new_entry
             return cleaned
 
+        def fetch_schema():
+            return neo4j_driver.get_schema_cached(effective_sample_size)
+
         try:
-            # Use cached schema for better performance
-            schema_raw = neo4j_driver.get_schema_cached(effective_sample_size)
+            # Use cached schema with timeout for better performance
+            schema_raw = run_with_timeout(fetch_schema, timeout=120)  # Schema can take longer
             
             if schema_raw:
                 schema_clean = clean_schema(schema_raw)
@@ -179,6 +202,11 @@ def create_mcp_server(
             
             return ToolResult(content=[TextContent(type="text", text="{}")])
 
+        except QueryTimeoutError as e:
+            logger.warning(f"Schema fetch timed out")
+            raise ToolError(
+                f"Schema fetch timed out. The database may be very large. {e}"
+            )
         except Exception as e:
             error_str = str(e)
             if "ProcedureNotFound" in error_str or "apoc" in error_str.lower():
@@ -214,10 +242,15 @@ def create_mcp_server(
         for warning in warnings:
             logger.warning(f"Slow query pattern: {warning}")
 
-        try:
+        def execute_query():
             results = neo4j_driver.execute_read(query, params)
             sanitized_results = [_value_sanitize(el) for el in results]
-            results_json_str = json.dumps(sanitized_results, default=str)
+            return sanitized_results
+
+        try:
+            # Run query with timeout to prevent blocking MCP server
+            results = run_with_timeout(execute_query)
+            results_json_str = json.dumps(results, default=str)
 
             if token_limit:
                 results_json_str = _truncate_string_to_tokens(results_json_str, token_limit)
@@ -228,8 +261,8 @@ def create_mcp_server(
         except QueryTimeoutError as e:
             logger.warning(f"Query timed out: {query[:100]}...")
             raise ToolError(
-                f"Query timed out (60s limit). {e}\n"
-                "Tips: Use LIMIT, add WHERE clauses, or avoid GROUP BY on large datasets."
+                f"Query timed out ({QUERY_TIMEOUT_SECONDS}s limit). {e}\n"
+                "Tips: Use LIMIT, add WHERE clauses, or avoid aggregations on large datasets."
             )
         except Exception as e:
             logger.error(f"Error executing read query: {e}\n{query}\n{params}")
@@ -257,8 +290,12 @@ def create_mcp_server(
         if not _is_write_query(query):
             raise ValueError("Only write queries are allowed for write-query")
 
+        def execute_query():
+            return neo4j_driver.get_summary_counters(query, params)
+
         try:
-            counters = neo4j_driver.get_summary_counters(query, params)
+            # Run query with timeout to prevent blocking MCP server
+            counters = run_with_timeout(execute_query)
             counters_json_str = json.dumps(counters, default=str)
             logger.debug(f"Write query affected {counters_json_str}")
             return ToolResult(content=[TextContent(type="text", text=counters_json_str)])
@@ -266,7 +303,7 @@ def create_mcp_server(
         except QueryTimeoutError as e:
             logger.warning(f"Write query timed out: {query[:100]}...")
             raise ToolError(
-                f"Query timed out (60s limit). {e}\n"
+                f"Query timed out ({QUERY_TIMEOUT_SECONDS}s limit). {e}\n"
                 "Tips: Break large writes into smaller batches."
             )
         except Exception as e:
