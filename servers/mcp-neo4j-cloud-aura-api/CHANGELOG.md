@@ -3,8 +3,11 @@
 ### Fixed
 
 ### Changed
+* Make `avg_properties_per_node` and `avg_properties_per_relationship` required parameters for `calculate_database_sizing` tool to ensure accurate sizing calculations
 
 ### Added
+* Add `calculate_database_sizing` tool for calculating Neo4j database sizing based on graph characteristics
+* Add `forecast_database_size` tool for multi-year database size projections with workload-based growth models
 
 ## v0.4.7
 
