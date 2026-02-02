@@ -5,6 +5,7 @@
 ### Changed
 
 ### Added
+* Add tool annotations for all tools - readOnlyHint, destructiveHint, title, idempotentHint, openWorldHint
 
 ## v0.8.2
 
