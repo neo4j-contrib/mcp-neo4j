@@ -5,7 +5,7 @@ description = "A simple Neo4j MCP server for creating graph data models."
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
 dependencies = [
-    "fastmcp>=2.0.0",
+    "fastmcp>=2.11.0",
     "pydantic>=2.10.1",
     "starlette>=0.47.0",
     "rdflib>=7.0.0",

@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir hatchling
 COPY pyproject.toml /app/
 
 # Install runtime dependencies
-RUN pip install --no-cache-dir fastmcp>=2.0.0 requests>=2.31.0 starlette>=0.40.0
+RUN pip install --no-cache-dir fastmcp>=2.11.0 requests>=2.31.0 starlette>=0.40.0
 
 # Copy the source code
 COPY src/ /app/src/
@@ -30,6 +30,11 @@ ENV NEO4J_MCP_SERVER_PORT=8000
 ENV NEO4J_MCP_SERVER_PATH="/mcp/"
 ENV NEO4J_MCP_SERVER_ALLOW_ORIGINS=""
 ENV NEO4J_MCP_SERVER_ALLOWED_HOSTS="localhost,127.0.0.1"
+
+# Create a non-root user and switch to it
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
 # Command to run the server using the package entry point
 CMD ["sh", "-c", "mcp-neo4j-aura-manager"]

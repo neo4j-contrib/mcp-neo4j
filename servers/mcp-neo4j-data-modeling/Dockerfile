@@ -25,6 +25,10 @@ ENV NEO4J_MCP_SERVER_HOST="0.0.0.0"
 ENV NEO4J_MCP_SERVER_PORT="8000"
 ENV NEO4J_MCP_SERVER_PATH="/mcp/"
 
+# Create a non-root user and switch to it
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
 # Command to run the server using the package entry point
 CMD ["sh", "-c", "uv run mcp-neo4j-data-modeling"]
