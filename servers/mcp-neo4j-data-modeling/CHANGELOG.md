@@ -3,6 +3,7 @@
 ### Fixed
 
 ### Changed
+* Update base image in Dockerfile to `python:3.13.8-slim`
 
 ### Added
 * Add tool annotations for all tools - readOnlyHint, destructiveHint, title, idempotentHint, openWorldHint
