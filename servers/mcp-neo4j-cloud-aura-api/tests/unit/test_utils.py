@@ -13,6 +13,7 @@ from mcp_neo4j_aura_manager.utils import (
     parse_server_path,
     parse_allow_origins,
     parse_allowed_hosts,
+    parse_stateless,
     process_config,
     parse_namespace,
 )
@@ -30,6 +31,7 @@ def clean_env():
         "NEO4J_MCP_SERVER_PATH",
         "NEO4J_MCP_SERVER_ALLOW_ORIGINS",
         "NEO4J_MCP_SERVER_ALLOWED_HOSTS",
+        "NEO4J_MCP_SERVER_STATELESS",
         "NEO4J_NAMESPACE",
     ]
     # Store original values
@@ -60,6 +62,7 @@ def args_factory():
             "server_path": None,
             "allow_origins": None,
             "allowed_hosts": None,
+            "stateless": False,
             "namespace": None,
         }
         defaults.update(kwargs)
@@ -536,6 +539,115 @@ class TestParseAllowedHosts:
         assert result == expected_hosts
 
 
+class TestParseStateless:
+    """Test stateless mode parsing functionality."""
+
+    def test_parse_stateless_from_cli_args_true(self, clean_env, args_factory):
+        """Test parsing stateless from CLI arguments when set to True."""
+        args = args_factory(stateless=True)
+        result = parse_stateless(args, "http")
+        assert result is True
+
+    def test_parse_stateless_from_cli_args_false(self, clean_env, args_factory):
+        """Test parsing stateless from CLI arguments when set to False."""
+        args = args_factory(stateless=False)
+        result = parse_stateless(args, "http")
+        assert result is False
+
+    def test_parse_stateless_from_env_var_true(self, clean_env, args_factory):
+        """Test parsing stateless from environment variable when set to 'true'."""
+        os.environ["NEO4J_MCP_SERVER_STATELESS"] = "true"
+        args = args_factory()
+        result = parse_stateless(args, "http")
+        assert result is True
+
+    def test_parse_stateless_from_env_var_false(self, clean_env, args_factory):
+        """Test parsing stateless from environment variable when set to 'false'."""
+        os.environ["NEO4J_MCP_SERVER_STATELESS"] = "false"
+        args = args_factory()
+        result = parse_stateless(args, "http")
+        assert result is False
+
+    def test_parse_stateless_from_env_var_one(self, clean_env, args_factory):
+        """Test parsing stateless from environment variable when set to '1'."""
+        os.environ["NEO4J_MCP_SERVER_STATELESS"] = "1"
+        args = args_factory()
+        result = parse_stateless(args, "http")
+        assert result is True
+
+    def test_parse_stateless_from_env_var_yes(self, clean_env, args_factory):
+        """Test parsing stateless from environment variable when set to 'yes'."""
+        os.environ["NEO4J_MCP_SERVER_STATELESS"] = "yes"
+        args = args_factory()
+        result = parse_stateless(args, "http")
+        assert result is True
+
+    def test_parse_stateless_cli_overrides_env(self, clean_env, args_factory):
+        """Test that CLI argument takes precedence over environment variable."""
+        os.environ["NEO4J_MCP_SERVER_STATELESS"] = "false"
+        args = args_factory(stateless=True)
+        result = parse_stateless(args, "http")
+        assert result is True
+
+    def test_parse_stateless_defaults_false(self, clean_env, args_factory, mock_logger):
+        """Test that stateless defaults to False when not provided."""
+        args = args_factory()
+        result = parse_stateless(args, "http")
+        assert result is False
+
+        # Check that info message was logged
+        mock_logger.info.assert_called_once_with("Info: No stateless mode provided. Defaulting to stateful mode (False).")
+
+    def test_parse_stateless_stdio_warning_cli(self, clean_env, args_factory, mock_logger):
+        """Test warning when stateless provided with stdio transport via CLI."""
+        args = args_factory(stateless=True)
+        result = parse_stateless(args, "stdio")
+        assert result is True
+
+        # Check that warning was logged
+        mock_logger.warning.assert_called_once()
+        assert "stateless` argument will be set, but ignored" in mock_logger.warning.call_args[0][0]
+
+    def test_parse_stateless_stdio_warning_env(self, clean_env, args_factory, mock_logger):
+        """Test warning when stateless provided with stdio transport via env var."""
+        os.environ["NEO4J_MCP_SERVER_STATELESS"] = "true"
+        args = args_factory()
+        result = parse_stateless(args, "stdio")
+        assert result is True
+
+        # Check that warning was logged
+        mock_logger.warning.assert_called_once()
+        assert "NEO4J_MCP_SERVER_STATELESS` environment variable will be set, but ignored" in mock_logger.warning.call_args[0][0]
+
+    def test_parse_stateless_http_transport(self, clean_env, args_factory, mock_logger):
+        """Test stateless with http transport logs info message."""
+        args = args_factory(stateless=True)
+        result = parse_stateless(args, "http")
+        assert result is True
+
+        # Check that info message was logged
+        mock_logger.info.assert_called_once_with("Info: Stateless mode enabled via CLI argument.")
+
+    def test_parse_stateless_sse_transport(self, clean_env, args_factory, mock_logger):
+        """Test stateless with sse transport logs info message."""
+        args = args_factory(stateless=True)
+        result = parse_stateless(args, "sse")
+        assert result is True
+
+        # Check that info message was logged
+        mock_logger.info.assert_called_once_with("Info: Stateless mode enabled via CLI argument.")
+
+    def test_parse_stateless_env_var_case_insensitive(self, clean_env, args_factory):
+        """Test that environment variable is case insensitive."""
+        test_cases = ["TRUE", "True", "TrUe", "YES", "Yes", "YeS"]
+        for value in test_cases:
+            os.environ["NEO4J_MCP_SERVER_STATELESS"] = value
+            args = args_factory()
+            result = parse_stateless(args, "http")
+            assert result is True, f"Failed for value: {value}"
+            del os.environ["NEO4J_MCP_SERVER_STATELESS"]
+
+
 class TestProcessConfig:
     def test_process_config_all_provided(self, clean_env, args_factory):
         """Test process_config when all arguments are provided."""
@@ -547,7 +659,8 @@ class TestProcessConfig:
             server_port=9000,
             server_path="/test/",
             allow_origins="http://localhost:3000",
-            allowed_hosts="example.com,www.example.com"
+            allowed_hosts="example.com,www.example.com",
+            stateless=True
         )
 
         config = process_config(args)
@@ -560,6 +673,7 @@ class TestProcessConfig:
         assert config["path"] == "/test/"
         assert config["allow_origins"] == ["http://localhost:3000"]
         assert config["allowed_hosts"] == ["example.com", "www.example.com"]
+        assert config["stateless"] is True
 
     def test_process_config_env_vars(self, clean_env, args_factory):
         """Test process_config when using environment variables."""
@@ -571,6 +685,7 @@ class TestProcessConfig:
         os.environ["NEO4J_MCP_SERVER_PATH"] = "/env/"
         os.environ["NEO4J_MCP_SERVER_ALLOW_ORIGINS"] = "http://env.com,https://env.com"
         os.environ["NEO4J_MCP_SERVER_ALLOWED_HOSTS"] = "env.com,www.env.com"
+        os.environ["NEO4J_MCP_SERVER_STATELESS"] = "true"
 
         args = args_factory()
         config = process_config(args)
@@ -583,6 +698,7 @@ class TestProcessConfig:
         assert config["path"] == "/env/"
         assert config["allow_origins"] == ["http://env.com", "https://env.com"]
         assert config["allowed_hosts"] == ["env.com", "www.env.com"]
+        assert config["stateless"] is True
 
     def test_process_config_defaults(self, clean_env, args_factory, mock_logger):
         """Test process_config with minimal arguments (defaults applied)."""
@@ -601,6 +717,7 @@ class TestProcessConfig:
         assert config["path"] is None  # None for stdio
         assert config["allow_origins"] == []  # default empty
         assert config["allowed_hosts"] == ["localhost", "127.0.0.1"]  # default secure
+        assert config["stateless"] is False  # default
 
     def test_process_config_missing_credentials_raises_error(self, clean_env, args_factory):
         """Test process_config raises error when credentials are missing."""
@@ -731,9 +848,70 @@ class TestNamespaceConfigProcessing:
     def test_process_config_namespace_empty_string(self, clean_env, args_factory):
         """Test process_config when namespace is explicitly set to empty string."""
         args = args_factory(
-            client_id="test-id", 
+            client_id="test-id",
             client_secret="test-secret",
             namespace=""
         )
         config = process_config(args)
         assert config["namespace"] == ""
+
+
+class TestStatelessConfigProcessing:
+    """Test stateless configuration processing in process_config."""
+
+    def test_process_config_stateless_cli(self, clean_env, args_factory):
+        """Test process_config when stateless is provided via CLI argument."""
+        args = args_factory(
+            client_id="test-id",
+            client_secret="test-secret",
+            transport="http",
+            stateless=True
+        )
+        config = process_config(args)
+        assert config["stateless"] is True
+
+    def test_process_config_stateless_env_var(self, clean_env, args_factory):
+        """Test process_config when stateless is provided via environment variable."""
+        os.environ["NEO4J_MCP_SERVER_STATELESS"] = "true"
+        args = args_factory(
+            client_id="test-id",
+            client_secret="test-secret",
+            transport="http"
+        )
+        config = process_config(args)
+        assert config["stateless"] is True
+
+    def test_process_config_stateless_precedence(self, clean_env, args_factory):
+        """Test that CLI stateless argument takes precedence over environment variable."""
+        os.environ["NEO4J_MCP_SERVER_STATELESS"] = "false"
+        args = args_factory(
+            client_id="test-id",
+            client_secret="test-secret",
+            transport="http",
+            stateless=True
+        )
+        config = process_config(args)
+        assert config["stateless"] is True
+
+    def test_process_config_stateless_default(self, clean_env, args_factory, mock_logger):
+        """Test process_config when no stateless is provided (defaults to False)."""
+        args = args_factory(
+            client_id="test-id",
+            client_secret="test-secret",
+            transport="http"
+        )
+        config = process_config(args)
+        assert config["stateless"] is False
+        mock_logger.info.assert_any_call("Info: No stateless mode provided. Defaulting to stateful mode (False).")
+
+    def test_process_config_stateless_stdio_ignored(self, clean_env, args_factory, mock_logger):
+        """Test that stateless mode is ignored for stdio transport."""
+        args = args_factory(
+            client_id="test-id",
+            client_secret="test-secret",
+            transport="stdio",
+            stateless=True
+        )
+        config = process_config(args)
+        assert config["stateless"] is True  # Value is set but logged as ignored
+        mock_logger.warning.assert_any_call("Warning: Stateless mode provided, but transport is `stdio`. The `stateless` argument will be set, but ignored.")

@@ -1,11 +1,138 @@
 import argparse
+import json
 import logging
 import os
 from typing import Literal, Union
 
+from pydantic import BaseModel
+
 logger = logging.getLogger(__name__)
 
 ALLOWED_TRANSPORTS = ["stdio", "http", "sse"]
+
+
+def convert_data_modeling_mcp_property_type_to_neo4j_graphrag_python_package_schema_property_type(
+    data_modeling_mcp_property_type: str,
+) -> str:
+    allowed_types = [
+        "BOOLEAN",
+        "DATE",
+        "DURATION",
+        "FLOAT",
+        "INTEGER",
+        "LIST",
+        "LOCAL_DATETIME",
+        "LOCAL_TIME",
+        "POINT",
+        "STRING",
+        "ZONED_DATETIME",
+        "ZONED_TIME",
+    ]
+
+    if data_modeling_mcp_property_type in allowed_types:
+        return data_modeling_mcp_property_type
+    else:
+        match data_modeling_mcp_property_type:
+            case "DATE":
+                return "ZONED_DATETIME"
+            case "DATETIME":
+                return "ZONED_DATETIME"
+            case "TIME":
+                return "ZONED_TIME"
+            case "LOCAL DATETIME":
+                return "LOCAL_DATETIME"
+            case "VECTOR":
+                return "LIST"  # vector not supported in Neo4j Graphrag Python Package Schema yet
+            case "ZONED DATETIME":
+                return "ZONED_DATETIME"
+            case "ZONED TIME":
+                return "ZONED_TIME"
+            case _:
+                return "STRING"
+
+
+def convert_neo4j_type_to_python_type(neo4j_type: str) -> str:
+    "Convert a Neo4j type to a Python type. Defaults to `str` if the type is not recognized."
+
+    match neo4j_type:
+        case "STRING":
+            return "str"
+        case "INTEGER":
+            return "int"
+        case "FLOAT":
+            return "float"
+        case "BOOLEAN":
+            return "bool"
+        case "DATE":
+            return "datetime"
+        case "DATETIME":
+            return "datetime"
+        case "TIME":
+            return "time"
+        case "DURATION":
+            return "timedelta"
+        case "LIST":
+            return "list"
+        case "LOCAL DATETIME":
+            return "datetime"
+        case "POINT":
+            return "tuple[float, float]"
+        case "VECTOR":
+            return "list[float]"
+        case "ZONED DATETIME":
+            return "datetime"
+        case "ZONED TIME":
+            return "datetime"
+        case _:
+            return "str"
+
+
+def convert_screaming_snake_case_to_pascal_case(screaming_snake_case: str) -> str:
+    "Convert a screaming snake case string to a Pascal case string."
+    return screaming_snake_case.replace("_", " ").title().replace(" ", "")
+
+
+def parse_dict_from_json_input(value: Union[str, dict]) -> dict:
+    """
+    Parse a dictionary from either a JSON string or a dictionary.
+
+    This utility is used in MCP tool functions to handle arguments that can be
+    provided as either JSON strings (via the middleware) or dictionaries.
+
+    Parameters
+    ----------
+    value : Union[str, dict]
+        A JSON string or dictionary to parse.
+
+    Returns
+    -------
+    dict
+        The parsed dictionary.
+
+    Raises
+    ------
+    json.JSONDecodeError
+        If the value is a string but not valid JSON.
+    TypeError
+        If the value is neither a string nor a dictionary.
+
+    Examples
+    --------
+    >>> parse_dict_from_json_input('{"key": "value"}')
+    {'key': 'value'}
+    >>> parse_dict_from_json_input({"key": "value"})
+    {'key': 'value'}
+    """
+    if isinstance(value, str):
+        return json.loads(value)
+    elif isinstance(value, dict) or isinstance(value, BaseModel):
+        return value
+    else:
+        raise TypeError(
+            f"`parse_dict_from_json_input` expected str, dict, or BaseModel, got {type(value).__name__}. "
+            "`parse_dict_from_json_input` must be called with a JSON string, a dictionary, or a BaseModel as input."
+        )
+
 
 def format_namespace(namespace: str) -> str:
     """
@@ -28,7 +155,8 @@ def format_namespace(namespace: str) -> str:
             return namespace + "-"
     else:
         return ""
-    
+
+
 def parse_transport(args: argparse.Namespace) -> Literal["stdio", "http", "sse"]:
     """
     Parse the transport from the command line arguments or environment variables.
@@ -286,21 +414,27 @@ def parse_allowed_hosts(args: argparse.Namespace) -> list[str]:
             )
             return ["localhost", "127.0.0.1"]
 
+
 def parse_namespace(args: argparse.Namespace) -> str:
     """
     Parse the namespace from the command line arguments or environment variables.
     """
-        # namespace configuration
+    # namespace configuration
     if args.namespace is not None:
         logger.info(f"Info: Namespace provided for tools: {args.namespace}")
         return args.namespace
     else:
         if os.getenv("NEO4J_NAMESPACE") is not None:
-            logger.info(f"Info: Namespace provided for tools: {os.getenv('NEO4J_NAMESPACE')}")
+            logger.info(
+                f"Info: Namespace provided for tools: {os.getenv('NEO4J_NAMESPACE')}"
+            )
             return os.getenv("NEO4J_NAMESPACE")
         else:
-            logger.info("Info: No namespace provided for tools. No namespace will be used.")
+            logger.info(
+                "Info: No namespace provided for tools. No namespace will be used."
+            )
             return ""
+
 
 def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]:
     """
@@ -333,7 +467,5 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
     # middleware configuration
     config["allow_origins"] = parse_allow_origins(args)
     config["allowed_hosts"] = parse_allowed_hosts(args)
-
-
 
     return config
