@@ -323,6 +323,44 @@ def parse_namespace(args: argparse.Namespace) -> str:
         else:
             logger.info("Info: No namespace provided for tools. No namespace will be used.")
             return ""
+
+def parse_stateless(args: argparse.Namespace, transport: Literal["stdio", "http", "sse"]) -> bool:
+    """
+    Parse the stateless mode from the command line arguments or environment variables.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        The command line arguments.
+    transport : Literal["stdio", "http", "sse"]
+        The transport.
+
+    Returns
+    -------
+    stateless : bool
+        Whether stateless mode is enabled.
+    """
+    # check cli argument first (it's a boolean flag with action="store_true")
+    if args.stateless:
+        if transport == "stdio":
+            logger.warning("Warning: Stateless mode provided, but transport is `stdio`. The `stateless` argument will be set, but ignored.")
+        else:
+            logger.info("Info: Stateless mode enabled via CLI argument.")
+        return args.stateless
+    # check environment variable
+    else:
+        env_stateless = os.getenv("NEO4J_MCP_SERVER_STATELESS")
+        if env_stateless is not None:
+            # Convert string to boolean
+            stateless_bool = env_stateless.lower() in ("true", "1", "yes")
+            if transport == "stdio":
+                logger.warning("Warning: Stateless mode provided, but transport is `stdio`. The `NEO4J_MCP_SERVER_STATELESS` environment variable will be set, but ignored.")
+            elif stateless_bool:
+                logger.info("Info: Stateless mode enabled via environment variable.")
+            return stateless_bool
+        else:
+            logger.info("Info: No stateless mode provided. Defaulting to stateful mode (False).")
+            return False
         
 def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]:
     """
@@ -359,5 +397,8 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
 
     # namespace configuration
     config["namespace"] = parse_namespace(args)
+
+    # stateless configuration
+    config["stateless"] = parse_stateless(args, config["transport"])
 
     return config

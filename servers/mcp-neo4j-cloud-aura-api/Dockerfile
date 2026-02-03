@@ -1,4 +1,6 @@
-FROM python:3.11-slim
+FROM python:3.13.8-slim
+
+LABEL io.modelcontextprotocol.server.name="io.github.neo4j-contrib/mcp-neo4j-aura-manager"
 
 # Set working directory
 WORKDIR /app

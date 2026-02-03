@@ -3,8 +3,33 @@
 ### Fixed
 
 ### Changed
+* Security upgrade python from 3.11-slim to 3.13.8-slim
 
 ### Added
+
+## v0.4.7
+
+### Fixed
+* Removed `dependencies=...` from server constructor. This was removed from FastMCP.
+
+## v0.4.6
+
+### Fixed
+* Fix bug in Dockerfile where build would fail due to `LABEL` statement coming before `FROM` statement
+
+### Added
+* Add `NEO4J_MCP_SERVER_STATELESS` environment variable and `--stateless` cli flag to configure stateless http deployment options when using http or sse transport
+
+## v0.4.5
+
+### Fixed
+* Fix server name in MCP Registry config
+* Update Github action to deploy to MCP Registry
+
+## v0.4.4
+
+### Added
+* Add config and Github workflow to add server to Github MCP Registry
 
 ## v0.4.3
 

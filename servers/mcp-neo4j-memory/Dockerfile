@@ -1,5 +1,7 @@
 FROM python:3.13.8-slim
 
+LABEL io.modelcontextprotocol.server.name="io.github.neo4j-contrib/mcp-neo4j-memory"
+
 # Set working directory
 WORKDIR /app
 
@@ -27,7 +29,7 @@ ENV NEO4J_DATABASE="neo4j"
 ENV NEO4J_TRANSPORT="stdio"
 ENV NEO4J_MCP_SERVER_HOST="0.0.0.0"
 ENV NEO4J_MCP_SERVER_PORT="8000"
-ENV NEO4J_MCP_SERVER_PATH="/api/mcp/"
+ENV NEO4J_MCP_SERVER_PATH="/mcp/"
 ENV NEO4J_MCP_SERVER_ALLOW_ORIGINS=""
 ENV NEO4J_MCP_SERVER_ALLOWED_HOSTS="localhost,127.0.0.1"
 

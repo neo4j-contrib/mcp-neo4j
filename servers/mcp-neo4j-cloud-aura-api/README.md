@@ -1,5 +1,7 @@
 # 🚀💖☁️ Neo4j Aura Database Manager MCP Server
 
+mcp-name: io.github.neo4j-contrib/mcp-neo4j-aura-manager
+
 ## 🌟 Overview
 
 A Model Context Protocol (MCP) server implementation that provides tools for managing Neo4j Aura database instances through the Neo4j Aura API.
@@ -122,7 +124,7 @@ Add the server to your `claude_desktop_config.json`:
   "neo4j-aura": {
     "command": "uvx",
     "args": [
-      "mcp-neo4j-aura-manager@0.4.3",
+      "mcp-neo4j-aura-manager@0.4.7",
       "--client-id",
       "<your-client-id>",
       "--client-secret",
@@ -138,7 +140,7 @@ Alternatively, you can set environment variables:
 "mcpServers": {
   "neo4j-aura": {
     "command": "uvx",
-    "args": [ "mcp-neo4j-aura-manager@0.4.3" ],
+    "args": [ "mcp-neo4j-aura-manager@0.4.7" ],
     "env": {
       "NEO4J_AURA_CLIENT_ID": "<your-client-id>",
       "NEO4J_AURA_CLIENT_SECRET": "<your-client-secret>"
@@ -158,7 +160,7 @@ Alternatively, you can set environment variables:
       "--rm",
       "-e", "NEO4J_AURA_CLIENT_ID=${NEO4J_AURA_CLIENT_ID}",
       "-e", "NEO4J_AURA_CLIENT_SECRET=${NEO4J_AURA_CLIENT_SECRET}",
-      "mcp-neo4j-aura-manager:0.4.3"
+      "mcp-neo4j-aura-manager:0.4.7"
     ]
   }
 }
@@ -173,7 +175,7 @@ The server supports namespacing to prefix tool names for multi-tenant deployment
   "neo4j-aura-app1": {
     "command": "uvx",
     "args": [
-      "mcp-neo4j-aura-manager@0.4.3",
+      "mcp-neo4j-aura-manager@0.4.7",
       "--client-id", "<your-client-id>",
       "--client-secret", "<your-client-secret>",
       "--namespace", "app1"
@@ -182,7 +184,7 @@ The server supports namespacing to prefix tool names for multi-tenant deployment
   "neo4j-aura-app2": {
     "command": "uvx", 
     "args": [
-      "mcp-neo4j-aura-manager@0.4.3",
+      "mcp-neo4j-aura-manager@0.4.7",
       "--client-id", "<your-client-id>",
       "--client-secret", "<your-client-secret>",
       "--namespace", "app2"
@@ -376,13 +378,14 @@ docker run --rm -p 8000:8000 \
 | ---------------------------------- | --------------------------------------- | -------------------------------------------------- |
 | `NEO4J_AURA_CLIENT_ID`             | _(none)_                                | Neo4j Aura API Client ID                          |
 | `NEO4J_AURA_CLIENT_SECRET`         | _(none)_                                | Neo4j Aura API Client Secret                      |
+| `NEO4J_NAMESPACE`                  | _(empty - no prefix)_                   | Namespace prefix for tool names (e.g., `myapp-list_instances`) |
 | `NEO4J_TRANSPORT`                  | `stdio` (local), `http` (remote)        | Transport protocol (`stdio`, `http`, or `sse`)     |
 | `NEO4J_MCP_SERVER_HOST`            | `127.0.0.1` (local)                     | Host to bind to                                    |
 | `NEO4J_MCP_SERVER_PORT`            | `8000`                                  | Port for HTTP/SSE transport                        |
 | `NEO4J_MCP_SERVER_PATH`            | `/mcp/`                                 | Path for accessing MCP server                      |
 | `NEO4J_MCP_SERVER_ALLOW_ORIGINS`   | _(empty - secure by default)_           | Comma-separated list of allowed CORS origins       |
 | `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
-| `NEO4J_NAMESPACE`                  | _(empty - no prefix)_                   | Namespace prefix for tool names (e.g., `myapp-list_instances`) |
+| `NEO4J_MCP_SERVER_STATELESS`       | `false`                                 | Enable stateless mode for HTTP/SSE transports (true/false, has no effect for stdio) |
 
 ### 🌐 SSE Transport for Legacy Web Access
 

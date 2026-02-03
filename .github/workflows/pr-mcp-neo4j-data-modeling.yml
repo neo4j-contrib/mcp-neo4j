@@ -34,8 +34,8 @@ jobs:
     - name: Install dependencies
       run: |
         cd servers/mcp-neo4j-data-modeling
-        uv venv
-        uv pip install -e ".[dev]"
+        uv venv --python ${{ matrix.python-version }}
+        uv sync --group dev
 
     - name: Check format and linting
       run: |

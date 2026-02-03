@@ -1,0 +1,86 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.neo4j-contrib/mcp-neo4j-cypher",
+  "description": "A simple Neo4j MCP server that allows you to run Cypher queries against a Neo4j database.",
+  "repository": {
+    "url": "https://github.com/neo4j-contrib/mcp-neo4j",
+    "source": "github",
+    "subfolder": "servers/mcp-neo4j-cypher"
+  },
+  "version": "0.5.2",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "mcp-neo4j-cypher",
+      "version": "0.5.2",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "NEO4J_URI",
+          "description": "Neo4j connection URI",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "NEO4J_USERNAME",
+          "description": "Neo4j username",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "NEO4J_PASSWORD",
+          "description": "Neo4j password",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "NEO4J_DATABASE",
+          "description": "Neo4j database name",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "NEO4J_NAMESPACE",
+          "description": "Tool namespace prefix",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "NEO4J_RESPONSE_TOKEN_LIMIT",
+          "description": "Maximum tokens for read query responses",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "NEO4J_READ_TIMEOUT",
+          "description": "Timeout in seconds for read queries",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "NEO4J_READ_ONLY",
+          "description": "Allow only read-only queries (true/false)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "NEO4J_SCHEMA_SAMPLE_SIZE",
+          "description": "Schema sample size",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}
