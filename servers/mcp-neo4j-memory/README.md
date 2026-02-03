@@ -1,5 +1,7 @@
 # 🧠🕸️ Neo4j Knowledge Graph Memory MCP Server
 
+mcp-name: io.github.neo4j-contrib/mcp-neo4j-memory
+
 ## 🌟 Overview
 
 A Model Context Protocol (MCP) server implementation that provides persistent memory capabilities through Neo4j graph database integration.
@@ -119,7 +121,7 @@ Add the server to your `claude_desktop_config.json` with configuration of:
   "neo4j": {
     "command": "uvx",
     "args": [
-      "mcp-neo4j-memory@0.4.1",
+      "mcp-neo4j-memory@0.4.4",
       "--db-url",
       "neo4j+s://xxxx.databases.neo4j.io",
       "--username",
@@ -137,7 +139,7 @@ Alternatively, you can set environment variables:
 "mcpServers": {
   "neo4j": {
     "command": "uvx",
-    "args": [ "mcp-neo4j-memory@0.4.1" ],
+    "args": [ "mcp-neo4j-memory@0.4.4" ],
     "env": {
       "NEO4J_URL": "neo4j+s://xxxx.databases.neo4j.io",
       "NEO4J_USERNAME": "<your-username>",
@@ -150,7 +152,7 @@ Alternatively, you can set environment variables:
 #### Namespacing
 For multi-tenant deployments, add `--namespace` to prefix tool names:
 ```json
-"args": [ "mcp-neo4j-memory@0.4.1", "--namespace", "myapp", "--db-url", "..." ]
+"args": [ "mcp-neo4j-memory@0.4.4", "--namespace", "myapp", "--db-url", "..." ]
 ```
 Tools become: `myapp-read_graph`, `myapp-create_entities`, etc.
 
@@ -199,7 +201,7 @@ The server supports three transport modes:
       "-e", "NEO4J_URL=neo4j+s://xxxx.databases.neo4j.io",
       "-e", "NEO4J_USERNAME=<your-username>",
       "-e", "NEO4J_PASSWORD=<your-password>",
-      "mcp/neo4j-memory:0.4.1"
+      "mcp/neo4j-memory:0.4.4"
     ]
   }
 }

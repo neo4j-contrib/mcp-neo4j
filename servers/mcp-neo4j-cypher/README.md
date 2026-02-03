@@ -1,5 +1,7 @@
 # 🔍⁉️ Neo4j MCP Server
 
+mcp-name: io.github.neo4j-contrib/mcp-neo4j-cypher
+
 ## 🌟 Overview
 
 A Model Context Protocol (MCP) server implementation that provides database interaction and allows graph exploration capabilities through Neo4j. This server enables running Cypher graph queries, analyzing complex domain data, and automatically generating business insights that can be enhanced further with an application's analysis tools.
@@ -44,8 +46,10 @@ The server offers these core tools:
 
 - `get_neo4j_schema`
   - Get a list of all nodes types in the graph database, their attributes with name, type and relationships to other node types
-  - No input required
+  - Input:
+    - `sample_param` (integer, optional): Number of nodes to sample for schema analysis. Overrides server default if provided.
   - Returns: JSON serialized list of node labels with two dictionaries: one for attributes and one for relationships
+  - **Performance**: Uses sampling by default (1000 nodes per label). Reduce number for faster analysis on large databases. To stop sampling, set to -1. 
 
 ### 🏷️ Namespacing
 
@@ -104,6 +108,62 @@ When a response exceeds the token limit, it will be automatically truncated to f
 - **Reliability**: Large datasets don't break the conversation flow
 
 **Note**: Token limits only apply to `read_neo4j_cypher` responses. Schema queries and write operations return summary information and are not affected.
+
+#### 🔍 Schema Sampling
+
+Control the performance and scope of schema inspection with the `sample` parameter for the `get_neo4j_schema` tool:
+
+**Command Line:**
+```bash
+mcp-neo4j-cypher --sample 1000  # Sample 1000 nodes per label
+```
+
+**Environment Variable:**
+```bash
+export NEO4J_SCHEMA_SAMPLE_SIZE=1000
+```
+
+**Docker:**
+```bash
+docker run -e NEO4J_SCHEMA_SAMPLE_SIZE=1000 mcp-neo4j-cypher:latest
+```
+
+The `sample` parameter controls how many nodes are examined when generating the database schema:
+
+- **Default**: `1000` nodes per label are sampled for schema analysis
+- **Performance**: Lower values (`100`, `500`) provide faster schema inspection on large databases
+- **Accuracy**: Higher values (`5000`, `10000`) provide more comprehensive schema coverage
+- **Full Scan**: Set to `-1` to examine all nodes (can be very slow on large databases)
+- **Per-Call Override**: The `get_neo4j_schema` tool accepts a `sample_param` parameter to override the server default
+
+**How Sampling Works** (via [APOC's apoc.meta.schema](https://neo4j.com/docs/apoc/current/overview/apoc.meta/apoc.meta.schema/)):
+
+- For each node label, a skip count is calculated: `totalNodesForLabel / sample ± 10%`
+- Every Nth node is examined based on the skip count
+- Higher sample numbers result in more nodes being examined
+- Results may vary between runs due to random sampling
+
+**Example Scenarios:**
+
+```bash
+# Fast schema inspection for large databases
+export NEO4J_SCHEMA_SAMPLE_SIZE=100
+
+# Balanced performance and accuracy (default)
+export NEO4J_SCHEMA_SAMPLE_SIZE=1000
+
+# Comprehensive schema analysis
+export NEO4J_SCHEMA_SAMPLE_SIZE=5000
+
+# Full database scan (use with caution on large databases)
+export NEO4J_SCHEMA_SAMPLE_SIZE=-1
+```
+
+**Performance Considerations:**
+
+- **Large Databases**: Use lower sample values (`100-500`) to prevent timeouts
+- **Development**: Higher sample values (`1000-5000`) for thorough schema understanding
+- **Production**: Balance between performance and schema completeness based on your use case
 
 ## 🏗️ Local Development & Deployment
 
@@ -211,7 +271,7 @@ Add the server to your `claude_desktop_config.json` with the database connection
   "mcpServers": {
     "neo4j-database": {
       "command": "uvx",
-      "args": [ "mcp-neo4j-cypher@0.4.1", "--transport", "stdio"  ],
+      "args": [ "mcp-neo4j-cypher@0.5.2", "--transport", "stdio"  ],
       "env": {
         "NEO4J_URI": "bolt://localhost:7687",
         "NEO4J_USERNAME": "neo4j",
@@ -255,7 +315,7 @@ Here's an example of connecting to multiple Neo4j databases using namespaces:
   "mcpServers": {
     "movies-neo4j": {
       "command": "uvx",
-      "args": ["mcp-neo4j-cypher@0.4.1", "--namespace", "movies"],
+      "args": ["mcp-neo4j-cypher@0.5.2", "--namespace", "movies"],
       "env": {
         "NEO4J_URI": "neo4j+s://demo.neo4jlabs.com",
         "NEO4J_USERNAME": "recommendations",
@@ -265,7 +325,7 @@ Here's an example of connecting to multiple Neo4j databases using namespaces:
     },
     "local-neo4j": {
       "command": "uvx",
-      "args": ["mcp-neo4j-cypher@0.4.1"],
+      "args": ["mcp-neo4j-cypher@0.5.2"],
       "env": {
         "NEO4J_URI": "bolt://localhost:7687",
         "NEO4J_USERNAME": "neo4j",
@@ -293,7 +353,7 @@ Syntax with `--db-url`, `--username`, `--password`, `--read-timeout` and other c
   "neo4j": {
     "command": "uvx",
     "args": [
-      "mcp-neo4j-cypher@0.4.1",
+      "mcp-neo4j-cypher@0.5.2",
       "--db-url",
       "bolt://localhost",
       "--username",
@@ -407,6 +467,7 @@ docker run --rm -p 8000:8000 \
 | `NEO4J_RESPONSE_TOKEN_LIMIT`       | _(none)_                                | Maximum tokens for read query responses            |
 | `NEO4J_READ_TIMEOUT`               | `30`                                    | Timeout in seconds for read queries                |
 | `NEO4J_READ_ONLY`                  | `false`                                 | Allow only read-only queries (true/false)          |
+| `NEO4J_SCHEMA_SAMPLE_SIZE`                     | `1000`                                  | Number of nodes to sample for schema inspection (set to -1 for full scan) |
 
 ### 🌐 SSE Transport for Legacy Web Access
 

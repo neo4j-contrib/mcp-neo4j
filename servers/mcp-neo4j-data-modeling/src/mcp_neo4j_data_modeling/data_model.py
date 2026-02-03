@@ -1,8 +1,16 @@
 import json
+import keyword
 from collections import Counter
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
+from rdflib import OWL, RDF, RDFS, XSD, Graph, Namespace, URIRef
+
+from .utils import (
+    convert_data_modeling_mcp_property_type_to_neo4j_graphrag_python_package_schema_property_type,
+    convert_neo4j_type_to_python_type,
+    convert_screaming_snake_case_to_pascal_case,
+)
 
 NODE_COLOR_PALETTE = [
     ("#e3f2fd", "#1976d2"),  # Light Blue / Blue
@@ -101,6 +109,113 @@ class Property(BaseModel):
             self.name: value,
         }
 
+    def to_pydantic_model_str(self) -> str:
+        """
+        Convert a Property to a Pydantic model field line.
+
+        Returns
+        -------
+        str
+            The Pydantic model field line.
+
+        Examples
+        --------
+        >>> Property(name="name", type="STRING", description="The name of the property").to_pydantic_model_str()
+        'name: str = Field(..., description="The name of the property")'
+        """
+
+        # Check if property name is a Python reserved keyword
+        field_name = self.name
+        is_keyword = keyword.iskeyword(self.name)
+
+        # If it's a reserved keyword, append underscore to field name
+        if is_keyword:
+            field_name = f"{self.name}_"
+
+        base = f"{field_name}: {convert_neo4j_type_to_python_type(self.type)}"
+
+        if self.description or is_keyword:
+            # Escape double quotes in description
+            escaped_desc = (
+                self.description.replace('"', '\\"') if self.description else ""
+            )
+
+            # Build Field parameters
+            field_params = []
+            field_params.append("...")
+            if self.description:
+                field_params.append(f'description="{escaped_desc}"')
+            if is_keyword:
+                field_params.append(f'alias="{self.name}"')
+
+            desc = f" = Field({', '.join(field_params)})"
+        else:
+            desc = ""
+
+        return base + desc
+
+    def to_neo4j_graphrag_python_package_property_dict(
+        self, required_property: bool = False
+    ) -> dict[str, str]:
+        """
+        Convert a Property to a Neo4j Graphrag Python Package Property dictionary.
+
+        Parameters
+        ----------
+        required_property : bool
+            Whether the property is required.
+
+        Returns
+        -------
+        dict[str, str]
+            The Neo4j Graphrag Python Package Property dictionary.
+
+        Examples
+        --------
+        >>> Property(name="id", type="STRING", description="The ID of the person").to_neo4j_graphrag_python_package_property_dict()
+        {'name': 'id', 'type': 'STRING', 'description': 'The ID of the person', 'required': True}
+        """
+        return {
+            "name": self.name,
+            "type": convert_data_modeling_mcp_property_type_to_neo4j_graphrag_python_package_schema_property_type(
+                self.type
+            ),
+            "description": self.description if self.description else "",
+            "required": required_property,
+        }
+
+    @classmethod
+    def from_neo4j_graphrag_python_package_property_dict(
+        cls, property_dict: dict[str, Any]
+    ) -> "Property":
+        """
+        Convert a Neo4j Graphrag Python Package Property dictionary to a Property.
+
+        Parameters
+        ----------
+        property_dict : dict[str, Any]
+            The Neo4j Graphrag Python Package Property dictionary.
+
+        Returns
+        -------
+        Property
+            The Property object.
+
+        Examples
+        --------
+        >>> Property.from_neo4j_graphrag_python_package_property_dict({"name": "id", "type": "STRING", "description": "The ID", "required": True})
+        Property(name='id', type='STRING', description='The ID')
+        """
+        description = property_dict.get("description")
+        if description == "":
+            description = None
+
+        return cls(
+            name=property_dict["name"],
+            type=property_dict["type"].replace("_", " "),
+            description=description,
+        )
+
 
 class Node(BaseModel):
     "A Neo4j Node."
@@ -111,6 +226,9 @@ class Node(BaseModel):
     key_property: Property = Field(description="The key property of the node")
     properties: list[Property] = Field(
         default_factory=list, description="The properties of the node"
+    )
+    description: str | None = Field(
+        default=None, description="The description of the node"
     )
     metadata: dict[str, Any] = Field(
         default_factory=dict,
@@ -159,7 +277,7 @@ class Node(BaseModel):
         "Get the Mermaid configuration string for the node."
         props = [f"<br/>{self.key_property.name}: {self.key_property.type} | KEY"]
         props.extend([f"<br/>{p.name}: {p.type}" for p in self.properties])
-        return f'{self.label}["{self.label}{"".join(props)}"]'
+        return f'{self.label}("{self.label}{"".join(props)}")'
 
     @classmethod
     def from_arrows(cls, arrows_node_dict: dict[str, Any]) -> "Node":
@@ -222,6 +340,125 @@ SET n += {{{formatted_props}}}"""
         """
         return f"CREATE CONSTRAINT {self.label}_constraint IF NOT EXISTS FOR (n:{self.label}) REQUIRE (n.{self.key_property.name}) IS NODE KEY"
 
+    def to_pydantic_model_str(self) -> str:
+        """
+            Convert a Node to a Pydantic model class string.
+            `node_label` is a class variable and not exported when calling `.model_dump()` or `.model_dump_json()`
+
+            Returns
+            -------
+            str
+                The Pydantic model class as a string.
+
+            Examples
+            --------
+            >>> Node(label="Person", key_property=Property(name="id", type="STRING", description="The ID of the person"), properties=[Property(name="name", type="STRING", description="The name of the person")]).to_pydantic_model_str()
+            "class Person(BaseModel):
+        id: str = Field(..., description='The ID of the person')
+        name: str = Field(..., description='The name of the person')"
+        """
+        props = [self.key_property.to_pydantic_model_str()] + [
+            p.to_pydantic_model_str() for p in self.properties
+        ]
+
+        # Add docstring if description is present
+        docstring = ""
+        if self.description:
+            # Escape triple quotes in description
+            escaped_desc = self.description.replace('"""', r"\"\"\"")
+            docstring = f'\n    """{escaped_desc}"""'
+
+        # Extract newline to avoid backslash in f-string
+        props_joined = "\n    ".join(props)
+        return f"""class {self.label}(BaseModel):{docstring}
+    node_label: ClassVar[str] = \"{self.label}\"
+
+    {props_joined}"""
+
+    def to_neo4j_graphrag_python_package_node_dict(self) -> dict[str, str]:
+        """
+        Convert a Node to a Neo4j Graphrag Python Package Node dictionary.
+
+        Returns
+        -------
+        dict[str, str]
+            The Neo4j Graphrag Python Package Node dictionary.
+
+        Examples
+        --------
+        >>> Node(label="Person", key_property=Property(name="id", type="STRING", description="The ID of the person"), properties=[Property(name="name", type="STRING", description="The name of the person")]).to_neo4j_graphrag_python_package_node_dict()
+        {'label': 'Person', 'description': '', 'properties': [{'name': 'id', 'type': 'STRING', 'description': 'The ID of the person', 'required': True}, {'name': 'name', 'type': 'STRING', 'description': 'The name of the person', 'required': False}]}
+        """
+        props = [
+            self.key_property.to_neo4j_graphrag_python_package_property_dict(
+                required_property=True
+            )
+        ] + [
+            p.to_neo4j_graphrag_python_package_property_dict(required_property=False)
+            for p in self.properties
+        ]
+        return {
+            "label": self.label,
+            "description": self.description if self.description else "",
+            "properties": props,
+        }
+
+    @classmethod
+    def from_neo4j_graphrag_python_package_node_dict(
+        cls, node_dict: dict[str, Any]
+    ) -> "Node":
+        """
+        Convert a Neo4j Graphrag Python Package Node dictionary to a Node.
+        If no key property is found (required=True), then the first property in the list is used as the key property.
+
+        Parameters
+        ----------
+        node_dict : dict[str, Any]
+            The Neo4j Graphrag Python Package Node dictionary.
+
+        Returns
+        -------
+        Node
+            The Node object.
+
+        Examples
+        --------
+        >>> Node.from_neo4j_graphrag_python_package_node_dict({"label": "Person", "description": "", "properties": [{"name": "id", "type": "STRING", "description": "The ID", "required": True}, {"name": "name", "type": "STRING", "description": "Name", "required": False}]})
+        Node(label='Person', key_property=Property(name='id', type='STRING', description='The ID'), properties=[Property(name='name', type='STRING', description='Name')])
+        """
+        properties_list = node_dict.get("properties", [])
+        assert len(properties_list) > 0, (
+            f"Node {node_dict.get('label')} must have at least one property. If only one property, it will be used as the key property."
+        )
+
+        key_prop_idx = 0
+        for idx, prop_dict in enumerate(properties_list):
+            # we take the first required property as the key property
+            if prop_dict.get("required", False):
+                key_prop_idx = idx
+                break
+
+        key_property_dict = properties_list.pop(key_prop_idx)
+
+        key_property = Property.from_neo4j_graphrag_python_package_property_dict(
+            key_property_dict
+        )
+        properties = [
+            Property.from_neo4j_graphrag_python_package_property_dict(prop_dict)
+            for prop_dict in properties_list
+        ]
+
+        description = node_dict.get("description")
+        if description == "":
+            description = None
+
+        return cls(
+            label=node_dict["label"],
+            key_property=key_property,
+            properties=properties,
+            description=description,
+        )
+
 
 class Relationship(BaseModel):
     "A Neo4j Relationship."
@@ -237,6 +474,9 @@ class Relationship(BaseModel):
     )
     properties: list[Property] = Field(
         default_factory=list, description="The properties of the relationship, if any."
+    )
+    description: str | None = Field(
+        default=None, description="The description of the relationship"
     )
     metadata: dict[str, Any] = Field(
         default_factory=dict,
@@ -380,6 +620,180 @@ SET end += {{{formatted_props}}}"""
             return f"CREATE CONSTRAINT {self.type}_constraint IF NOT EXISTS FOR ()-[r:{self.type}]->() REQUIRE (r.{self.key_property.name}) IS RELATIONSHIP KEY"
         else:
             return None
+
+    def to_pydantic_model_str(
+        self, start_node_key_property: Property, end_node_key_property: Property
+    ) -> str:
+        """
+        Convert a Relationship to a Pydantic model class string.
+        This model contains the start and end node key properties and any properties of the relationship as fields.
+        Class variables are also included and not exported when calling `.model_dump()` or `.model_dump_json()`
+        * start_node_label
+        * end_node_label
+        * pattern
+        * relationship_type
+
+        Parameters
+        ----------
+        start_node_key_property : Property
+            The key property of the start node.
+        end_node_key_property : Property
+            The key property of the end node.
+
+        Returns
+        -------
+        str
+            The Pydantic model class as a string.
+        """
+        key_prop_list = (
+            [self.key_property.to_pydantic_model_str()] if self.key_property else []
+        )
+        props = key_prop_list + [p.to_pydantic_model_str() for p in self.properties]
+
+        start_node_key_prop_field = f"start_node_{self.start_node_label}_{start_node_key_property.to_pydantic_model_str()}"
+        end_node_key_prop_field = f"end_node_{self.end_node_label}_{end_node_key_property.to_pydantic_model_str()}"
+
+        type_pascal_case = convert_screaming_snake_case_to_pascal_case(self.type)
+
+        # Add docstring if description is present
+        docstring = ""
+        if self.description:
+            # Escape triple quotes in description
+            escaped_desc = self.description.replace('"""', r"\"\"\"")
+            docstring = f'\n    """{escaped_desc}"""'
+
+        # Build properties section with proper indentation
+        # Extract newline to avoid backslash in f-string
+        props_joined = '\n    '.join(props)
+        props_section = f"\n    {props_joined}\n" if props else ""
+
+        return f"""class {type_pascal_case}(BaseModel):{docstring}
+    relationship_type: ClassVar[str] = \"{self.type}\"
+    start_node_label: ClassVar[str] = \"{self.start_node_label}\"
+    end_node_label: ClassVar[str] = \"{self.end_node_label}\"
+    pattern: ClassVar[str] = \"{self.pattern}\"
+
+    {start_node_key_prop_field}
+    {end_node_key_prop_field}{props_section}"""
+
+    def to_neo4j_graphrag_python_package_relationship_dict(self) -> dict[str, str]:
+        """
+        Convert a Relationship to a Neo4j Graphrag Python Package Relationship dictionary.
+
+        Returns
+        -------
+        dict[str, str]
+            The Neo4j Graphrag Python Package Relationship dictionary.
+        """
+        props = (
+            [
+                self.key_property.to_neo4j_graphrag_python_package_property_dict(
+                    required_property=True
+                )
+            ]
+            if self.key_property
+            else []
+        )
+
+        props += (
+            [
+                p.to_neo4j_graphrag_python_package_property_dict(
+                    required_property=False
+                )
+                for p in self.properties
+            ]
+            if self.properties
+            else []
+        )
+
+        return {
+            "label": self.type,
+            "description": self.description if self.description else "",
+            "properties": props,
+        }
+
+    def to_neo4j_graphrag_python_package_relationship_pattern(
+        self,
+    ) -> tuple[str, str, str]:
+        """
+        Convert a Relationship to a Neo4j Graphrag Python Package Relationship pattern tuple.
+
+        Returns
+        -------
+        tuple[str, str, str]
+            The Neo4j Graphrag Python Package Relationship pattern tuple.
+
+        Examples
+        --------
+        >>> Relationship(type="LIVES_IN", start_node_label="Person", end_node_label="City").to_neo4j_graphrag_python_package_data_model_pattern()
+        ('Person', 'LIVES_IN', 'City')
+        """
+        return (self.start_node_label, self.type, self.end_node_label)
+
+    @classmethod
+    def from_neo4j_graphrag_python_package_relationship_dict(
+        cls,
+        relationship_dict: dict[str, Any],
+        start_node_label: str,
+        end_node_label: str,
+    ) -> "Relationship":
+        """
+        Convert a Neo4j Graphrag Python Package Relationship dictionary to a Relationship.
+
+        Parameters
+        ----------
+        relationship_dict : dict[str, Any]
+            The Neo4j Graphrag Python Package Relationship dictionary.
+        start_node_label : str
+            The label of the start node.
+        end_node_label : str
+            The label of the end node.
+
+        Returns
+        -------
+        Relationship
+            The Relationship object.
+
+        Examples
+        --------
+        >>> Relationship.from_neo4j_graphrag_python_package_relationship_dict({"label": "LIVES_IN", "description": "", "properties": []}, "Person", "City")
+        Relationship(type='LIVES_IN', start_node_label='Person', end_node_label='City', properties=[])
+        """
+        properties_list = relationship_dict.get("properties", [])
+
+        # Separate key property (required=True) from other properties
+        key_property_dict = None
+        other_properties = []
+
+        for prop_dict in properties_list:
+            if prop_dict.get("required", False):
+                key_property_dict = prop_dict
+            else:
+                other_properties.append(prop_dict)
+
+        key_property = None
+        if key_property_dict:
+            key_property = Property.from_neo4j_graphrag_python_package_property_dict(
+                key_property_dict
+            )
+
+        properties = [
+            Property.from_neo4j_graphrag_python_package_property_dict(prop_dict)
+            for prop_dict in other_properties
+        ]
+
+        description = relationship_dict.get("description")
+        if description == "":
+            description = None
+
+        return cls(
+            type=relationship_dict["label"],
+            start_node_label=start_node_label,
+            end_node_label=end_node_label,
+            key_property=key_property,
+            properties=properties,
+            description=description,
+        )
 
 
 class DataModel(BaseModel):
@@ -552,6 +966,193 @@ class DataModel(BaseModel):
         "Convert the data model to an Arrows Data Model JSON string."
         return json.dumps(self.to_arrows_dict(), indent=2)
 
+    def to_owl_turtle_str(self) -> str:
+        """
+        Convert the data model to an OWL Turtle string.
+
+        This process is lossy since OWL does not support properties on ObjectProperties.
+
+        This method creates an OWL ontology from the Neo4j data model:
+        - Node labels become OWL Classes
+        - Node properties become OWL DatatypeProperties with the node class as domain
+        - Relationship types become OWL ObjectProperties with start/end nodes as domain/range
+        - Relationship properties become OWL DatatypeProperties with the relationship as domain
+        """
+        # Create a new RDF graph
+        g = Graph()
+
+        # Define namespaces
+        # Use a generic namespace for the ontology
+        base_ns = Namespace("http://voc.neo4j.com/datamodel#")
+        g.bind("", base_ns)
+        g.bind("owl", OWL)
+        g.bind("rdfs", RDFS)
+        g.bind("xsd", XSD)
+
+        # Create the ontology declaration
+        ontology_uri = URIRef("http://voc.neo4j.com/datamodel")
+        g.add((ontology_uri, RDF.type, OWL.Ontology))
+
+        # Map Neo4j types to XSD types
+        type_mapping = {
+            "STRING": XSD.string,
+            "INTEGER": XSD.integer,
+            "FLOAT": XSD.float,
+            "BOOLEAN": XSD.boolean,
+            "DATE": XSD.date,
+            "DATETIME": XSD.dateTime,
+            "TIME": XSD.time,
+            "DURATION": XSD.duration,
+            "LONG": XSD.long,
+            "DOUBLE": XSD.double,
+        }
+
+        # Process nodes -> OWL Classes
+        for node in self.nodes:
+            class_uri = base_ns[node.label]
+            g.add((class_uri, RDF.type, OWL.Class))
+
+            # Add key property as a datatype property
+            if node.key_property:
+                prop_uri = base_ns[node.key_property.name]
+                g.add((prop_uri, RDF.type, OWL.DatatypeProperty))
+                g.add((prop_uri, RDFS.domain, class_uri))
+                xsd_type = type_mapping.get(node.key_property.type.upper(), XSD.string)
+                g.add((prop_uri, RDFS.range, xsd_type))
+
+            # Add other properties as datatype properties
+            for prop in node.properties:
+                prop_uri = base_ns[prop.name]
+                g.add((prop_uri, RDF.type, OWL.DatatypeProperty))
+                g.add((prop_uri, RDFS.domain, class_uri))
+                xsd_type = type_mapping.get(prop.type.upper(), XSD.string)
+                g.add((prop_uri, RDFS.range, xsd_type))
+
+        # Process relationships -> OWL ObjectProperties
+        for rel in self.relationships:
+            rel_uri = base_ns[rel.type]
+            g.add((rel_uri, RDF.type, OWL.ObjectProperty))
+            g.add((rel_uri, RDFS.domain, base_ns[rel.start_node_label]))
+            g.add((rel_uri, RDFS.range, base_ns[rel.end_node_label]))
+
+            # relationships don't have properties in the OWL format.
+            # This means translation to OWL is lossy.
+
+        # Serialize to Turtle format
+        return g.serialize(format="turtle")
+
+    @classmethod
+    def from_owl_turtle_str(cls, owl_turtle_str: str) -> "DataModel":
+        """
+        Convert an OWL Turtle string to a Neo4j Data Model.
+
+        This process is lossy and some components of the ontology may be lost in the data model schema.
+
+        This method parses an OWL ontology and creates a Neo4j data model:
+        - OWL Classes become Node labels
+        - OWL DatatypeProperties with Class domains become Node properties
+        - OWL ObjectProperties become Relationships
+        - Property domains and ranges are used to infer Node labels and types
+        """
+        # Parse the Turtle string
+        g = Graph()
+        g.parse(data=owl_turtle_str, format="turtle")
+
+        # Map XSD types back to Neo4j types
+        xsd_to_neo4j = {
+            str(XSD.string): "STRING",
+            str(XSD.integer): "INTEGER",
+            str(XSD.float): "FLOAT",
+            str(XSD.boolean): "BOOLEAN",
+            str(XSD.date): "DATE",
+            str(XSD.dateTime): "DATETIME",
+            str(XSD.time): "TIME",
+            str(XSD.duration): "DURATION",
+            str(XSD.long): "LONG",
+            str(XSD.double): "DOUBLE",
+        }
+
+        # Extract OWL Classes -> Nodes
+        classes = set()
+        for s in g.subjects(RDF.type, OWL.Class):
+            classes.add(str(s).split("#")[-1].split("/")[-1])
+
+        # Extract DatatypeProperties
+        datatype_props = {}
+        for prop in g.subjects(RDF.type, OWL.DatatypeProperty):
+            prop_name = str(prop).split("#")[-1].split("/")[-1]
+            domains = list(g.objects(prop, RDFS.domain))
+            ranges = list(g.objects(prop, RDFS.range))
+
+            domain_name = (
+                str(domains[0]).split("#")[-1].split("/")[-1] if domains else None
+            )
+            range_type = (
+                xsd_to_neo4j.get(str(ranges[0]), "STRING") if ranges else "STRING"
+            )
+
+            if domain_name:
+                if domain_name not in datatype_props:
+                    datatype_props[domain_name] = []
+                datatype_props[domain_name].append(
+                    {"name": prop_name, "type": range_type}
+                )
+
+        # Extract ObjectProperties -> Relationships
+        object_props = []
+        for prop in g.subjects(RDF.type, OWL.ObjectProperty):
+            prop_name = str(prop).split("#")[-1].split("/")[-1]
+            domains = list(g.objects(prop, RDFS.domain))
+            ranges = list(g.objects(prop, RDFS.range))
+
+            if domains and ranges:
+                domain_name = str(domains[0]).split("#")[-1].split("/")[-1]
+                range_name = str(ranges[0]).split("#")[-1].split("/")[-1]
+
+                object_props.append(
+                    {
+                        "type": prop_name,
+                        "start_node_label": domain_name,
+                        "end_node_label": range_name,
+                    }
+                )
+
+        # Create Nodes
+        nodes = []
+        for class_name in classes:
+            props_for_class = datatype_props.get(class_name, [])
+
+            # Use the first property as key property, or create a default one
+            if props_for_class:
+                key_prop = Property(
+                    name=props_for_class[0]["name"], type=props_for_class[0]["type"]
+                )
+                other_props = [
+                    Property(name=p["name"], type=p["type"])
+                    for p in props_for_class[1:]
+                ]
+            else:
+                # Create a default key property
+                key_prop = Property(name=f"{class_name.lower()}Id", type="STRING")
+                other_props = []
+
+            nodes.append(
+                Node(label=class_name, key_property=key_prop, properties=other_props)
+            )
+
+        # Create Relationships
+        relationships = []
+        for obj_prop in object_props:
+            relationships.append(
+                Relationship(
+                    type=obj_prop["type"],
+                    start_node_label=obj_prop["start_node_label"],
+                    end_node_label=obj_prop["end_node_label"],
+                )
+            )
+
+        return cls(nodes=nodes, relationships=relationships)
+
     def get_node_cypher_ingest_query_for_many_records(self, node_label: str) -> str:
         "Generate a Cypher query to ingest a list of Node records into a Neo4j database."
         node = self.nodes_dict[node_label]
@@ -588,3 +1189,207 @@ class DataModel(BaseModel):
             if r.key_property is not None
         ]
         return node_queries + relationship_queries
+
+    def to_pydantic_model_str(self) -> str:
+        """
+        Convert the entire DataModel to a Pydantic models Python file string representation.
+
+        This generates a complete Python file as a string containing:
+        - Import statements for Pydantic
+        - All Node models as Pydantic BaseModel classes
+        - All Relationship models as Pydantic BaseModel classes
+
+        Returns
+        -------
+        str
+            A complete Python file string with all Pydantic model definitions.
+
+        Examples
+        --------
+        >>> dm = DataModel(
+        ...     nodes=[
+        ...         Node(label="Person", key_property=Property(name="id", type="STRING")),
+        ...         Node(label="Company", key_property=Property(name="companyId", type="STRING"))
+        ...     ],
+        ...     relationships=[
+        ...         Relationship(
+        ...             type="WORKS_FOR",
+        ...             start_node_label="Person",
+        ...             end_node_label="Company",
+        ...             properties=[Property(name="startDate", type="DATE")]
+        ...         )
+        ...     ]
+        ... )
+        >>> print(dm.to_pydantic_model_str())
+        from pydantic import BaseModel, Field
+        from typing import ClassVar
+        from datetime import date
+
+
+        class Person(BaseModel):
+            node_label: ClassVar[str] = "Person"
+
+            id: str
+
+
+        class Company(BaseModel):
+            node_label: ClassVar[str] = "Company"
+
+            companyId: str
+
+
+        class WorksFor(BaseModel):
+            relationship_type: ClassVar[str] = "WORKS_FOR"
+            start_node_label: ClassVar[str] = "Person"
+            end_node_label: ClassVar[str] = "Company"
+            pattern: ClassVar[str] = "(Person)-[WORKS_FOR]->(Company)"
+
+            start_node_Person_id: str
+            end_node_Company_companyId: str
+            startDate: datetime
+        """
+
+        # Generate Node models
+        node_models = [node.to_pydantic_model_str() for node in self.nodes]
+
+        # Generate Relationship models
+        relationship_models = []
+        for rel in self.relationships:
+            start_node = self.nodes_dict[rel.start_node_label]
+            end_node = self.nodes_dict[rel.end_node_label]
+            rel_model = rel.to_pydantic_model_str(
+                start_node.key_property, end_node.key_property
+            )
+            relationship_models.append(rel_model)
+
+        # Combine all parts with double newlines between models
+        all_models = node_models + relationship_models
+        models_str = "\n\n\n".join(all_models) if all_models else ""
+
+        # Construct Import statements
+        imports_base = "from pydantic import BaseModel, Field"
+
+        if (
+            ": datetime" in models_str
+            or ": time" in models_str
+            or ": timedelta" in models_str
+        ):
+            imports_base += "\nfrom datetime import "
+            datetime_imports = []
+            if ": datetime" in models_str:
+                datetime_imports.append("datetime")
+            if ": time" in models_str:
+                datetime_imports.append("time")
+            if ": timedelta" in models_str:
+                datetime_imports.append("timedelta")
+            imports_base += ", ".join(datetime_imports)
+
+        imports_base += "\nfrom typing import ClassVar"
+        imports = f"{imports_base}"
+
+        return f"{imports}\n\n\n{models_str}"
+
+    def to_neo4j_graphrag_python_package_schema(self) -> dict[str, str]:
+        """
+        Convert a DataModel to a Neo4j Graphrag Python Package Data Model dictionary.
+
+        Returns
+        -------
+        dict[str, str]
+            The Neo4j Graphrag Python Package Data Model dictionary.
+        """
+
+        nodes = [n.to_neo4j_graphrag_python_package_node_dict() for n in self.nodes]
+        relationships = [
+            r.to_neo4j_graphrag_python_package_relationship_dict()
+            for r in self.relationships
+        ]
+        patterns = [
+            r.to_neo4j_graphrag_python_package_relationship_pattern()
+            for r in self.relationships
+        ]
+        return {
+            "schema": {
+                "node_types": nodes,
+                "relationship_types": relationships,
+                "patterns": patterns,
+            }
+        }
+
+    @classmethod
+    def from_neo4j_graphrag_python_package_schema(
+        cls, schema_dict: dict[str, Any]
+    ) -> "DataModel":
+        """
+        Convert a Neo4j Graphrag Python Package schema dictionary to a DataModel.
+
+        Parameters
+        ----------
+        schema_dict : dict[str, Any]
+            The Neo4j Graphrag Python Package schema dictionary.
+
+        Returns
+        -------
+        DataModel
+            The DataModel object.
+
+        Examples
+        --------
+        >>> schema = {"schema": {"node_types": [{"label": "Person", "description": "", "properties": [{"name": "id", "type": "STRING", "description": "", "required": True}]}], "relationship_types": [{"label": "KNOWS", "description": "", "properties": []}], "patterns": [("Person", "KNOWS", "Person")]}}
+        >>> DataModel.from_neo4j_graphrag_python_package_schema(schema)
+        DataModel(nodes=[Node(label='Person', key_property=Property(name='id', type='STRING'), properties=[])], relationships=[Relationship(type='KNOWS', start_node_label='Person', end_node_label='Person', properties=[])])
+        """
+        schema = schema_dict.get("schema") or schema_dict
+        assert len(schema.keys()) == 3, (
+            f"The schema must contain 'node_types', 'relationship_types' and 'patterns' keys, but got {schema.keys()}"
+        )
+        assert schema.get("node_types") is not None, (
+            f"The schema must contain 'node_types' key, but got {schema.keys()}"
+        )
+        assert schema.get("relationship_types") is not None, (
+            f"The schema must contain 'relationship_types' key, but got {schema.keys()}"
+        )
+        assert schema.get("patterns") is not None, (
+            f"The schema must contain 'patterns' key, but got {schema.keys()}"
+        )
+
+        # Convert nodes
+        nodes = [
+            Node.from_neo4j_graphrag_python_package_node_dict(node_dict)
+            for node_dict in schema.get("node_types", [])
+        ]
+
+        # Convert relationships using patterns to get start/end node labels
+        patterns = schema.get("patterns", [])
+
+        # Create a mapping from relationship type to its pattern
+        relationship_pattern_map = {}
+        for pattern in patterns:
+            start_label, rel_type, end_label = pattern
+            if rel_type not in relationship_pattern_map:
+                relationship_pattern_map[rel_type] = []
+            relationship_pattern_map[rel_type].append((start_label, end_label))
+
+        # Convert relationships
+        relationships = []
+        for rel_dict in schema.get("relationship_types", []):
+            rel_type = rel_dict["label"]
+            # Get all patterns for this relationship type
+            rel_patterns = relationship_pattern_map.get(rel_type, [])
+
+            if not rel_patterns:
+                raise ValueError(
+                    f"No pattern found for relationship type {rel_type}. "
+                    "The schema must include patterns for all relationships."
+                )
+
+            # Create a relationship for each pattern instance
+            for start_label, end_label in rel_patterns:
+                relationship = (
+                    Relationship.from_neo4j_graphrag_python_package_relationship_dict(
+                        rel_dict, start_label, end_label
+                    )
+                )
+                relationships.append(relationship)
+
+        return cls(nodes=nodes, relationships=relationships)
