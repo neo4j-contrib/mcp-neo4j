@@ -182,7 +182,7 @@ docker run -p 8000:8000 \
   -e NEO4J_PASSWORD="your-password" \
   mcp-neo4j-cypher:latest
 
-# Access the server at http://localhost:8000/api/mcp/
+# Access the server at http://localhost:8000/mcp/
 ```
 
 ### 🚀 Transport Modes
@@ -292,7 +292,7 @@ For custom HTTP configurations with security middleware:
 mcp-neo4j-cypher --transport http \
   --server-host 127.0.0.1 \
   --server-port 8080 \
-  --server-path /api/mcp/ \
+  --server-path /mcp/ \
   --allowed-hosts "localhost,127.0.0.1,example.com" \
   --allow-origins "https://yourapp.com"
 
@@ -300,7 +300,7 @@ mcp-neo4j-cypher --transport http \
 export NEO4J_TRANSPORT=http
 export NEO4J_MCP_SERVER_HOST=127.0.0.1
 export NEO4J_MCP_SERVER_PORT=8080
-export NEO4J_MCP_SERVER_PATH=/api/mcp/
+export NEO4J_MCP_SERVER_PATH=/mcp/
 export NEO4J_MCP_SERVER_ALLOWED_HOSTS="localhost,127.0.0.1,example.com"
 export NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://yourapp.com"
 mcp-neo4j-cypher
@@ -369,7 +369,7 @@ Syntax with `--db-url`, `--username`, `--password`, `--read-timeout` and other c
       "--server-port",
       "8000"
       "--server-path",
-      "/api/mcp/"
+      "/mcp/"
     ]
   }
 }
@@ -461,7 +461,7 @@ docker run --rm -p 8000:8000 \
 | `NEO4J_NAMESPACE`                  | _(empty)_                               | Tool namespace prefix                              |
 | `NEO4J_MCP_SERVER_HOST`            | `127.0.0.1` (local)                     | Host to bind to                                    |
 | `NEO4J_MCP_SERVER_PORT`            | `8000`                                  | Port for HTTP/SSE transport                        |
-| `NEO4J_MCP_SERVER_PATH`            | `/api/mcp/`                             | Path for accessing MCP server                      |
+| `NEO4J_MCP_SERVER_PATH`            | `/mcp/`                             | Path for accessing MCP server                      |
 | `NEO4J_MCP_SERVER_ALLOW_ORIGINS`   | _(empty - secure by default)_           | Comma-separated list of allowed CORS origins       |
 | `NEO4J_MCP_SERVER_ALLOWED_HOSTS`   | `localhost,127.0.0.1`                   | Comma-separated list of allowed hosts (DNS rebinding protection) |
 | `NEO4J_RESPONSE_TOKEN_LIMIT`       | _(none)_                                | Maximum tokens for read query responses            |
@@ -526,7 +526,7 @@ services:
       - NEO4J_TRANSPORT=http
       - NEO4J_MCP_SERVER_HOST=0.0.0.0 # must be 0.0.0.0 for sse  or http transport in Docker
       - NEO4J_MCP_SERVER_PORT=8000
-      - NEO4J_MCP_SERVER_PATH=/api/mcp/
+      - NEO4J_MCP_SERVER_PATH=/mcp/
       - NEO4J_NAMESPACE=local
     depends_on:
       - neo4j
@@ -546,7 +546,7 @@ For Claude Desktop integration with a Dockerized server using http transport:
   "mcpServers": {
     "neo4j-docker": {
       "command": "npx",
-      "args": ["-y", "mcp-remote@latest", "http://localhost:8000/api/mcp/"]
+      "args": ["-y", "mcp-remote@latest", "http://localhost:8000/mcp/"]
     }
   }
 }

@@ -3,6 +3,7 @@
 ### Fixed
 
 ### Changed
+* Security upgrade python from 3.12-slim to 3.13.8-slim
 
 ### Added
 
