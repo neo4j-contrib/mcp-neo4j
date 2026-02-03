@@ -3,6 +3,8 @@
 ### Fixed
 
 ### Changed
+* Security upgrade python from 3.12-slim to 3.13.8-slim
+* Update default MCP server endpoint from /api/mcp/ to /mcp/
 
 ### Added
 
