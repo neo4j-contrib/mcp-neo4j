@@ -1,10 +1,24 @@
-## Next
-
 ### Fixed
 
 ### Changed
 
 ### Added
+
+### v0.4.4
+* Removed `dependencies=...` from server constructor. This was removed from FastMCP.
+
+### v0.4.3
+
+### Fixed
+* Fix bug in Dockerfile where build would fail due to `LABEL` statement coming before `FROM` statement
+
+### Changed
+* Updated `Entity.type` and `Relation.relationType` Pydantic model fields to have regex checks.
+
+## v0.4.2
+
+### Added
+* Add config and Github workflow to add server to Github MCP Registry
 
 ## v0.4.1
 

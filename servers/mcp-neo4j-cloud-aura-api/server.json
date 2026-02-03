@@ -1,0 +1,44 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.neo4j-contrib/mcp-neo4j-aura-manager",
+  "description": "MCP server for Neo4j Aura Database Instance Manager.",
+  "repository": {
+    "url": "https://github.com/neo4j-contrib/mcp-neo4j",
+    "source": "github",
+    "subfolder": "servers/mcp-neo4j-cloud-aura-api"
+  },
+  "version": "0.4.7",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "mcp-neo4j-aura-manager",
+      "version": "0.4.7",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "description": "Neo4j Aura API Client ID",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": true,
+          "name": "NEO4J_AURA_CLIENT_ID"
+        },
+        {
+          "description": "Neo4j Aura API Client Secret",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": true,
+          "name": "NEO4J_AURA_CLIENT_SECRET"
+        },
+        {
+          "description": "Namespace for tools",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false,
+          "name": "NEO4J_NAMESPACE"
+        }
+      ]
+    }
+  ]
+}

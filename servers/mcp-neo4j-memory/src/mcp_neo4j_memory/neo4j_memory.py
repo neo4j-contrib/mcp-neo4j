@@ -28,7 +28,8 @@ class Entity(BaseModel):
     type: str = Field(
         description="Category or classification of the entity. Common types: 'person', 'company', 'location', 'concept', 'event'",
         min_length=1,
-        examples=["person", "company", "location", "concept", "event"]
+        examples=["person", "company", "location", "concept", "event"],
+        pattern=r'^[A-Za-z_][A-Za-z0-9_]*$'
     )
     observations: List[str] = Field(
         description="List of facts, observations, or notes about this entity. Each observation should be a complete, standalone fact.",
@@ -58,7 +59,8 @@ class Relation(BaseModel):
     relationType: str = Field(
         description="Type of relationship between source and target. Use descriptive, uppercase names with underscores.",
         min_length=1,
-        examples=["WORKS_AT", "LIVES_IN", "MANAGES", "COLLABORATES_WITH", "LOCATED_IN"]
+        examples=["WORKS_AT", "LIVES_IN", "MANAGES", "COLLABORATES_WITH", "LOCATED_IN"],
+        pattern=r'^[A-Za-z_][A-Za-z0-9_]*$'
     )
 
 class KnowledgeGraph(BaseModel):

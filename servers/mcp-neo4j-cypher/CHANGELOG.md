@@ -6,6 +6,23 @@
 
 ### Added
 
+v0.5.2
+
+### Fixed
+* Fix bug in Dockerfile where build would fail due to `LABEL` statement coming before `FROM` statement
+* Removed `dependencies=...` from server constructor. This was removed from FastMCP.
+
+## v0.5.1
+
+### Added
+* Add config and Github workflow to add server to Github MCP Registry
+
+## v0.5.0
+
+### Added
+* Add `NEO4J_SCHEMA_SAMPLE_SIZE` env variable and `schema-sample-size` cli argument to configure the `get_neo4j_schema` sample size
+* Update write query detection to include `INSERT` in regex check
+
 ## v0.4.1
 
 ### Added
