@@ -30,6 +30,8 @@ This lets you use Claude Desktop, or any other MCP Client (VS Code, Cursor, Wind
 
 Get database schema for a configured database and execute generated read and write Cypher queries on that database.
 
+**Requirement**: Requires the [APOC plugin](https://neo4j.com/docs/apoc/current/installation/) to be installed and enabled on the Neo4j instance for schema inspection.
+
 ### `mcp-neo4j-memory` - knowledge graph memory stored in Neo4j
 
 [Details in Readme](./servers/mcp-neo4j-memory/)
