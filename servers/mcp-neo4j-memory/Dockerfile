@@ -33,5 +33,10 @@ ENV NEO4J_MCP_SERVER_PATH="/mcp/"
 ENV NEO4J_MCP_SERVER_ALLOW_ORIGINS=""
 ENV NEO4J_MCP_SERVER_ALLOWED_HOSTS="localhost,127.0.0.1"
 
+# Create a non-root user and switch to it
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
 # Command to run the server using the package entry point
 CMD ["sh", "-c", "mcp-neo4j-memory"]
