@@ -14,7 +14,7 @@ If you are looking for the official product Neo4j MCP server please find it [her
 
 Model Context Protocol (MCP) is a [standardized protocol](https://modelcontextprotocol.io/introduction) for managing context between large language models (LLMs) and external systems. 
 
-This lets you use Claude Desktop, or any other MCP Client (VS Code, Cursor, Windsurf), to use natural language to accomplish things with Neo4j and your Aura account, e.g.:
+This lets you use Claude Desktop, or any other MCP Client (VS Code, Cursor, Windsurf, Gemini CLI), to use natural language to accomplish things with Neo4j and your Aura account, e.g.:
 
 * What is in this graph?
 * Render a chart from the top products sold by frequency, total and average volume
@@ -102,6 +102,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 * [Everything a Developer Needs to Know About the Model Context Protocol (MCP)](https://neo4j.com/blog/developer/model-context-protocol/)
 * [Claude Converses With Neo4j Via MCP - Graph Database & Analytics](https://neo4j.com/blog/developer/claude-converses-neo4j-via-mcp/)
 * [Building Knowledge Graphs With Claude and Neo4j: A No-Code MCP Approach - Graph Database & Analytics](https://neo4j.com/blog/developer/knowledge-graphs-claude-neo4j-mcp/)
+* [Using the Neo4j Extension in Gemini CLI](https://cloud.google.com/blog/topics/developers-practitioners/using-the-neo4j-extension-in-gemini-cli)
 
 ## License
 
