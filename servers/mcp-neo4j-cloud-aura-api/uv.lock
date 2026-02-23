@@ -630,7 +630,7 @@ wheels = [
 
 [[package]]
 name = "mcp-neo4j-aura-manager"
-version = "0.4.7"
+version = "0.4.8"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },

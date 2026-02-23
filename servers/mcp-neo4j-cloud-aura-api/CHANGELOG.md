@@ -3,10 +3,14 @@
 ### Fixed
 
 ### Changed
-* Security upgrade python from 3.11-slim to 3.13.8-slim
-* Lock FastMCP version to <3.x
 
 ### Added
+
+## v0.4.8
+
+### Changed
+* Security upgrade python from 3.11-slim to 3.13.8-slim
+* Lock FastMCP version to <3.x
 
 ## v0.4.7
 

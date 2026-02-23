@@ -7,12 +7,12 @@
     "source": "github",
     "subfolder": "servers/mcp-neo4j-cloud-aura-api"
   },
-  "version": "0.4.7",
+  "version": "0.4.8",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "mcp-neo4j-aura-manager",
-      "version": "0.4.7",
+      "version": "0.4.8",
       "transport": {
         "type": "stdio"
       },

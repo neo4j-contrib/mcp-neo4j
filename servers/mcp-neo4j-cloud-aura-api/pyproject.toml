@@ -1,6 +1,6 @@
 [project]
 name = "mcp-neo4j-aura-manager"
-version = "0.4.7"
+version = "0.4.8"
 description = "MCP Neo4j Aura Database Instance Manager"
 readme = "README.md"
 requires-python = ">=3.10"

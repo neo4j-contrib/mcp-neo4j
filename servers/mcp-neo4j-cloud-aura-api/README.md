@@ -124,7 +124,7 @@ Add the server to your `claude_desktop_config.json`:
   "neo4j-aura": {
     "command": "uvx",
     "args": [
-      "mcp-neo4j-aura-manager@0.4.7",
+      "mcp-neo4j-aura-manager@0.4.8",
       "--client-id",
       "<your-client-id>",
       "--client-secret",
@@ -140,7 +140,7 @@ Alternatively, you can set environment variables:
 "mcpServers": {
   "neo4j-aura": {
     "command": "uvx",
-    "args": [ "mcp-neo4j-aura-manager@0.4.7" ],
+    "args": [ "mcp-neo4j-aura-manager@0.4.8" ],
     "env": {
       "NEO4J_AURA_CLIENT_ID": "<your-client-id>",
       "NEO4J_AURA_CLIENT_SECRET": "<your-client-secret>"
@@ -160,7 +160,7 @@ Alternatively, you can set environment variables:
       "--rm",
       "-e", "NEO4J_AURA_CLIENT_ID=${NEO4J_AURA_CLIENT_ID}",
       "-e", "NEO4J_AURA_CLIENT_SECRET=${NEO4J_AURA_CLIENT_SECRET}",
-      "mcp-neo4j-aura-manager:0.4.7"
+      "mcp-neo4j-aura-manager:0.4.8"
     ]
   }
 }
@@ -175,7 +175,7 @@ The server supports namespacing to prefix tool names for multi-tenant deployment
   "neo4j-aura-app1": {
     "command": "uvx",
     "args": [
-      "mcp-neo4j-aura-manager@0.4.7",
+      "mcp-neo4j-aura-manager@0.4.8",
       "--client-id", "<your-client-id>",
       "--client-secret", "<your-client-secret>",
       "--namespace", "app1"
@@ -184,7 +184,7 @@ The server supports namespacing to prefix tool names for multi-tenant deployment
   "neo4j-aura-app2": {
     "command": "uvx", 
     "args": [
-      "mcp-neo4j-aura-manager@0.4.7",
+      "mcp-neo4j-aura-manager@0.4.8",
       "--client-id", "<your-client-id>",
       "--client-secret", "<your-client-secret>",
       "--namespace", "app2"
