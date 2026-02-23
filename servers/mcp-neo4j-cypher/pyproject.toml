@@ -1,6 +1,6 @@
 [project]
 name = "mcp-neo4j-cypher"
-version = "0.5.2"
+version = "0.5.3"
 description = "A simple Neo4j MCP server"
 readme = "README.md"
 requires-python = ">=3.10"

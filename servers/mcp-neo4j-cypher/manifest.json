@@ -2,7 +2,7 @@
   "dxt_version": "0.1",
   "name": "mcp-neo4j-cypher",
   "display_name": "Neo4j Cypher MCP Server",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Execute read and write Cypher queries on your Neo4j database.",
   "long_description": "A Model Context Protocol (MCP) server that provides tools for interacting with Neo4j graph databases using Cypher queries. Supports both read and write operations with proper validation and error handling.",
   "author": {

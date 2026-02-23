@@ -3,13 +3,17 @@
 ### Fixed
 
 ### Changed
+
+### Added
+
+## v0.5.3
+
+### Changed
 * Security upgrade python from 3.12-slim to 3.13.8-slim
 * Update default MCP server endpoint from /api/mcp/ to /mcp/
 * Lock FastMCP version to <3.x
 
-### Added
-
-v0.5.2
+## v0.5.2
 
 ### Fixed
 * Fix bug in Dockerfile where build would fail due to `LABEL` statement coming before `FROM` statement
