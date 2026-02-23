@@ -648,7 +648,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastmcp", specifier = ">=2.0.0" },
+    { name = "fastmcp", specifier = ">=2.0.0,<3" },
     { name = "requests", specifier = ">=2.31.0" },
     { name = "starlette", specifier = ">=0.40.0" },
 ]

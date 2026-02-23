@@ -5,7 +5,7 @@ description = "MCP Neo4j Aura Database Instance Manager"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "fastmcp>=2.0.0",
+    "fastmcp>=2.0.0,<3",
     "requests>=2.31.0",
     "starlette>=0.40.0",
 ]
