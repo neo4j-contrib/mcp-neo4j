@@ -1,6 +1,6 @@
 [project]
 name = "mcp-neo4j-memory"
-version = "0.4.4"
+version = "0.4.5"
 description = "MCP Neo4j Knowledge Graph Memory Server"
 readme = "README.md"
 requires-python = ">=3.10"
