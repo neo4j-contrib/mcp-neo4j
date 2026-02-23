@@ -5,7 +5,7 @@ description = "A simple Neo4j MCP server"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "fastmcp>=2.10.5",
+    "fastmcp>=2.10.5,<3",
     "neo4j>=5.26.0",
     "pydantic>=2.10.1",
     "tiktoken>=0.11.0",

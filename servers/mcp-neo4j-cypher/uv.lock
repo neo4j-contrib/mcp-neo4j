@@ -699,7 +699,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastmcp", specifier = ">=2.10.5" },
+    { name = "fastmcp", specifier = ">=2.10.5,<3" },
     { name = "neo4j", specifier = ">=5.26.0" },
     { name = "pydantic", specifier = ">=2.10.1" },
     { name = "tiktoken", specifier = ">=0.11.0" },
