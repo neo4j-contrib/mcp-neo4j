@@ -3,6 +3,7 @@
 ### Changed
 * Security upgrade python from 3.11-slim to 3.13.8-slim
 * Change default MCP server endpoint from /api/mcp/ to /mcp/
+* Lock FastMCP version to <3.x
 
 ### Added
 

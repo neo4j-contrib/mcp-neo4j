@@ -5,7 +5,7 @@ description = "MCP Neo4j Knowledge Graph Memory Server"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "fastmcp>=2.0.0",
+    "fastmcp>=2.0.0,<3",
     "neo4j>=5.26.0",
     "pydantic>=2.10.1",
     "starlette>=0.28.0",
