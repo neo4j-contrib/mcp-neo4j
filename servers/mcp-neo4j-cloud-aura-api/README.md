@@ -106,6 +106,47 @@ The server offers these core tools:
     - `tenant_id` (string): ID of the tenant/project to retrieve
   - Returns: Detailed information about the tenant/project
 
+#### 📊 Database Sizing Tools
+- `calculate_database_sizing`
+  - Calculate current Neo4j database sizing based on graph characteristics
+  - **Required inputs:**
+    - `num_nodes` (integer): Number of nodes in the graph
+    - `num_relationships` (integer): Number of relationships in the graph
+    - `avg_properties_per_node` (integer): Average number of properties per node (REQUIRED for accurate sizing)
+    - `avg_properties_per_relationship` (integer): Average number of properties per relationship (REQUIRED for accurate sizing)
+  - **Optional inputs:**
+    - `total_num_large_node_properties` (integer): Total number of large properties (128+ bytes) across all nodes
+    - `total_num_large_reltype_properties` (integer): Total number of large properties (128+ bytes) across all relationships
+    - `vector_index_dimensions` (integer): Vector index dimensions if using vector search
+    - `percentage_nodes_with_vector_properties` (float): Percentage of nodes with vector properties (0-100)
+    - `number_of_vector_indexes` (integer): Number of vector indexes
+    - `quantization_enabled` (boolean): Enable scalar quantization for vectors (4x storage reduction)
+    - `memory_to_storage_ratio` (integer): Memory-to-storage ratio denominator (1=1:1, 2=1:2, 4=1:4, 8=1:8)
+    - `concurrent_end_users` (integer): Number of concurrent end users (calculates vCPUs: 2 vCPU per user)
+  - Returns: Detailed sizing calculations including storage breakdown, recommended memory, and vCPUs
+  - **Note:** Property counts are required for accurate sizing. Missing property data leads to wildly inaccurate results.
+
+- `forecast_database_size`
+  - Forecast database size growth over multiple years using component-based growth models
+  - **Required inputs:**
+    - `base_size_gb` (float): Current database size in GB
+    - `base_memory_gb` (integer): Current recommended memory in GB
+    - `base_cores` (integer): Current recommended number of cores
+    - `domain` (string): Graph domain from "7 Graphs of the Enterprise" - **REQUIRED**, primary driver for growth model selection
+      - Options: `"customer"`, `"product"`, `"employee"`, `"supplier"`, `"transaction"`, `"process"`, `"security"`, `"generic"`
+  - **Optional inputs:**
+    - `annual_growth_rate` (float): Annual growth rate percentage. If not provided, uses smart defaults based on domain/workload:
+      - Transactional: 20%
+      - Agentic: 15%
+      - Analytical: 5%
+      - Domain defaults vary (3-20% based on domain)
+    - `projection_years` (integer): Number of years to project (default: 3)
+    - `workloads` (array): Workload types that override domain-based growth models
+      - Options: `"transactional"` (fast growth - LogLinearGrowthModel for all components), `"agentic"` (medium growth - CompoundGrowthModel for all components), `"analytical"` (moderate growth - CompoundGrowthModel for storage, LinearGrowthModel for memory/vcpu)
+      - If provided, overrides domain-based model selection
+    - `memory_to_storage_ratio` (integer): Memory-to-storage ratio denominator (1=1:1, 2=1:2, 4=1:4, 8=1:8). Applied as constraint/floor for memory projections. Default: 1 (1:1 ratio)
+  - Returns: Multi-year projections with component-based growth models used (storage, memory, vcpu), projected sizes, memory, and cores for each year. Cores scale dynamically based on workload type and storage growth.
+
 
 ## 🔧 Usage with Claude Desktop
 

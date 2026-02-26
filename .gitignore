@@ -48,3 +48,6 @@ __pycache__
 servers/mcp-neo4j-data-modeling/test.ipynb
 servers/mcp-neo4j-data-modeling/src/mcp_neo4j_data_modeling/temp.html
 mcp.json
+servers/mcp-neo4j-cloud-aura-api/growth_models_smoke_test_results.txt
+servers/mcp-neo4j-cloud-aura-api/*_smoke_test_results.txt
+servers/mcp-neo4j-cloud-aura-api/*_test_results.json
