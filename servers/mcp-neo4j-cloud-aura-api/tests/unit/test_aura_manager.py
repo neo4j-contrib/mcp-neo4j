@@ -226,9 +226,10 @@ async def test_error_handling(mock_client):
     # Mock an error
     mock_client.get_instance_details = MagicMock(side_effect=Exception("Test error"))
     
-    result = await manager.get_instance_details(["non-existent"])
-    assert "error" in result
-    assert "Test error" in result["error"]
+    with pytest.raises(Exception) as exc_info:
+        await manager.get_instance_details(["non-existent"])
+    
+    assert "Test error" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
