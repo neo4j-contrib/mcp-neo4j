@@ -22,6 +22,10 @@ This lets you use Claude Desktop, or any other MCP Client (VS Code, Cursor, Wind
 * Create a new instance named mcp-test for Aura Professional with 4GB and Graph Data Science enabled
 * Store the fact that I worked on the Neo4j MCP Servers today with Andreas and Oskar
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/neo4j-contrib-mcp-neo4j).
+
 ## Servers
 
 ### `mcp-neo4j-cypher` - natural language to Cypher queries
