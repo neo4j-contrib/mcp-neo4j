@@ -1,10 +1,13 @@
 ## Next
 
 ### Fixed
+* Updated unit tests to expect raised exceptions for improved error handling.
 
 ### Changed
+* Improved error handling across MCP tools to raise `ToolError` instead of returning generic error responses.
 
 ### Added
+
 
 ## v0.4.8
 
