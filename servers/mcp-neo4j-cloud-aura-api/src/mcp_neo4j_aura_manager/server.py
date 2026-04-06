@@ -8,7 +8,6 @@ from pydantic import Field
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from neo4j.exceptions import ClientError, Neo4jError
 
 from .aura_manager import AuraManager
 from .utils import get_logger, format_namespace

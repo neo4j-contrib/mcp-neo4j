@@ -7,7 +7,7 @@
 * Improved error handling across MCP tools to raise `ToolError` instead of returning generic error responses.
 
 ### Added
-* Added `neo4j` dependency required for exception imports used in the MCP server.
+
 
 ## v0.4.8
 
