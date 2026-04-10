@@ -1,6 +1,7 @@
 FROM python:3.13.8-slim
 
 LABEL io.modelcontextprotocol.server.name="io.github.neo4j-contrib/mcp-neo4j-cypher"
+LABEL version="0.6.0"
 
 # Set working directory
 WORKDIR /app
