@@ -1,6 +1,5 @@
 import json
 import logging
-import re
 from typing import Any, Literal, Optional
 
 from fastmcp.exceptions import ToolError
@@ -29,12 +28,15 @@ def _format_namespace(namespace: str) -> str:
         return ""
 
 
-def _is_write_query(query: str) -> bool:
-    """Check if the query is a write query."""
-    return (
-        re.search(r"\b(MERGE|CREATE|INSERT|SET|DELETE|REMOVE|ADD)\b", query, re.IGNORECASE)
-        is not None
+async def _is_write_query(query: str, driver: AsyncDriver, database: str) -> bool:
+    """Check if the query is a write query by running EXPLAIN and inspecting the query type."""
+    explain_query = "EXPLAIN " + query
+    _, summary, _ = await driver.execute_query(
+        query_=explain_query,
+        database_=database,
     )
+    # query_type is 'r', 'w', 'rw', or 's'; anything containing 'w' is a write
+    return "w" in (summary.query_type or "")
 
 
 def create_mcp_server(
@@ -191,7 +193,7 @@ def create_mcp_server(
     ) -> list[ToolResult]:
         """Execute a read Cypher query on the neo4j database."""
 
-        if _is_write_query(query):
+        if await _is_write_query(query, neo4j_driver, database):
             raise ValueError("Only MATCH queries are allowed for read-query")
 
         try:
@@ -241,7 +243,7 @@ def create_mcp_server(
     ) -> list[ToolResult]:
         """Execute a write Cypher query on the neo4j database."""
 
-        if not _is_write_query(query):
+        if not await _is_write_query(query, neo4j_driver, database):
             raise ValueError("Only write queries are allowed for write-query")
 
         try:
