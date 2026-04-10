@@ -3,6 +3,7 @@
 ### Fixed
 
 ### Changed
+* Update `_is_write_query` to use `EXPLAIN` query instead of regex check
 
 ### Added
 
