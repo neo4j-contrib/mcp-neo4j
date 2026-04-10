@@ -1,6 +1,8 @@
 ## Next
 
 ### Fixed
+* Fix startup `ImportError` caused by `pydocket` importing `FakeConnection` from `fakeredis>=2.27` — cap `fastmcp<2.14` to exclude the `pydocket` transitive dependency
+* Fix `TypeError: str expected, not int` in integration tests caused by `testcontainers` returning an `int` from `get_exposed_port()`
 
 ### Changed
 * Update `_is_write_query` to use `EXPLAIN` query instead of regex check

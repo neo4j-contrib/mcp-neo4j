@@ -30,7 +30,7 @@ def setup(request):
     request.addfinalizer(remove_container)
     os.environ["NEO4J_URI"] = neo4j.get_connection_url()
     os.environ["NEO4J_HOST"] = neo4j.get_container_host_ip()
-    os.environ["NEO4J_PORT"] = neo4j.get_exposed_port(7687)
+    os.environ["NEO4J_PORT"] = str(neo4j.get_exposed_port(7687))
 
     yield neo4j
 
