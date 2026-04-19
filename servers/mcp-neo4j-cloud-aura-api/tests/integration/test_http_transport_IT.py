@@ -31,7 +31,7 @@ async def parse_sse_response(response: aiohttp.ClientResponse) -> dict:
 
 @pytest.fixture(scope="session")
 async def aura_manager_server() -> AsyncGenerator[Dict[str, Any], None]:
-    """Start the Aura Manager MCP server with HTTP transport."""
+    """Start the Neo4j Cloud Aura API MCP server with HTTP transport."""
     
     # Get real credentials from environment
     client_id = os.environ.get("NEO4J_AURA_CLIENT_ID")
@@ -44,7 +44,7 @@ async def aura_manager_server() -> AsyncGenerator[Dict[str, Any], None]:
     import sys
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
     
-    from mcp_neo4j_aura_manager.server import main
+    from mcp_neo4j_cloud_aura_api.server import main
     
     # Start the server in a separate process
     server_process = None
@@ -77,7 +77,7 @@ async def aura_manager_server() -> AsyncGenerator[Dict[str, Any], None]:
         try:
             response = requests.get(server_url.replace("/mcp/", "/health"), timeout=5)
             if response.status_code == 200:
-                logger.info("Aura Manager server started successfully")
+                logger.info("Neo4j Cloud Aura API server started successfully")
             else:
                 logger.warning(f"Server health check returned {response.status_code}")
         except requests.exceptions.RequestException as e:

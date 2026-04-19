@@ -3,7 +3,7 @@ import os
 from unittest.mock import patch
 import pytest
 
-from mcp_neo4j_aura_manager.utils import (
+from mcp_neo4j_cloud_aura_api.utils import (
     _validate_region,
     parse_client_id,
     parse_client_secret,
@@ -74,7 +74,7 @@ def args_factory():
 @pytest.fixture
 def mock_logger():
     """Fixture to provide a mocked logger."""
-    with patch("mcp_neo4j_aura_manager.utils.logger") as mock:
+    with patch("mcp_neo4j_cloud_aura_api.utils.logger") as mock:
         yield mock
 
 
@@ -775,7 +775,7 @@ class TestParseNamespace:
         result = parse_namespace(args)
         assert result == "test-cli"
 
-    @patch("mcp_neo4j_aura_manager.utils.logger")
+    @patch("mcp_neo4j_cloud_aura_api.utils.logger")
     def test_parse_namespace_default_empty(self, mock_logger, clean_env, args_factory):
         """Test that namespace defaults to empty string when not provided."""
         args = args_factory()
@@ -785,7 +785,7 @@ class TestParseNamespace:
         # Check that info message was logged
         mock_logger.info.assert_called_once_with("Info: No namespace provided for tools. No namespace will be used.")
 
-    @patch("mcp_neo4j_aura_manager.utils.logger")
+    @patch("mcp_neo4j_cloud_aura_api.utils.logger")
     def test_parse_namespace_logs_cli_value(self, mock_logger, clean_env, args_factory):
         """Test that namespace value is logged when provided via CLI."""
         args = args_factory(namespace="my-app")
@@ -795,7 +795,7 @@ class TestParseNamespace:
         # Check that info message was logged
         mock_logger.info.assert_called_once_with("Info: Namespace provided for tools: my-app")
 
-    @patch("mcp_neo4j_aura_manager.utils.logger")
+    @patch("mcp_neo4j_cloud_aura_api.utils.logger")
     def test_parse_namespace_logs_env_value(self, mock_logger, clean_env, args_factory):
         """Test that namespace value is logged when provided via environment."""
         os.environ["NEO4J_NAMESPACE"] = "env-app"

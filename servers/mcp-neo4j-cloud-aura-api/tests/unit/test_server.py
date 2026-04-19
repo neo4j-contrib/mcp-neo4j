@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import Mock, AsyncMock
 
-from mcp_neo4j_aura_manager.server import format_namespace, create_mcp_server
-from mcp_neo4j_aura_manager.aura_manager import AuraManager
+from mcp_neo4j_cloud_aura_api.server import format_namespace, create_mcp_server
+from mcp_neo4j_cloud_aura_api.aura_manager import AuraManager
 
 
 class TestFormatNamespace:
