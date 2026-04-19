@@ -21,7 +21,7 @@ def create_mcp_server(aura_manager: AuraManager, namespace: str = "") -> FastMCP
     
     namespace_prefix = format_namespace(namespace)
     
-    mcp: FastMCP = FastMCP("mcp-neo4j-aura-manager", stateless_http=True)
+    mcp: FastMCP = FastMCP("mcp-neo4j-cloud-aura-api", stateless_http=True)
 
     @mcp.tool(
         name=namespace_prefix + "list_instances",
@@ -333,7 +333,7 @@ async def main(
     stateless: bool = False,
 ) -> None:
     """Start the MCP server."""
-    logger.info("Starting MCP Neo4j Aura Manager Server")
+    logger.info("Starting MCP Neo4j Cloud Aura API Server")
     
     aura_manager = AuraManager(client_id, client_secret)
     custom_middleware = [
@@ -354,18 +354,18 @@ async def main(
     match transport:
         case "http":
             logger.info(
-                f"Running Neo4j Aura Manager MCP Server with HTTP transport on {host}:{port}..."
+                f"Running Neo4j Cloud Aura API MCP Server with HTTP transport on {host}:{port}..."
             )
             logger.info(f"Stateless mode: {stateless}")
             await mcp.run_http_async(
                 host=host, port=port, path=path, middleware=custom_middleware, stateless_http=stateless
             )
         case "stdio":
-            logger.info("Running Neo4j Aura Manager MCP Server with stdio transport...")
+            logger.info("Running Neo4j Cloud Aura API MCP Server with stdio transport...")
             await mcp.run_stdio_async()
         case "sse":
             logger.info(
-                f"Running Neo4j Aura Manager MCP Server with SSE transport on {host}:{port}..."
+                f"Running Neo4j Cloud Aura API MCP Server with SSE transport on {host}:{port}..."
             )
             logger.info(f"Stateless mode: {stateless}")
             await mcp.run_http_async(host=host, port=port, path=path, middleware=custom_middleware, transport="sse", stateless_http=stateless)
