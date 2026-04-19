@@ -1,5 +1,5 @@
 [project]
-name = "mcp-neo4j-aura-manager"
+name = "mcp-neo4j-cloud-aura-api"
 version = "0.4.8"
 description = "MCP Neo4j Aura Database Instance Manager"
 readme = "README.md"
@@ -23,7 +23,7 @@ dev-dependencies = [
 ]
 
 [project.scripts]
-mcp-neo4j-aura-manager = "mcp_neo4j_aura_manager:main"
+mcp-neo4j-cloud-aura-api = "mcp_neo4j_cloud_aura_api:main"
 
 [tool.pytest.ini_options]
 pythonpath = [
