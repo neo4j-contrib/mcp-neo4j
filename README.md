@@ -6,9 +6,17 @@ A compatibility layer for running MCP servers with Neo4j 3.5.
 
 ## Prerequisites
 
-- Python 3.10 or higher
+- [`uv`](https://docs.astral.sh/uv/) (it will install the right Python for you)
 - Neo4j 3.5.x with APOC plugin installed
 - Git
+
+You do **not** need a pre-installed Python. `uv` reads `.python-version` and downloads a matching interpreter on first run.
+
+Install `uv` if you don't have it:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
 ## Installation
 
@@ -19,19 +27,7 @@ git clone https://github.com/neo4j-labs/mcp-neo4j.git
 cd mcp-neo4j
 ```
 
-### Step 2: Install Python Dependencies
-
-```bash
-pip install fastmcp pydantic tiktoken neo4j
-```
-
-Or using uv:
-
-```bash
-uv pip install fastmcp pydantic tiktoken neo4j
-```
-
-### Step 3: Verify Installation (Optional)
+### Step 2: Verify Installation (Optional)
 
 Test that the server starts correctly:
 
@@ -39,10 +35,10 @@ Test that the server starts correctly:
 NEO4J_URL="bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687" \
 NEO4J_USERNAME="neo4j" \
 NEO4J_PASSWORD="you-know-the-password" \
-python3 mcp_neo4j_35_runner.py
+uv run mcp_neo4j_35_runner.py
 ```
 
-You should see the FastMCP banner and "Starting MCP server".
+The first run downloads Python and installs dependencies. You should see the FastMCP banner and "Starting MCP server".
 
 ## Client Configuration
 
@@ -57,10 +53,15 @@ You should see the FastMCP banner and "Starting MCP server".
 {
   "mcpServers": {
     "neo4j-35": {
-      "command": "python3",
-      "args": ["/full/path/to/mcp-neo4j/mcp_neo4j_35_runner.py"],
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/full/path/to/mcp-neo4j",
+        "mcp_neo4j_35_runner.py"
+      ],
       "env": {
-        "NEO4J_URL": "bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687", // example
+        "NEO4J_URL": "bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687",
         "NEO4J_USERNAME": "neo4j",
         "NEO4J_PASSWORD": "you-know-the-password",
         "READ_ONLY": "true"
@@ -69,6 +70,8 @@ You should see the FastMCP banner and "Starting MCP server".
   }
 }
 ```
+
+Replace `uv` with the absolute path (`which uv`) if your MCP client does not see your `PATH`.
 
 5. Restart Cursor
 6. In Cursor chat, you now have access to Neo4j tools
@@ -86,10 +89,15 @@ You should see the FastMCP banner and "Starting MCP server".
 {
   "mcpServers": {
     "neo4j-35": {
-      "command": "python3",
-      "args": ["/full/path/to/mcp-neo4j/mcp_neo4j_35_runner.py"],
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/full/path/to/mcp-neo4j",
+        "mcp_neo4j_35_runner.py"
+      ],
       "env": {
-        "NEO4J_URL": "bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687", // example
+        "NEO4J_URL": "bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687",
         "NEO4J_USERNAME": "neo4j",
         "NEO4J_PASSWORD": "you-know-the-password",
         "READ_ONLY": "true"
@@ -117,7 +125,7 @@ NEO4J_PASSWORD="you-know-the-password" \
 TRANSPORT="http" \
 HOST="0.0.0.0" \
 PORT="8000" \
-python3 mcp_neo4j_35_runner.py
+uv run mcp_neo4j_35_runner.py
 ```
 
 The server will be available at `http://localhost:8000/mcp/`
@@ -203,7 +211,7 @@ lsof -ti:8000 | xargs kill -9
 NEO4J_URL="bolt://neo4j-v2.domain-base.euw1.n8s.appsflyer.engineering:7687" \
 NEO4J_USERNAME="neo4j" \
 NEO4J_PASSWORD="you-know-the-password" \
-python3 mcp_neo4j_35_runner.py
+uv run mcp_neo4j_35_runner.py
 ```
 
 ### Query hangs
@@ -303,6 +311,5 @@ When ready to upgrade:
 
 1. Use the original server files (without `_35` suffix)
 2. Update your Neo4j connection to the 5.x instance
-3. Reinstall dependencies: `pip install neo4j>=5.0`
 
 See: https://neo4j.com/docs/upgrade-migration-guide/current/
