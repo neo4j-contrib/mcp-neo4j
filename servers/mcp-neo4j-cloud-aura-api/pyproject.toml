@@ -1,0 +1,36 @@
+[project]
+name = "mcp-neo4j-aura-manager"
+version = "0.4.8"
+description = "MCP Neo4j Aura Database Instance Manager"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.0.0,<3",
+    "requests>=2.31.0",
+    "starlette>=0.40.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pyright>=1.1.389",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.25.3",
+    "aiohttp>=3.8.0",
+]
+
+[project.scripts]
+mcp-neo4j-aura-manager = "mcp_neo4j_aura_manager:main"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "src"
+]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "session"
+markers = [
+    "middleware: marks tests as middleware security tests that don't require Aura credentials"
+]

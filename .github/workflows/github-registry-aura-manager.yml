@@ -1,0 +1,28 @@
+name: Publish Aura Manager MCP to Github MCP Registry
+
+on:
+  workflow_dispatch:  # Allows manual triggering of the workflow
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # For OIDC
+      contents: read
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # MCP publishing (works for all package types)
+      - name: Download MCP Publisher
+        run: |
+          LATEST_VERSION=$(curl -s https://api.github.com/repos/modelcontextprotocol/registry/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/download/${LATEST_VERSION}/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz
+      - name: Publish to MCP Registry
+        run: |
+          chmod +x mcp-publisher
+          cd servers/mcp-neo4j-cloud-aura-api/
+          ../../mcp-publisher login github-oidc
+          ../../mcp-publisher publish
+

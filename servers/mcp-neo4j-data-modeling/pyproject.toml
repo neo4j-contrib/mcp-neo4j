@@ -1,0 +1,32 @@
+[project]
+name = "mcp-neo4j-data-modeling"
+version = "0.8.2"
+description = "A simple Neo4j MCP server for creating graph data models."
+readme = "README.md"
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "pydantic>=2.10.1",
+    "starlette>=0.47.0",
+    "rdflib>=7.0.0",
+]
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+    "pyright>=1.1.389",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.20.3",
+    "ruff>=0.11.5",
+    "testcontainers[neo4j]>=4.10.0",
+    "aiohttp>=3.8.0",
+    "neo4j-graphrag>=1.10.1",
+]
+
+[project.scripts]
+mcp-neo4j-data-modeling = "mcp_neo4j_data_modeling:main"

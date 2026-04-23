@@ -1,0 +1,173 @@
+{
+  "dxt_version": "0.1",
+  "name": "mcp-neo4j-cypher",
+  "display_name": "Neo4j Cypher MCP Server",
+  "version": "0.6.0",
+  "description": "Execute read and write Cypher queries on your Neo4j database.",
+  "long_description": "A Model Context Protocol (MCP) server that provides tools for interacting with Neo4j graph databases using Cypher queries. Supports both read and write operations with proper validation and error handling.",
+  "author": {
+    "name": "Alexander Gilmore"
+  },
+  "keywords": ["neo4j", "cypher", "graph", "database", "mcp", "ai", "llm"],
+  "categories": ["database", "graph", "query"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neo4j-contrib/mcp-neo4j/tree/main/servers/mcp-neo4j-cypher"
+  },
+  "documentation": "https://github.com/neo4j-contrib/mcp-neo4j/blob/main/servers/mcp-neo4j-cypher/README.md",
+  "support": "https://github.com/neo4j-contrib/mcp-neo4j/issues",
+  "server": {
+    "type": "python",
+    "entry_point": "src/mcp_neo4j_cypher/__init__.py",
+    "mcp_config": {
+      "command": "uvx",
+      "args": ["mcp-neo4j-cypher"],
+      "env": {
+        "NEO4J_URI": "${user_config.neo4j_uri}",
+        "NEO4J_USERNAME": "${user_config.neo4j_username}",
+        "NEO4J_PASSWORD": "${user_config.neo4j_password}",
+        "NEO4J_DATABASE": "${user_config.neo4j_database}",
+        "NEO4J_TRANSPORT": "${user_config.transport}",
+        "NEO4J_NAMESPACE": "${user_config.neo4j_namespace}",
+        "NEO4J_MCP_SERVER_HOST": "${user_config.mcp_server_host}",
+        "NEO4J_MCP_SERVER_PORT": "${user_config.mcp_server_port}",
+        "NEO4J_MCP_SERVER_PATH": "${user_config.mcp_server_path}",
+        "NEO4J_MCP_SERVER_ALLOW_ORIGINS": "${user_config.mcp_server_allow_origins}",
+        "NEO4J_MCP_SERVER_ALLOWED_HOSTS": "${user_config.mcp_server_allowed_hosts}",
+        "NEO4J_RESPONSE_TOKEN_LIMIT": "${user_config.token_limit}",
+        "NEO4J_READ_TIMEOUT": "${user_config.read_timeout}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "get_neo4j_schema",
+      "description": "Retrieve the schema of the Neo4j database, including node labels, properties, and relationships. Requires that APOC plugin is installed."
+    },
+    {
+      "name": "read_neo4j_cypher",
+      "description": "Execute read-only Cypher queries (MATCH, RETURN, etc.) on the Neo4j database"
+    },
+    {
+      "name": "write_neo4j_cypher",
+      "description": "Execute write Cypher queries (CREATE, MERGE, SET, DELETE, etc.) on the Neo4j database"
+    }
+  ],
+  "prompts": [],
+  "tools_generated": false,
+  "license": "MIT",
+  "user_config": {
+    "neo4j_username": {
+      "type": "string",
+      "title": "Neo4j Username",
+      "description": "The username for logging into Neo4j",
+      "default": "neo4j",
+      "required": true,
+      "sensitive": false
+    },
+    "neo4j_password": {
+      "type": "string",
+      "title": "Neo4j Password",
+      "description": "The password for logging into Neo4j",
+      "default": "password",
+      "required": true,
+      "sensitive": true
+    },
+    "neo4j_database": {
+      "type": "string",
+      "title": "Neo4j Database",
+      "description": "The database to use in Neo4j, defaults to neo4j",
+      "default": "neo4j",
+      "required": false,
+      "sensitive": false
+    },
+    "neo4j_uri": {
+      "type": "string",
+      "title": "Neo4j URI",
+      "description": "The URI for connecting to Neo4j",
+      "default": "bolt://localhost:7687",
+      "required": true,
+      "sensitive": false
+    },
+    "neo4j_namespace": {
+      "type": "string",
+      "title": "Namespace",
+      "description": "An optional namespace for the MCP server tools",
+      "default": "",
+      "required": false,
+      "sensitive": false
+    },
+    "transport": {
+      "type": "string",
+      "title": "Transport",
+      "description": "The MCP transport, defaults to stdio",
+      "default": "stdio",
+      "required": false,
+      "sensitive": false
+    },
+    "mcp_server_host": {
+      "type": "string",
+      "title": "MCP Server Host",
+      "description": "The host for the MCP server, if not using stdio. Defaults to 127.0.0.1",
+      "default": "127.0.0.1",
+      "required": false,
+      "sensitive": false
+    },
+    "mcp_server_port": {
+      "type": "number",
+      "title": "MCP Server Port",
+      "description": "The port for the MCP server, if not using stdio. Defaults to 8000",
+      "default": 8000,
+      "required": false,
+      "sensitive": false
+    },
+    "mcp_server_path": {
+      "type": "string",
+      "title": "MCP Server Path",
+      "description": "The path for the MCP server, if not using stdio. Defaults to /mcp/",
+      "default": "/mcp/",
+      "required": false,
+      "sensitive": false
+    },
+    "mcp_server_allow_origins": {
+      "type": "string",
+      "title": "MCP Server Allow Origins",
+      "description": "The allowed origins for the MCP server as a comma-separated list, if not using stdio. Defaults to no allowed origins",
+      "default": "",
+      "required": false,
+      "sensitive": false
+    },
+    "token_limit": {
+      "type": "number",
+      "title": "Response token limit",
+      "description": "Optional response token limit for the read tool.",
+      "default": "",
+      "required": false,
+      "sensitive": false
+    },
+    "mcp_server_allowed_hosts": {
+      "type": "string",
+      "title": "MCP Server Allowed Hosts",
+      "description": "The allowed hosts for the MCP server as a comma-separated list, if not using stdio. Defaults to localhost and 127.0.0.1",
+      "default": "localhost,127.0.0.1",
+      "required": false,
+      "sensitive": false
+    },
+    "read_timeout": {
+      "type": "number",
+      "title": "Read timeout",
+      "description": "Optional read timeout in seconds for read queries.",
+      "default": 30,
+      "required": false,
+      "sensitive": false
+    },
+    "read_only": {
+      "type": "boolean",
+      "title": "Read Only Mode",
+      "description": "Allow only read-only queries, no write operations permitted.",
+      "default": false,
+      "required": false,
+      "sensitive": false
+    }
+  }
+}

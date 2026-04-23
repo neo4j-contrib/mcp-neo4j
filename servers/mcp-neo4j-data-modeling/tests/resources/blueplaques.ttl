@@ -1,0 +1,113 @@
+@prefix : <http://voc.neo4j.com/blueplaques#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://voc.neo4j.com/blueplaques> a owl:Ontology .
+
+:COMPOSED a owl:ObjectProperty ;
+    rdfs:domain :Person ;
+    rdfs:range :MusicalComposition .
+
+:HONORED_BY a owl:ObjectProperty ;
+    rdfs:domain :Person ;
+    rdfs:range :Plaque .
+
+:LOCATED_AT a owl:ObjectProperty ;
+    rdfs:domain :Plaque ;
+    rdfs:range :Address .
+
+:addressId a owl:DatatypeProperty ;
+    rdfs:domain :Address ;
+    rdfs:range xsd:string .
+
+:area a owl:DatatypeProperty ;
+    rdfs:domain :Address ;
+    rdfs:range xsd:string .
+
+:birthYear a owl:DatatypeProperty ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:integer .
+
+:borough a owl:DatatypeProperty ;
+    rdfs:domain :Address ;
+    rdfs:range xsd:string .
+
+:compositionId a owl:DatatypeProperty ;
+    rdfs:domain :MusicalComposition ;
+    rdfs:range xsd:string .
+
+:deathYear a owl:DatatypeProperty ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:integer .
+
+:erectionYear a owl:DatatypeProperty ;
+    rdfs:domain :Plaque ;
+    rdfs:range xsd:integer .
+
+:genre a owl:DatatypeProperty ;
+    rdfs:domain :MusicalComposition ;
+    rdfs:range xsd:string .
+
+:inscription a owl:DatatypeProperty ;
+    rdfs:domain :Plaque ;
+    rdfs:range xsd:string .
+
+:material a owl:DatatypeProperty ;
+    rdfs:domain :Plaque ;
+    rdfs:range xsd:string .
+
+:name a owl:DatatypeProperty ;
+    rdfs:domain :Organization,
+        :Person ;
+    rdfs:range xsd:string .
+
+:nationality a owl:DatatypeProperty ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:string .
+
+:organizationType a owl:DatatypeProperty ;
+    rdfs:domain :Organization ;
+    rdfs:range xsd:string .
+
+:personId a owl:DatatypeProperty ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:string .
+
+:plaqueId a owl:DatatypeProperty ;
+    rdfs:domain :Plaque ;
+    rdfs:range xsd:string .
+
+:postcode a owl:DatatypeProperty ;
+    rdfs:domain :Address ;
+    rdfs:range xsd:string .
+
+:profession a owl:DatatypeProperty ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:string .
+
+:professionCategory a owl:DatatypeProperty ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:string .
+
+:streetAddress a owl:DatatypeProperty ;
+    rdfs:domain :Address ;
+    rdfs:range xsd:string .
+
+:title a owl:DatatypeProperty ;
+    rdfs:domain :MusicalComposition ;
+    rdfs:range xsd:string .
+
+:yearComposed a owl:DatatypeProperty ;
+    rdfs:domain :MusicalComposition ;
+    rdfs:range xsd:integer .
+
+:Organization a owl:Class .
+
+:MusicalComposition a owl:Class .
+
+:Address a owl:Class .
+
+:Plaque a owl:Class .
+
+:Person a owl:Class .

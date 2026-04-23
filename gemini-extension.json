@@ -1,0 +1,61 @@
+{
+  "name": "mcp-neo4j",
+  "version": "1.0.1",
+  "mcpServers": {
+    "mcp-neo4j-cloud-aura-api": {
+      "command": "uvx",
+      "args": [ "mcp-neo4j-aura-manager" ]
+    },
+    "mcp-neo4j-cypher": {
+      "command": "uvx",
+      "args": [ "mcp-neo4j-cypher" ]
+    },
+    "mcp-neo4j-data-modeling": {
+      "command": "uvx",
+      "args": [ "mcp-neo4j-data-modeling" ]
+    },
+    "mcp-neo4j-memory": {
+      "command": "uvx",
+      "args": [ "mcp-neo4j-memory" ]
+    }
+  },
+  "settings": [
+    {
+      "name": "NEO4J_URI",
+      "description": "Neo4j connection URI (e.g., bolt://localhost:7687 or neo4j+s://xxxx.databases.neo4j.io)",
+      "envVar": "NEO4J_URI"
+    },
+    {
+      "name": "NEO4J_USERNAME",
+      "description": "Neo4j username",
+      "envVar": "NEO4J_USERNAME"
+    },
+    {
+      "name": "NEO4J_PASSWORD",
+      "description": "Neo4j password",
+      "envVar": "NEO4J_PASSWORD",
+      "sensitive": true
+    },
+    {
+      "name": "NEO4J_DATABASE",
+      "description": "Neo4j database name (default: neo4j)",
+      "envVar": "NEO4J_DATABASE"
+    },
+    {
+      "name": "NEO4J_AURA_CLIENT_ID",
+      "description": "Neo4j Aura API Client ID",
+      "envVar": "NEO4J_AURA_CLIENT_ID"
+    },
+    {
+      "name": "NEO4J_AURA_CLIENT_SECRET",
+      "description": "Neo4j Aura API Client Secret",
+      "envVar": "NEO4J_AURA_CLIENT_SECRET",
+      "sensitive": true
+    },
+    {
+      "name": "NEO4J_NAMESPACE",
+      "description": "Namespace prefix for tool names",
+      "envVar": "NEO4J_NAMESPACE"
+    }
+  ]
+}
