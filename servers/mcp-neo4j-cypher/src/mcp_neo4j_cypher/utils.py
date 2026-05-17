@@ -1,12 +1,22 @@
 import argparse
 import logging
 import os
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import tiktoken
 
 logger = logging.getLogger("mcp_neo4j_cypher")
 logger.setLevel(logging.INFO)
+
+
+def build_get_schema_query(sample_size: Optional[int]) -> tuple[str, dict]:
+    """Build the (cypher, params) pair for ``apoc.meta.schema``; falsy sample_size omits the sample arg."""
+    if not sample_size:
+        return ("CALL apoc.meta.schema() YIELD value RETURN value", {})
+    return (
+        "CALL apoc.meta.schema({sample: $sample_size}) YIELD value RETURN value",
+        {"sample_size": int(sample_size)},
+    )
 
 
 def parse_boolean_safely(value: Union[str, bool]) -> bool:
