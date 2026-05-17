@@ -21,6 +21,18 @@ async def test_get_neo4j_schema(mcp_server: FastMCP, init_data: Any):
 
 
 @pytest.mark.asyncio(loop_scope="function")
+async def test_get_neo4j_schema_no_configured_sample_size(
+    mcp_server_no_default_sample: FastMCP, init_data: Any
+):
+    tool = await mcp_server_no_default_sample.get_tool("get_neo4j_schema")
+    response = await tool.run(dict())
+
+    schema = json.loads(response.content[0].text)
+    assert "Person" in schema
+    assert schema["Person"]["count"] == 3
+
+
+@pytest.mark.asyncio(loop_scope="function")
 async def test_write_neo4j_cypher(mcp_server: FastMCP):
     query = "CREATE (n:Test {name: 'test', age: 123}) RETURN n.name"
     tool = await mcp_server.get_tool("write_neo4j_cypher")
