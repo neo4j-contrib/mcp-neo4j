@@ -1,8 +1,10 @@
 ## Next
 
 ### Fixed
+* Fix `get_neo4j_schema` producing an invalid `apoc.meta.schema({sample: None})` query when no `sample_size` is passed and `schema-sample-size` is not configured — fall back to a default sample size of `1000`
 
 ### Changed
+* Upgrade to FastMCP 3.x (`fastmcp>=3.4.2,<4`)
 
 ### Added
 
