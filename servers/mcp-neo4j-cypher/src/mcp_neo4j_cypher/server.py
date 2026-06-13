@@ -1,7 +1,9 @@
 import json
 import logging
+import sys
 from typing import Any, Literal, Optional
 
+import gcf
 from fastmcp.exceptions import ToolError
 from fastmcp.server import FastMCP
 from fastmcp.tools.tool import TextContent, ToolResult
@@ -39,6 +41,39 @@ async def _is_write_query(query: str, driver: AsyncDriver, database: str) -> boo
     return "w" in (summary.query_type or "")
 
 
+def _encode_results(data: Any, use_gcf: bool, compare: bool) -> str:
+    """Encode query results as JSON or GCF, optionally logging token savings."""
+    json_str = json.dumps(data, default=str)
+
+    if not use_gcf and not compare:
+        return json_str
+
+    try:
+        gcf_str = gcf.encode_generic(data)
+    except Exception:
+        # Fall back to JSON if GCF encoding fails
+        if compare:
+            logger.info("gcf-compare: encoding failed, using JSON")
+        return json_str
+
+    if compare:
+        json_tokens = len(json_str) // 4  # bytes/4 approximation
+        gcf_tokens = len(gcf_str) // 4
+        saved = json_tokens - gcf_tokens
+        pct = (saved / json_tokens * 100) if json_tokens > 0 else 0
+        logger.info(
+            f"gcf-compare: JSON {json_tokens:,} tokens -> GCF {gcf_tokens:,} tokens "
+            f"({pct:.0f}% saved, ~{saved:,} tokens)"
+        )
+        print(
+            f"gcf-compare: JSON {json_tokens:,} tokens -> GCF {gcf_tokens:,} tokens "
+            f"({pct:.0f}% saved)",
+            file=sys.stderr,
+        )
+
+    return gcf_str if use_gcf else json_str
+
+
 def create_mcp_server(
     neo4j_driver: AsyncDriver,
     database: str = "neo4j",
@@ -47,6 +82,8 @@ def create_mcp_server(
     token_limit: Optional[int] = None,
     read_only: bool = False,
     config_sample_size: int = 1000,
+    gcf_output: bool = False,
+    gcf_compare: bool = False,
 ) -> FastMCP:
     mcp: FastMCP = FastMCP(
         "mcp-neo4j-cypher", stateless_http=True
@@ -206,15 +243,15 @@ def create_mcp_server(
                 result_transformer_=lambda r: r.data(),
             )
             sanitized_results = [_value_sanitize(el) for el in results]
-            results_json_str = json.dumps(sanitized_results, default=str)
+            results_str = _encode_results(sanitized_results, gcf_output, gcf_compare)
             if token_limit:
-                results_json_str = _truncate_string_to_tokens(
-                    results_json_str, token_limit
+                results_str = _truncate_string_to_tokens(
+                    results_str, token_limit
                 )
 
-            logger.debug(f"Read query returned {len(results_json_str)} rows")
+            logger.debug(f"Read query returned {len(sanitized_results)} rows")
 
-            return ToolResult(content=[TextContent(type="text", text=results_json_str)])
+            return ToolResult(content=[TextContent(type="text", text=results_str)])
 
         except Neo4jError as e:
             logger.error(f"Neo4j Error executing read query: {e}\n{query}\n{params}")
@@ -289,6 +326,8 @@ async def main(
     token_limit: Optional[int] = None,
     read_only: bool = False,
     schema_sample_size: Optional[int] = None, # this is known as the config_sample_size in the create_mcp_server function
+    gcf_output: bool = False,
+    gcf_compare: bool = False,
 ) -> None:
     logger.info("Starting MCP neo4j Server")
 
@@ -310,7 +349,8 @@ async def main(
     ]
 
     mcp = create_mcp_server(
-        neo4j_driver, database, namespace, read_timeout, token_limit, read_only, schema_sample_size
+        neo4j_driver, database, namespace, read_timeout, token_limit, read_only, schema_sample_size,
+        gcf_output=gcf_output, gcf_compare=gcf_compare,
     )
 
     # Run the server with the specified transport
