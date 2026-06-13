@@ -49,6 +49,16 @@ def main():
         default=None,
         help="Default sample size for schema operations (default: 1000)",
     )
+    parser.add_argument(
+        "--gcf",
+        action="store_true",
+        help="Encode read query results as GCF instead of JSON (requires: pip install 'mcp-neo4j-cypher[gcf]')",
+    )
+    parser.add_argument(
+        "--gcf-compare",
+        action="store_true",
+        help="Enable GCF output and log JSON vs GCF token savings to stderr on every query",
+    )
 
     args = parser.parse_args()
     config = process_config(args)

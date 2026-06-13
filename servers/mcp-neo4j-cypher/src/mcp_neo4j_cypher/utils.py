@@ -296,6 +296,21 @@ def process_config(args: argparse.Namespace) -> dict[str, Union[str, int, None]]
         )
         config["read_only"] = False
 
+    # parse GCF output
+    gcf_compare = getattr(args, 'gcf_compare', False)
+    gcf_flag = getattr(args, 'gcf', False)
+    if gcf_compare:
+        config["gcf_output"] = True
+        config["gcf_compare"] = True
+        logger.info("Info: GCF compare mode enabled. Token savings will be logged to stderr.")
+    elif gcf_flag or parse_boolean_safely(os.getenv("NEO4J_GCF_OUTPUT", "false")):
+        config["gcf_output"] = True
+        config["gcf_compare"] = parse_boolean_safely(os.getenv("NEO4J_GCF_COMPARE", "false"))
+        logger.info("Info: GCF output mode enabled.")
+    else:
+        config["gcf_output"] = False
+        config["gcf_compare"] = False
+
     # parse schema sample size
     if args.schema_sample_size is not None:
         config["schema_sample_size"] = args.schema_sample_size
