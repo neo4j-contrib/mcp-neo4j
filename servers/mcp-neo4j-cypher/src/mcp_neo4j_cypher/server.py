@@ -13,7 +13,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from .utils import _truncate_string_to_tokens, _value_sanitize
+from .utils import _truncate_string_to_tokens, _value_sanitize, build_get_schema_query
 
 logger = logging.getLogger("mcp_neo4j_cypher")
 
@@ -83,7 +83,7 @@ def create_mcp_server(
 
         logger.info(f"Running `get_neo4j_schema` with sample size {effective_sample_size}.")
 
-        get_schema_query = f"CALL apoc.meta.schema({{sample: {effective_sample_size}}}) YIELD value RETURN value"
+        get_schema_query, schema_params = build_get_schema_query(effective_sample_size)
 
         def clean_schema(schema: dict) -> dict:
             cleaned = {}
@@ -147,6 +147,7 @@ def create_mcp_server(
         try:
             results_json = await neo4j_driver.execute_query(
                 get_schema_query,
+                parameters_=schema_params,
                 routing_control=RoutingControl.READ,
                 database_=database,
                 result_transformer_=lambda r: r.data(),
