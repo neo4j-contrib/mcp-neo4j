@@ -629,7 +629,7 @@ wheels = [
 ]
 
 [[package]]
-name = "mcp-neo4j-aura-manager"
+name = "mcp-neo4j-cloud-aura-api"
 version = "0.4.8"
 source = { editable = "." }
 dependencies = [

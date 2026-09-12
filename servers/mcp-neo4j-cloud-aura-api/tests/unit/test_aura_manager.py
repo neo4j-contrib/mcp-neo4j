@@ -2,8 +2,8 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 
-from mcp_neo4j_aura_manager.aura_api_client import AuraAPIClient
-from mcp_neo4j_aura_manager.aura_manager import AuraManager
+from mcp_neo4j_cloud_aura_api.aura_api_client import AuraAPIClient
+from mcp_neo4j_cloud_aura_api.aura_manager import AuraManager
 
 # Mock responses for testing
 MOCK_INSTANCES = {

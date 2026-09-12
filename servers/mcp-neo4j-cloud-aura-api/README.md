@@ -1,4 +1,4 @@
-# 🚀💖☁️ Neo4j Aura Database Manager MCP Server
+# 🚀💖☁️ Neo4j Cloud Aura API MCP Server
 
 mcp-name: io.github.neo4j-contrib/mcp-neo4j-aura-manager
 
@@ -112,7 +112,7 @@ The server offers these core tools:
 ### 💾 Installation
 
 ```bash
-pip install mcp-neo4j-aura-manager
+pip install mcp-neo4j-cloud-aura-api
 ```
 
 ### ⚙️ Configuration
@@ -124,7 +124,7 @@ Add the server to your `claude_desktop_config.json`:
   "neo4j-aura": {
     "command": "uvx",
     "args": [
-      "mcp-neo4j-aura-manager@0.4.8",
+      "mcp-neo4j-cloud-aura-api@0.4.8",
       "--client-id",
       "<your-client-id>",
       "--client-secret",
@@ -140,7 +140,7 @@ Alternatively, you can set environment variables:
 "mcpServers": {
   "neo4j-aura": {
     "command": "uvx",
-    "args": [ "mcp-neo4j-aura-manager@0.4.8" ],
+    "args": [ "mcp-neo4j-cloud-aura-api@0.4.8" ],
     "env": {
       "NEO4J_AURA_CLIENT_ID": "<your-client-id>",
       "NEO4J_AURA_CLIENT_SECRET": "<your-client-secret>"
@@ -175,7 +175,7 @@ The server supports namespacing to prefix tool names for multi-tenant deployment
   "neo4j-aura-app1": {
     "command": "uvx",
     "args": [
-      "mcp-neo4j-aura-manager@0.4.8",
+      "mcp-neo4j-cloud-aura-api@0.4.8",
       "--client-id", "<your-client-id>",
       "--client-secret", "<your-client-secret>",
       "--namespace", "app1"
@@ -184,7 +184,7 @@ The server supports namespacing to prefix tool names for multi-tenant deployment
   "neo4j-aura-app2": {
     "command": "uvx", 
     "args": [
-      "mcp-neo4j-aura-manager@0.4.8",
+      "mcp-neo4j-cloud-aura-api@0.4.8",
       "--client-id", "<your-client-id>",
       "--client-secret", "<your-client-secret>",
       "--namespace", "app2"
@@ -196,7 +196,7 @@ The server supports namespacing to prefix tool names for multi-tenant deployment
 #### CLI Usage
 ```bash
 # With namespace
-mcp-neo4j-aura-manager --client-id <id> --client-secret <secret> --namespace myapp
+mcp-neo4j-cloud-aura-api --client-id <id> --client-secret <secret> --namespace myapp
 
 # Tools become: myapp-list_instances, myapp-create_instance, etc.
 ```
@@ -206,7 +206,7 @@ mcp-neo4j-aura-manager --client-id <id> --client-secret <secret> --namespace mya
 export NEO4J_AURA_CLIENT_ID=your_client_id
 export NEO4J_AURA_CLIENT_SECRET=your_client_secret  
 export NEO4J_NAMESPACE=myapp
-mcp-neo4j-aura-manager
+mcp-neo4j-cloud-aura-api
 ```
 
 #### Docker with Namespacing
@@ -214,7 +214,7 @@ mcp-neo4j-aura-manager
 docker run -e NEO4J_AURA_CLIENT_ID=<id> \
            -e NEO4J_AURA_CLIENT_SECRET=<secret> \
            -e NEO4J_NAMESPACE=myapp \
-           mcp-neo4j-aura-manager
+           mcp-neo4j-cloud-aura-api
 ```
 
 ### 🌐 HTTP Transport Mode
@@ -223,10 +223,10 @@ The server supports HTTP transport for web-based deployments and microservices:
 
 ```bash
 # Basic HTTP mode (defaults: host=127.0.0.1, port=8000, path=/mcp/)
-mcp-neo4j-aura-manager --transport http
+mcp-neo4j-cloud-aura-api --transport http
 
 # Custom HTTP configuration
-mcp-neo4j-aura-manager --transport http --host 127.0.0.1 --port 8080 --path /api/mcp/
+mcp-neo4j-cloud-aura-api --transport http --host 127.0.0.1 --port 8080 --path /api/mcp/
 ```
 
 Environment variables for HTTP configuration:
@@ -239,7 +239,7 @@ export NEO4J_MCP_SERVER_PATH=/api/mcp/
 export NEO4J_MCP_SERVER_ALLOWED_HOSTS="localhost,127.0.0.1"
 export NEO4J_MCP_SERVER_ALLOW_ORIGINS="http://localhost:3000"
 export NEO4J_NAMESPACE=myapp
-mcp-neo4j-aura-manager
+mcp-neo4j-cloud-aura-api
 ```
 
 ### 🔄 Transport Modes
@@ -280,14 +280,14 @@ export NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://example.com,https://example.com"
 
 **Development Setup:**
 ```bash
-mcp-neo4j-aura-manager --transport http \
+mcp-neo4j-cloud-aura-api --transport http \
   --allowed-hosts "localhost,127.0.0.1" \
   --allow-origins "http://localhost:3000"
 ```
 
 **Production Setup:**
 ```bash
-mcp-neo4j-aura-manager --transport http \
+mcp-neo4j-cloud-aura-api --transport http \
   --allowed-hosts "example.com,www.example.com" \
   --allow-origins "https://example.com,https://example.com"
 ```
@@ -307,11 +307,11 @@ mcp-neo4j-aura-manager --transport http \
 
 ## 🐳 Docker Deployment
 
-The Neo4j Aura Manager MCP server can be deployed using Docker for remote deployments. Docker deployment should use HTTP transport for web accessibility. In order to integrate this deployment with applications like Claude Desktop, you will have to use a proxy in your MCP configuration such as `mcp-remote`.
+The Neo4j Cloud Aura API MCP server can be deployed using Docker for remote deployments. Docker deployment should use HTTP transport for web accessibility. In order to integrate this deployment with applications like Claude Desktop, you will have to use a proxy in your MCP configuration such as `mcp-remote`.
 
 ### 🐳 Using with Docker for Claude Desktop
 
-Here we use the Docker Hub hosted Aura Manager MCP server image with stdio transport for use with Claude Desktop.
+Here we use the Docker Hub hosted Neo4j Cloud Aura API MCP server image with stdio transport for use with Claude Desktop.
 
 **Config details:**
 * `-i`: Interactive mode - keeps STDIN open for stdio transport communication
@@ -334,7 +334,7 @@ Here we use the Docker Hub hosted Aura Manager MCP server image with stdio trans
         "-e", "NEO4J_AURA_CLIENT_ID=your-client-id",
         "-e", "NEO4J_AURA_CLIENT_SECRET=your-client-secret",
         "-e", "NEO4J_TRANSPORT=stdio",
-        "mcp/neo4j-aura-manager:latest"
+        "mcp_neo4j_cloud_aura_api:latest"
       ]
     }
   }
@@ -343,11 +343,11 @@ Here we use the Docker Hub hosted Aura Manager MCP server image with stdio trans
 
 ### 📦 Using Your Built Image
 
-After building locally with `docker build -t mcp-neo4j-aura-manager:latest .`:
+After building locally with `docker build -t mcp_neo4j_cloud_aura_api:latest .`:
 
 ```bash
 # Build the image
-docker build -t mcp-neo4j-aura-manager:<version> .
+docker build -t mcp_neo4j_cloud_aura_api:<version> .
 
 # Run with http transport (default for Docker)
 docker run --rm -p 8000:8000 \
@@ -357,7 +357,7 @@ docker run --rm -p 8000:8000 \
   -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
   -e NEO4J_MCP_SERVER_PORT="8000" \
   -e NEO4J_MCP_SERVER_PATH="/mcp/" \
-  mcp-neo4j-aura-manager:<version>
+  mcp_neo4j_cloud_aura_api:<version>
 
 # Run with security middleware for production
 docker run --rm -p 8000:8000 \
@@ -369,7 +369,7 @@ docker run --rm -p 8000:8000 \
   -e NEO4J_MCP_SERVER_PATH="/mcp/" \
   -e NEO4J_MCP_SERVER_ALLOWED_HOSTS="example.com,www.example.com" \
   -e NEO4J_MCP_SERVER_ALLOW_ORIGINS="https://example.com" \
-  mcp-neo4j-aura-manager:<version>
+  mcp_neo4j_cloud_aura_api:<version>
 ```
 
 ### 🔧 Environment Variables
@@ -400,7 +400,7 @@ docker run -d -p 8000:8000 \
   -e NEO4J_MCP_SERVER_HOST="0.0.0.0" \
   -e NEO4J_MCP_SERVER_PORT="8000" \
   --name neo4j-aura-mcp-server \
-  mcp-neo4j-aura-manager:latest
+  mcp_neo4j_cloud_aura_api:latest
 
 # Test the SSE endpoint
 curl http://localhost:8000/sse
@@ -465,8 +465,8 @@ cargo install uv
 2. Clone the repository and set up development environment:
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/mcp-neo4j-aura-manager.git
-cd mcp-neo4j-aura-manager
+git clone https://github.com/yourusername/mcp-neo4j-cloud-aura-api.git
+cd mcp-neo4j-cloud-aura-api
 
 # Create and activate virtual environment using uv
 uv venv

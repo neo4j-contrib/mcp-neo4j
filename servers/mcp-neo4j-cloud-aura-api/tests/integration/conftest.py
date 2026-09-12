@@ -36,7 +36,7 @@ def aura_credentials() -> Dict[str, str]:
 @pytest.fixture(scope="session")
 def test_tenant_id(aura_credentials) -> str:
     """Get a test tenant ID for integration tests."""
-    from mcp_neo4j_aura_manager.server import AuraAPIClient
+    from mcp_neo4j_cloud_aura_api.server import AuraAPIClient
     
     client = AuraAPIClient(aura_credentials["client_id"], aura_credentials["client_secret"])
     tenants = client.list_tenants()
@@ -56,7 +56,7 @@ def test_tenant_id(aura_credentials) -> str:
 @pytest.fixture(scope="session")
 def test_instance_id(aura_credentials) -> str:
     """Get a test instance ID for integration tests."""
-    from mcp_neo4j_aura_manager.server import AuraAPIClient
+    from mcp_neo4j_cloud_aura_api.server import AuraAPIClient
     
     client = AuraAPIClient(aura_credentials["client_id"], aura_credentials["client_secret"])
     instances = client.list_instances()
@@ -77,11 +77,11 @@ def test_instance_id(aura_credentials) -> str:
 
 @pytest.fixture(scope="session")
 def middleware_test_server() -> Dict[str, str]:
-    """Start the Aura Manager MCP server for middleware testing with dummy credentials."""
+    """Start the Neo4j Cloud Aura API MCP server for middleware testing with dummy credentials."""
     import sys
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
 
-    from mcp_neo4j_aura_manager.server import main
+    from mcp_neo4j_cloud_aura_api.server import main
 
     server_url = "http://127.0.0.1:8005/mcp/"
 
@@ -114,11 +114,11 @@ def middleware_test_server() -> Dict[str, str]:
 
 @pytest.fixture(scope="session")
 def middleware_test_server_restricted_cors() -> Dict[str, str]:
-    """Start the Aura Manager MCP server with restricted CORS for testing."""
+    """Start the Neo4j Cloud Aura API MCP server with restricted CORS for testing."""
     import sys
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
 
-    from mcp_neo4j_aura_manager.server import main
+    from mcp_neo4j_cloud_aura_api.server import main
 
     server_url = "http://127.0.0.1:8006/mcp/"
 
