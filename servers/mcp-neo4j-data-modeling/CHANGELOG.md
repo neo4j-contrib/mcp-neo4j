@@ -1,6 +1,7 @@
 ## Next
 
 ### Fixed
+* Add an explicit `type` alongside every bare `$ref` in tool parameter schemas, so MCP clients that check for a literal `type` without resolving `$ref` (e.g. Gemini CLI) no longer drop tools whose parameters reference a nested model.
 
 ### Changed
 * Update base image in Dockerfile to `python:3.13.8-slim`

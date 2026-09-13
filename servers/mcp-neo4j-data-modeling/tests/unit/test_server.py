@@ -361,4 +361,39 @@ async def test_load_from_neo4j_graphrag_python_package_schema_with_dict(
     assert result.nodes[0].key_property.name == "name"
 
 
+def _find_typeless_refs(node, path=""):
+    """Yield the path of every schema node that has a bare `$ref` (no `type`)."""
+    if isinstance(node, dict):
+        if "$ref" in node and "type" not in node:
+            yield path or "<root>"
+        for key, value in node.items():
+            yield from _find_typeless_refs(value, f"{path}.{key}")
+    elif isinstance(node, list):
+        for i, item in enumerate(node):
+            yield from _find_typeless_refs(item, f"{path}[{i}]")
+
+
+class TestToolParameterSchemasHaveExplicitTypes:
+    """Every tool's parameter schema must carry a literal `type` on every
+    node, including `$ref` branches inside `anyOf`/`oneOf`. Gemini CLI
+    resolves schemas without following `$ref` first and drops any tool
+    whose schema has a node lacking `type` ("missing types in its parameter
+    schema"), which silently removes the tool from the model's toolset.
+    """
+
+    @pytest.mark.asyncio
+    async def test_no_tool_parameter_schema_has_a_typeless_ref(
+        self, test_mcp_server: FastMCP
+    ):
+        tools = await test_mcp_server.get_tools()
+        offenders = {}
+        for name, tool in tools.items():
+            hits = list(_find_typeless_refs(tool.parameters))
+            if hits:
+                offenders[name] = hits
+        assert offenders == {}, (
+            f"tool schemas with a $ref lacking a sibling `type`: {offenders}"
+        )
+
+
 

@@ -92,6 +92,44 @@ def convert_screaming_snake_case_to_pascal_case(screaming_snake_case: str) -> st
     return screaming_snake_case.replace("_", " ").title().replace(" ", "")
 
 
+def add_missing_ref_types(schema: dict) -> None:
+    """
+    Recursively add a `type` key to any JSON-schema node that has a bare
+    `$ref` and no `type` of its own, copying the `type` from the definition
+    the `$ref` points at.
+
+    A pydantic v2 `anyOf` branch for a nested model (e.g. the `Union[str,
+    Node]` tool parameters in `server.py`) is emitted as `{"$ref": "..."}`
+    with no sibling `type`, which is valid JSON Schema (the type is defined
+    at the ref target) but is rejected by MCP clients that check every
+    schema node for a literal `type` without resolving `$ref` first (Gemini
+    CLI logs "missing types in its parameter schema" and drops the tool).
+    Mutates `schema` in place.
+
+    Parameters
+    ----------
+    schema : dict
+        A JSON schema (or subschema) dictionary, as produced for an MCP
+        tool's parameters. Must include the top-level `$defs` if any of its
+        `$ref`s point there.
+    """
+
+    def _walk(node, defs: dict) -> None:
+        if isinstance(node, dict):
+            ref = node.get("$ref")
+            if ref and "type" not in node:
+                ref_type = defs.get(ref.rsplit("/", 1)[-1], {}).get("type")
+                if ref_type is not None:
+                    node["type"] = ref_type
+            for value in node.values():
+                _walk(value, defs)
+        elif isinstance(node, list):
+            for item in node:
+                _walk(item, defs)
+
+    _walk(schema, schema.get("$defs", {}))
+
+
 def parse_dict_from_json_input(value: Union[str, dict]) -> dict:
     """
     Parse a dictionary from either a JSON string or a dictionary.
