@@ -26,7 +26,11 @@ from .static import (
     SOFTWARE_DEPENDENCY_MODEL,
     SUPPLY_CHAIN_MODEL,
 )
-from .utils import format_namespace, parse_dict_from_json_input
+from .utils import (
+    add_missing_ref_types,
+    format_namespace,
+    parse_dict_from_json_input,
+)
 
 logger = logging.getLogger("mcp_neo4j_data_modeling")
 
@@ -656,6 +660,10 @@ Process:
 """
 
         return prompt
+
+    # Fix bare $ref schema nodes so strict MCP clients don't drop the tool.
+    for registered_tool in mcp._tool_manager._tools.values():
+        add_missing_ref_types(registered_tool.parameters)
 
     return mcp
 

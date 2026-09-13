@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from mcp_neo4j_data_modeling.utils import (
+    add_missing_ref_types,
     parse_allow_origins,
     parse_allowed_hosts,
     parse_namespace,
@@ -627,3 +628,62 @@ class TestNamespaceConfigProcessing:
         args = args_factory(namespace="test")
         config = process_config(args)
         assert "namespace" in config
+
+
+class TestAddMissingRefTypes:
+    def test_bare_ref_gets_type_from_defs(self):
+        """A `$ref` anyOf branch with no `type` is filled in from `$defs`."""
+        schema = {
+            "properties": {
+                "node": {
+                    "anyOf": [
+                        {"type": "string"},
+                        {"$ref": "#/$defs/Node"},
+                    ]
+                }
+            },
+            "$defs": {"Node": {"type": "object", "properties": {}}},
+        }
+        add_missing_ref_types(schema)
+        ref_branch = schema["properties"]["node"]["anyOf"][1]
+        assert ref_branch["type"] == "object"
+        assert ref_branch["$ref"] == "#/$defs/Node"
+
+    def test_ref_with_existing_type_is_untouched(self):
+        """A `$ref` node that already carries a `type` is left as-is."""
+        schema = {
+            "properties": {"node": {"$ref": "#/$defs/Node", "type": "object"}},
+            "$defs": {"Node": {"type": "object"}},
+        }
+        add_missing_ref_types(schema)
+        assert schema["properties"]["node"] == {
+            "$ref": "#/$defs/Node",
+            "type": "object",
+        }
+
+    def test_ref_target_missing_from_defs_is_left_untouched(self):
+        """An unresolvable `$ref` gains no `type` rather than a guessed one."""
+        schema = {"properties": {"node": {"$ref": "#/$defs/Missing"}}}
+        add_missing_ref_types(schema)
+        assert "type" not in schema["properties"]["node"]
+
+    def test_walks_nested_lists_and_dicts(self):
+        """A `$ref` nested inside a list (e.g. an `items` array) is reached."""
+        schema = {
+            "properties": {
+                "nodes": {
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/Node"},
+                }
+            },
+            "$defs": {"Node": {"type": "object"}},
+        }
+        add_missing_ref_types(schema)
+        assert schema["properties"]["nodes"]["items"]["type"] == "object"
+
+    def test_no_refs_present_is_a_no_op(self):
+        """A schema with no `$ref` at all is returned unchanged."""
+        schema = {"properties": {"name": {"type": "string"}}}
+        before = {"properties": {"name": {"type": "string"}}}
+        add_missing_ref_types(schema)
+        assert schema == before
