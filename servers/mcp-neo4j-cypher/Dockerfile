@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir hatchling
 COPY pyproject.toml /app/
 
 # Install dependencies
-RUN pip install --no-cache-dir neo4j>=5.26.0 fastmcp>=2.10.5
+RUN pip install --no-cache-dir "neo4j>=5.26.0" "fastmcp>=2.10.5,<3"
 
 
 # Copy the source code
