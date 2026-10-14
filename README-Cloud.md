@@ -249,6 +249,87 @@ az containerapp ingress traffic set \
   --revision-weight mcp-neo4j-app--abc123=50 mcp-neo4j-app--def456=50
 ```
 
+## GCP Cloud Run Deployment
+
+GCP Cloud Run provides a serverless container platform perfect for MCP server deployments with built-in scaling and HTTPS.
+
+### Prerequisites
+
+1. Google Cloud CLI (`gcloud`) installed and logged in
+2. A Google Cloud project with the Cloud Run and Artifact Registry APIs enabled
+3. Container image pushed to Artifact Registry
+
+### Step 1: Build and Push Docker Image
+
+```bash
+# Navigate to your chosen server directory
+cd servers/mcp-neo4j-memory  # or any other server
+
+# Build the Docker image
+docker build -t mcp-neo4j-server .
+
+# Create an Artifact Registry repository (if not exists)
+gcloud artifacts repositories create mcp-neo4j-repo \
+  --repository-format=docker \
+  --location=us-central1
+
+# Configure Docker authentication
+gcloud auth configure-docker us-central1-docker.pkg.dev
+
+# Tag and push image
+docker tag mcp-neo4j-server:latest \
+  us-central1-docker.pkg.dev/my-project/mcp-neo4j-repo/mcp-neo4j-server:latest
+docker push us-central1-docker.pkg.dev/my-project/mcp-neo4j-repo/mcp-neo4j-server:latest
+```
+
+### Step 2: Store the Neo4j Password
+
+```bash
+# Create the secret in Secret Manager (if not exists)
+echo -n "your-secret-password" | gcloud secrets create neo4j-password --data-file=-
+
+# Grant the Cloud Run service identity access (replace with your service account)
+gcloud secrets add-iam-policy-binding neo4j-password \
+  --member="serviceAccount:my-project-number-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+### Step 3: Deploy to Cloud Run
+
+```bash
+# Deploy the container
+gcloud run deploy mcp-neo4j-app \
+  --image us-central1-docker.pkg.dev/my-project/mcp-neo4j-repo/mcp-neo4j-server:latest \
+  --platform managed \
+  --region us-central1 \
+  --port 8000 \
+  --allow-unauthenticated \
+  --min-instances 1 \
+  --max-instances 10 \
+  --cpu 1 \
+  --memory 512Mi \
+  --set-env-vars \
+    NEO4J_TRANSPORT=http \
+    NEO4J_MCP_SERVER_HOST=0.0.0.0 \
+    NEO4J_MCP_SERVER_PORT=8000 \
+    NEO4J_URI=bolt://your-neo4j-instance:7687 \
+    NEO4J_USERNAME=neo4j \
+  --set-secrets NEO4J_PASSWORD=neo4j-password:latest
+```
+
+### Step 4: Configure Scaling
+
+```bash
+# Adjust concurrency and instance bounds
+gcloud run services update mcp-neo4j-app \
+  --region us-central1 \
+  --concurrency 10 \
+  --min-instances 1 \
+  --max-instances 10 \
+  --cpu 1 \
+  --memory 512Mi
+```
+
 ## Configuration Best Practices
 
 ### Environment Variables for Cloud Deployment
@@ -292,7 +373,7 @@ Based on server type and expected load:
 
 ### Monitoring and Logging
 
-- Enable container logs aggregation (CloudWatch Logs, Azure Monitor)
+- Enable container logs aggregation (CloudWatch Logs, Azure Monitor, Cloud Logging)
 - Set up application performance monitoring
 - Monitor HTTP response times and error rates
 - Track container resource utilization
