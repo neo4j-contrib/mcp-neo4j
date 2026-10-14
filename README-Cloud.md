@@ -297,10 +297,10 @@ gcloud secrets add-iam-policy-binding neo4j-password \
 ### Step 3: Deploy to Cloud Run
 
 ```bash
-# Deploy the container
+# Deploy the container (unauthenticated ingress mirrors the Azure
+# external-ingress setup; see Security Configuration below to lock it down)
 gcloud run deploy mcp-neo4j-app \
   --image us-central1-docker.pkg.dev/my-project/mcp-neo4j-repo/mcp-neo4j-server:latest \
-  --platform managed \
   --region us-central1 \
   --port 8000 \
   --allow-unauthenticated \
@@ -308,12 +308,7 @@ gcloud run deploy mcp-neo4j-app \
   --max-instances 10 \
   --cpu 1 \
   --memory 512Mi \
-  --set-env-vars \
-    NEO4J_TRANSPORT=http \
-    NEO4J_MCP_SERVER_HOST=0.0.0.0 \
-    NEO4J_MCP_SERVER_PORT=8000 \
-    NEO4J_URI=bolt://your-neo4j-instance:7687 \
-    NEO4J_USERNAME=neo4j \
+  --set-env-vars NEO4J_TRANSPORT=http,NEO4J_MCP_SERVER_HOST=0.0.0.0,NEO4J_MCP_SERVER_PORT=8000,NEO4J_URI=bolt://your-neo4j-instance:7687,NEO4J_USERNAME=neo4j \
   --set-secrets NEO4J_PASSWORD=neo4j-password:latest
 ```
 
