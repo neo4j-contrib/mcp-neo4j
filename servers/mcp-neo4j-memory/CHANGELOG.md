@@ -5,6 +5,7 @@
 ### Changed
 
 ### Added
+* Add optional `limit` and `offset` parameters to the `read_graph` tool to page through large knowledge graphs instead of loading every entity at once
 
 ## v0.4.5
 
