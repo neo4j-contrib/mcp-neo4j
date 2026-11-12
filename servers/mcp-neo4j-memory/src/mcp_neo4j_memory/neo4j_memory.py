@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from neo4j import AsyncDriver, RoutingControl
 from pydantic import BaseModel, Field
@@ -126,11 +126,35 @@ class Neo4jMemory:
             # Index might already exist, which is fine
             logger.debug(f"Fulltext index creation: {e}")
 
-    async def load_graph(self, filter_query: str = "*"):
-        """Load the entire knowledge graph from Neo4j."""
+    async def load_graph(self, filter_query: str = "*", limit: Optional[int] = None, offset: int = 0):
+        """Load the knowledge graph from Neo4j.
+
+        Args:
+            filter_query: Fulltext query used to select entities. Defaults to all entities.
+            limit: Maximum number of entities to return. ``None`` returns all matching entities.
+            offset: Number of entities to skip before returning results.
+
+        When ``limit`` or ``offset`` is set, entities are ordered by name so that pages are stable.
+        Relations are returned for every selected entity, including relations to entities outside the page.
+        """
+        if limit is not None and limit < 0:
+            raise ValueError(f"limit must be a non-negative integer, got {limit}")
+        if offset < 0:
+            raise ValueError(f"offset must be a non-negative integer, got {offset}")
+
         logger.info("Loading knowledge graph from Neo4j")
+        params: Dict[str, Any] = {"filter": filter_query}
+        pagination = ""
+        if limit is not None or offset:
+            pagination = "WITH entity ORDER BY entity.name SKIP $offset"
+            params["offset"] = offset
+            if limit is not None:
+                pagination += " LIMIT $limit"
+                params["limit"] = limit
+
         query = """
             CALL db.index.fulltext.queryNodes('search', $filter) yield node as entity, score
+            """ + pagination + """
             OPTIONAL MATCH (entity)-[r]-(other)
             RETURN collect(distinct {
                 name: entity.name, 
@@ -144,7 +168,7 @@ class Neo4jMemory:
             }) as relations
         """
         
-        result = await self.driver.execute_query(query, {"filter": filter_query}, routing_control=RoutingControl.READ)
+        result = await self.driver.execute_query(query, params, routing_control=RoutingControl.READ)
         
         if not result.records:
             return KnowledgeGraph(entities=[], relations=[])
@@ -275,9 +299,13 @@ class Neo4jMemory:
             )
         logger.info(f"Successfully deleted {len(relations)} relations")
 
-    async def read_graph(self) -> KnowledgeGraph:
-        """Read the entire knowledge graph."""
-        return await self.load_graph()
+    async def read_graph(self, limit: Optional[int] = None, offset: int = 0) -> KnowledgeGraph:
+        """Read the knowledge graph, optionally one page of entities at a time.
+
+        Without arguments the entire graph is returned. Use ``limit`` and ``offset``
+        to page through entities ordered by name.
+        """
+        return await self.load_graph(limit=limit, offset=offset)
 
     async def search_memories(self, query: str) -> KnowledgeGraph:
         """Search for memories based on a query with Fulltext Search."""

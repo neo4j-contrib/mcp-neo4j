@@ -39,9 +39,12 @@ The server offers these core tools:
 
 #### 🔎 Query Tools
 - `read_graph`
-   - Read the entire knowledge graph
-   - No input required
-   - Returns: Complete graph with entities and relations
+   - Read the entire knowledge graph, or one page of it
+   - Optional input:
+     - `limit` (integer, >= 1): Maximum number of entities to return. Omit to return all entities
+     - `offset` (integer, >= 0, default `0`): Number of entities to skip, for paging through large graphs
+   - Entities are ordered by name when `limit` or `offset` is set, and each page includes all relations of its entities
+   - Returns: Graph with the selected entities and their relations
 
 - `search_nodes`
    - Search for nodes based on a query

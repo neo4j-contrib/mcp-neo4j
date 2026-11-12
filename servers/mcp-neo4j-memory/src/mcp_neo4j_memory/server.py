@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Literal
+from typing import Annotated, Literal, Optional
 
 from neo4j import AsyncGraphDatabase
 from pydantic import Field
@@ -39,14 +39,25 @@ def create_mcp_server(memory: Neo4jMemory, namespace: str = "") -> FastMCP:
                                           destructiveHint=False, 
                                           idempotentHint=True, 
                                           openWorldHint=True))
-    async def read_graph() -> ToolResult:
-        """Read the entire knowledge graph with all entities and relationships.
+    async def read_graph(
+        limit: Annotated[
+            Optional[int],
+            Field(ge=1, description="Maximum number of entities to return. Omit to return all entities."),
+        ] = None,
+        offset: Annotated[
+            int,
+            Field(ge=0, description="Number of entities to skip before returning results. Use with limit to page through the graph."),
+        ] = 0,
+    ) -> ToolResult:
+        """Read the knowledge graph with its entities and relationships.
         
         Returns the complete memory graph including all stored entities and their relationships.
-        Use this to get a full overview of stored knowledge.
+        Use this to get a full overview of stored knowledge. For large graphs, pass `limit`
+        (and `offset`) to page through entities ordered by name instead of loading everything at once.
+        Each page includes all relations of the returned entities.
         
         Returns:
-            KnowledgeGraph: Complete graph with all entities and relations
+            KnowledgeGraph: Graph with the selected entities and their relations
             
         Example response:
         {
@@ -59,9 +70,9 @@ def create_mcp_server(memory: Neo4jMemory, namespace: str = "") -> FastMCP:
             ]
         }
         """
-        logger.info("MCP tool: read_graph")
+        logger.info(f"MCP tool: read_graph (limit={limit}, offset={offset})")
         try:
-            result = await memory.read_graph()
+            result = await memory.read_graph(limit=limit, offset=offset)
             return ToolResult(content=[TextContent(type="text", text=result.model_dump_json())],
                           structured_content=result)
         except Neo4jError as e:
